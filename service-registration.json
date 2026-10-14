@@ -1,0 +1,20 @@
+{
+  "vertical": "bank8",
+  "services": [
+    {
+      "service_type": "bank8:ledger",
+      "event_triggers": [
+        {
+          "event_type": "bank8:payments:instruction:completed",
+          "consumer_group": "bank8:ledger:posting",
+          "action": "record_posting_callback"
+        },
+        {
+          "event_type": "sentin8:sys:service:updated",
+          "consumer_group": "bank8:ledger:envinit",
+          "action": "seed_internal_accounts"
+        }
+      ]
+    }
+  ]
+}
