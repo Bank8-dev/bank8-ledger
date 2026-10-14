@@ -29,11 +29,14 @@ const PG_ROLES: &[PgRole] = &[PgRole {
 /// use the full vocabulary form (bare forms + missing grants fail-closed
 /// every bus/policy/stat DCR).
 /// - `bank8:ledger` — the service's own client (ledger/src/server.rs):
+///
 /// bus produce/consume + the shared Func/Cron M2M token source.
 /// - `bank8:ledger-policy` — Shield hot-reload consumer
+///
 /// (policy_bus_client, full colon identity).
 /// - `ledger-policy` — Shield stat emitter (stat_emit short form).
 /// - `ledger-audit` — shell audit-journal pusher workload (audit crate
+///
 /// §6.8; boot step 8c).
 const M2M_GRANTS: &[M2mGrant] = &[
     M2mGrant {
