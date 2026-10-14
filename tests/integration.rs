@@ -8,7 +8,10 @@ use bank8_ledger_server::modules::{validate_module_composition, validate_product
 
 #[test]
 fn test_validate_module_composition_current_account_overdraft_ok() {
-    let modules = vec!["denomination-validation".to_string(), "overdraft-protection".to_string()];
+    let modules = vec![
+        "denomination-validation".to_string(),
+        "overdraft-protection".to_string(),
+    ];
     assert!(validate_module_composition("current_account", &modules).is_ok());
 }
 

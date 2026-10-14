@@ -54,8 +54,13 @@ fn ctx(token_tp: &str, scope_list: &[&str]) -> RequestCtx {
 
 fn mirror_engine(mode: PolicyMode) -> PolicyEngine {
     let e = PolicyEngine::new(SERVICE);
-    e.load_from_rows(vec![row("scope-mirror", SCOPE_MIRROR_POLICIES, mode, PolicyOrigin::Platform)])
-        .expect("declared scope-mirror set must parse");
+    e.load_from_rows(vec![row(
+        "scope-mirror",
+        SCOPE_MIRROR_POLICIES,
+        mode,
+        PolicyOrigin::Platform,
+    )])
+    .expect("declared scope-mirror set must parse");
     e
 }
 
@@ -116,10 +121,7 @@ fn mirror_permits_own_grants() {
         // The action id equals the scope id for the primary gate of each
         // resource; cross-permits (e.g. audit:read → postings:read) are
         // covered by the explicit matrix test below.
-        let out = e.evaluate(
-            &ctx("user", &[scope]),
-            &EvalTarget::new(scope),
-        );
+        let out = e.evaluate(&ctx("user", &[scope]), &EvalTarget::new(scope));
         assert!(out.is_allow(), "scope {scope} must allow action {scope}");
     }
 }
@@ -165,7 +167,12 @@ fn platform_admin_scopes_pass() {
 fn forbid_beats_permit() {
     let e = PolicyEngine::new(SERVICE);
     e.load_from_rows(vec![
-        row("scope-mirror", SCOPE_MIRROR_POLICIES, PolicyMode::Enforced, PolicyOrigin::Platform),
+        row(
+            "scope-mirror",
+            SCOPE_MIRROR_POLICIES,
+            PolicyMode::Enforced,
+            PolicyOrigin::Platform,
+        ),
         row(
             "tenant-freeze",
             "forbid(principal, action == Action::\"bank8:ledger:postings:write\", resource);",
@@ -178,7 +185,10 @@ fn forbid_beats_permit() {
         &ctx("user", &["bank8:ledger:postings:write"]),
         &EvalTarget::new("bank8:ledger:postings:write"),
     );
-    assert!(matches!(out.enforce_decision, Decision::Deny { .. }), "forbid wins");
+    assert!(
+        matches!(out.enforce_decision, Decision::Deny { .. }),
+        "forbid wins"
+    );
 }
 
 /// (f2) role-keyed rules participate in the same decision: a tenant set
@@ -194,10 +204,18 @@ fn role_keyed_tenant_set_decides() {
     )])
     .expect("load");
     // without roles → deny; with the live-resolved role → allow.
-    let denied = e.evaluate(&ctx("user", &[]), &EvalTarget::new("bank8:ledger:accounts:write"));
+    let denied = e.evaluate(
+        &ctx("user", &[]),
+        &EvalTarget::new("bank8:ledger:accounts:write"),
+    );
     assert!(!denied.is_allow());
     let allowed = e.evaluate(
-        &ctx("user", &[]).with_roles(["bank8:ledger:admin"].iter().map(|s| s.to_string()).collect()),
+        &ctx("user", &[]).with_roles(
+            ["bank8:ledger:admin"]
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+        ),
         &EvalTarget::new("bank8:ledger:accounts:write"),
     );
     assert!(allowed.is_allow());
@@ -220,7 +238,12 @@ fn cross_env_set_isolated() {
     .expect("load");
     // Rebuild properly: the row above is keyed to ENV; build one keyed to
     // another env and confirm it does not satisfy this env's evaluation.
-    let mut r = row("other-env-set", SCOPE_MIRROR_POLICIES, PolicyMode::Enforced, PolicyOrigin::Platform);
+    let mut r = row(
+        "other-env-set",
+        SCOPE_MIRROR_POLICIES,
+        PolicyMode::Enforced,
+        PolicyOrigin::Platform,
+    );
     r.env_id = other_env;
     let e2 = PolicyEngine::new(SERVICE);
     e2.load_from_rows(vec![r]).expect("load");
@@ -228,7 +251,10 @@ fn cross_env_set_isolated() {
         &ctx("user", &["bank8:ledger:accounts:read"]),
         &EvalTarget::new("bank8:ledger:accounts:read"),
     );
-    assert!(!out.is_allow(), "another env's set must not decide this env");
+    assert!(
+        !out.is_allow(),
+        "another env's set must not decide this env"
+    );
 }
 
 /// Every action the ledger handlers evaluate (step-5 targets). The mirror
@@ -252,7 +278,6 @@ pub(crate) const HANDLER_ACTIONS: &[&str] = &[
     "bank8:ledger:schedules:write",
 ];
 
-
 /// (i) registration parity: the declared set covers EVERY action the
 /// handlers evaluate (grep-equivalent matrix, kept in sync by the code — a
 /// new EvalTarget without a mirror permit fails here) and the
@@ -267,21 +292,19 @@ fn declared_mirror_covers_every_handler_action() {
         // The mirror grants the action-id scope for every primary gate, so
         // a caller holding exactly the action id passes each action.
         let out = e.evaluate(&ctx("user", &[*action]), &EvalTarget::new(*action));
-        assert!(out.is_allow(), "action {action} must be covered by the mirror");
+        assert!(
+            out.is_allow(),
+            "action {action} must be covered by the mirror"
+        );
     }
 }
-
 
 /// (h) the enroll-time dry-run gate (§4.2) accepts the declared set
 /// an enforced set that denies its own grants never ships.
 #[test]
 fn declared_set_passes_enroll_dry_run() {
-    sentin8::shield::runtime::dry_run_mirror(
-        SCOPE_MIRROR_POLICIES,
-        "scope-mirror",
-        SERVICE,
-    )
-    .expect("declared ledger scope-mirror must permit its own grants");
+    sentin8::shield::runtime::dry_run_mirror(SCOPE_MIRROR_POLICIES, "scope-mirror", SERVICE)
+        .expect("declared ledger scope-mirror must permit its own grants");
 }
 /// (j) — ABAC showcase: a tenant-authored per-caller transfer limit
 /// (`resource.amount < principal.max_transfer_amount`), the principal attr
@@ -298,8 +321,13 @@ mod abac_showcase {
 
     fn engine(mode: PolicyMode) -> PolicyEngine {
         let e = PolicyEngine::new(SERVICE);
-        e.load_from_rows(vec![row("tenant-transfer-limits", LIMIT_SET, mode, PolicyOrigin::Tenant)])
-            .expect("limit set parses");
+        e.load_from_rows(vec![row(
+            "tenant-transfer-limits",
+            LIMIT_SET,
+            mode,
+            PolicyOrigin::Tenant,
+        )])
+        .expect("limit set parses");
         e
     }
 
@@ -327,7 +355,10 @@ mod abac_showcase {
         // 10_000 limit; 50_000 posting → would-deny, yet the request passes.
         let out = e.evaluate(&caller_with_limit(10_000), &posting(50_000));
         assert!(out.is_allow(), "shadow never blocks");
-        assert!(out.shadow_deny.is_some(), "the limit breach must be reported");
+        assert!(
+            out.shadow_deny.is_some(),
+            "the limit breach must be reported"
+        );
     }
 
     #[test]
@@ -336,14 +367,8 @@ mod abac_showcase {
         let within = e.evaluate(&caller_with_limit(10_000), &posting(9_999));
         assert!(within.is_allow(), "9_999 < 10_000 limit must pass");
         let breach = e.evaluate(&caller_with_limit(10_000), &posting(10_000));
-        assert!(
-            !breach.is_allow(),
-            "10_000 == limit must deny (strict <)"
-        );
-        let unattr = e.evaluate(
-            &ctx("user", &["bank8:ledger:postings:write"]),
-            &posting(1),
-        );
+        assert!(!breach.is_allow(), "10_000 == limit must deny (strict <)");
+        let unattr = e.evaluate(&ctx("user", &["bank8:ledger:postings:write"]), &posting(1));
         assert!(
             !unattr.is_allow(),
             "missing principal attr denies the attr-keyed rule (fail-closed)"

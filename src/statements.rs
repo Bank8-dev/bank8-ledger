@@ -73,7 +73,10 @@ impl StatementStorage {
             .await
             .map_err(|e| format!("storage statement upload: {e}"))?;
         if !resp.status().is_success() {
-            return Err(format!("storage statement upload: status {}", resp.status()));
+            return Err(format!(
+                "storage statement upload: status {}",
+                resp.status()
+            ));
         }
         Ok(())
     }

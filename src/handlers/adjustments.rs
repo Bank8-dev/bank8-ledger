@@ -121,7 +121,7 @@ pub async fn create_adjustment(
         serde_json::json!({ "adjustment_id": adjustment_id, "account_id": req.account_id, "reason": req.reason }))
         .await;
 
-/* removed misplaced commit */
+    /* removed misplaced commit */
     Ok(Json(AdjustmentResponse {
         id: adjustment_id,
         account_id: req.account_id,

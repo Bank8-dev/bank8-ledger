@@ -37,32 +37,32 @@
 //! on the same connection it reads.
 
 pub mod accounts;
+pub mod admin_ui;
+pub mod audit;
+pub mod customers;
+pub mod event_consumer;
+pub mod flags;
+pub mod func_host;
+pub mod params;
 pub mod postings;
 pub mod products;
-pub mod schedules;
-pub mod flags;
 pub mod restrictions;
-pub mod params;
-pub mod customers;
-pub mod audit;
-pub mod admin_ui;
+pub mod schedules;
 pub mod seed_accounts;
-pub mod event_consumer;
-pub mod func_host;
 pub mod statement_regen;
 // Business API completion handlers, one module per resource family.
-pub mod journal;
+pub mod account_extras;
 pub mod adjustments;
 pub mod balances_v2;
-pub mod processing_groups;
-pub mod calendar;
-pub mod schedule_tags;
-pub mod plans;
-pub mod contracts;
-pub mod parameters_ext;
-pub mod internal_accounts;
-pub mod account_extras;
 pub mod bulk_batches;
+pub mod calendar;
+pub mod contracts;
+pub mod internal_accounts;
+pub mod journal;
+pub mod parameters_ext;
+pub mod plans;
+pub mod processing_groups;
+pub mod schedule_tags;
 pub mod streams;
 
 use std::sync::Arc;
@@ -97,9 +97,10 @@ pub struct AppState {
 /// tables (`accounts`, `flags`, `restriction_sets`) must
 /// use the extended form via [`set_tenant_context_ext`]; the legacy 2-arg
 /// form is kept for tables that only need org/env scoping.
-pub async fn set_tenant_context(conn: &mut sqlx::PgConnection, env_id: uuid::Uuid)
-    -> Result<(), sqlx::Error>
-{
+pub async fn set_tenant_context(
+    conn: &mut sqlx::PgConnection,
+    env_id: uuid::Uuid,
+) -> Result<(), sqlx::Error> {
     sqlx::query("SELECT sentin8_set_tenant_context($1, NULL, NULL, NULL, false, false, false, NULL, 'ledger')")
         .bind(env_id)
         .execute(conn)
@@ -140,17 +141,19 @@ pub async fn set_staff_override_context(
     env_id: uuid::Uuid,
     auth: &crate::auth::AuthContext,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query("SELECT sentin8_set_tenant_context($1, $2, $3, $4, $5, false, $6, $7, 'ledger', true)")
-        .bind(env_id)
-        .bind(&auth.claims.sub)
-        .bind(&auth.claims.token_tp)
-        .bind(&auth.claims.scope)
-        .bind(auth.is_platform_admin())
-        .bind(auth.claims.is_env_admin())
-        .bind(auth.claims.sentin8_auth_user_uuid())
-        .execute(conn)
-        .await
-        .map(|_| ())
+    sqlx::query(
+        "SELECT sentin8_set_tenant_context($1, $2, $3, $4, $5, false, $6, $7, 'ledger', true)",
+    )
+    .bind(env_id)
+    .bind(&auth.claims.sub)
+    .bind(&auth.claims.token_tp)
+    .bind(&auth.claims.scope)
+    .bind(auth.is_platform_admin())
+    .bind(auth.claims.is_env_admin())
+    .bind(auth.claims.sentin8_auth_user_uuid())
+    .execute(conn)
+    .await
+    .map(|_| ())
 }
 
 /// Resolve the effective env for a request.
@@ -175,7 +178,6 @@ pub fn resolve_org_env(
         .unwrap_or(token_env)
 }
 
-
 /// Standard DB error → HTTP 500.
 pub fn err_db(e: sqlx::Error) -> (axum::http::StatusCode, String) {
     (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
@@ -199,12 +201,15 @@ pub async fn emit_event(
     payload: serde_json::Value,
 ) {
     if let Err(e) =
-        sentin8::bus::outbox::insert_outbox_row_pool(pool, env_id, "ledger", event_type, &payload).await
+        sentin8::bus::outbox::insert_outbox_row_pool(pool, env_id, "ledger", event_type, &payload)
+            .await
     {
         tracing::warn!(error = %e, event_type, "bank8:ledger: failed to emit outbox event");
     }
 }
 
 pub async fn health() -> axum::Json<serde_json::Value> {
-    axum::Json(serde_json::json!({ "status": "ok", "service": "ledger", "version": sentin8::build_info::id(), "build": sentin8::build_info::build_hash() }))
+    axum::Json(
+        serde_json::json!({ "status": "ok", "service": "ledger", "version": sentin8::build_info::id(), "build": sentin8::build_info::build_hash() }),
+    )
 }

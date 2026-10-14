@@ -51,22 +51,43 @@ const SEED_ACCOUNTS: &[(&str, &str)] = &[
     ("ledger:liquidity_account", "liquidity"),
     ("ledger:clearing_account", "clearing"),
     ("ledger:suspense_account", "suspense"),
-    ("Capitalised Interest Received", "capitalised_interest_received"),
-    ("Capitalised Interest Receivable", "capitalised_interest_receivable"),
-    ("Capitalised Penalties Received", "capitalised_penalties_received"),
+    (
+        "Capitalised Interest Received",
+        "capitalised_interest_received",
+    ),
+    (
+        "Capitalised Interest Receivable",
+        "capitalised_interest_receivable",
+    ),
+    (
+        "Capitalised Penalties Received",
+        "capitalised_penalties_received",
+    ),
     ("Interest Write-off", "interest_write_off"),
     ("Principal Write-off", "principal_write_off"),
     ("Interest on Fees", "interest_on_fees"),
     ("Early Closure Fee Income", "early_closure_fee_income"),
     ("Payment Type Fee Income", "payment_type_fee_income"),
-    ("Overdraft Interest Receivable", "overdraft_interest_receivable"),
+    (
+        "Overdraft Interest Receivable",
+        "overdraft_interest_receivable",
+    ),
     ("Overdraft Interest Received", "overdraft_interest_received"),
-    ("Unarranged Overdraft Fee Income", "unarranged_overdraft_fee_income"),
-    ("Unarranged Overdraft Fee Receivable", "unarranged_overdraft_fee_receivable"),
+    (
+        "Unarranged Overdraft Fee Income",
+        "unarranged_overdraft_fee_income",
+    ),
+    (
+        "Unarranged Overdraft Fee Receivable",
+        "unarranged_overdraft_fee_receivable",
+    ),
     ("Profit Paid", "profit_paid"),
     ("Accrued Profit Payable", "accrued_profit_payable"),
     ("Line of Credit Account", "line_of_credit_account"),
-    ("Overpayment Allowance Fee Income", "overpayment_allowance_fee_income"),
+    (
+        "Overpayment Allowance Fee Income",
+        "overpayment_allowance_fee_income",
+    ),
 ];
 
 /// Default denominations to seed accounts for.
@@ -176,8 +197,12 @@ pub async fn seed_internal_accounts(pool: &PgPool, env_id: Uuid) -> anyhow::Resu
                     .await;
 
                     match result {
-                        Ok(_) => tracing::info!(account_id = %account_id, nickname, denom, account_key, "seeded internal account"),
-                        Err(e) => tracing::warn!(error = %e, nickname, denom, "failed to seed internal account"),
+                        Ok(_) => {
+                            tracing::info!(account_id = %account_id, nickname, denom, account_key, "seeded internal account")
+                        }
+                        Err(e) => {
+                            tracing::warn!(error = %e, nickname, denom, "failed to seed internal account")
+                        }
                     }
                 }
                 Err(e) => tracing::warn!(error = %e, "failed to check for existing seed account"),
@@ -208,10 +233,7 @@ pub struct ServiceUpdatedPayload {
 /// supported denominations, and seed the env's per-env policy sets.
 /// Idempotent — safe to call multiple times. Other services' events
 /// are ignored.
-pub async fn seed_for_service_event(
-    pool: &PgPool,
-    msg: &sentin8::bus::contracts::Message,
-) {
+pub async fn seed_for_service_event(pool: &PgPool, msg: &sentin8::bus::contracts::Message) {
     // Event names use ALL-COLON segments (AGENTS.md event-naming rule).
     // NOTE: `sentin8:sys.service.updated` (dot) was a bug — sys emits
     // `sentin8:sys:service:updated`, so env-init never fired.

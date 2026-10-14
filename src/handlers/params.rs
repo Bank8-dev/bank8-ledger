@@ -5,7 +5,11 @@
 
 //! Parameter handlers — parameters, parameter values, hierarchy nodes.
 
-use axum::{extract::{Query, State}, http::{HeaderMap, StatusCode}, Json};
+use axum::{
+    extract::{Query, State},
+    http::{HeaderMap, StatusCode},
+    Json,
+};
 use serde::Deserialize;
 use sqlx::Row;
 use std::collections::HashMap;
@@ -35,15 +39,24 @@ pub struct ParameterResponse {
 pub struct CreateParameterRequest {
     pub name: String,
     pub description: Option<String>,
-    #[serde(default)] pub is_instance: bool,
-    #[serde(default = "default_true")] pub is_template: bool,
-    #[serde(default)] pub is_derived: bool,
-    #[serde(default = "default_string")] pub data_type: String,
-    #[serde(default)] pub constraints: serde_json::Value,
+    #[serde(default)]
+    pub is_instance: bool,
+    #[serde(default = "default_true")]
+    pub is_template: bool,
+    #[serde(default)]
+    pub is_derived: bool,
+    #[serde(default = "default_string")]
+    pub data_type: String,
+    #[serde(default)]
+    pub constraints: serde_json::Value,
 }
 
-fn default_true() -> bool { true }
-fn default_string() -> String { "string".into() }
+fn default_true() -> bool {
+    true
+}
+fn default_string() -> String {
+    "string".into()
+}
 
 /// `POST /v1/parameters` — create a parameter definition.
 pub async fn create_parameter(
@@ -52,9 +65,17 @@ pub async fn create_parameter(
     Json(req): Json<CreateParameterRequest>,
 ) -> Result<Json<ParameterResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"INSERT INTO parameters (env_id, name, description, is_instance, is_template, is_derived, data_type, constraints)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -64,9 +85,13 @@ pub async fn create_parameter(
     .bind(req.is_instance).bind(req.is_template).bind(req.is_derived).bind(&req.data_type).bind(&req.constraints)
     .fetch_one(&mut *conn).await.map_err(err_db)?;
     let param = row_to_param(&row);
-    super::emit_event(&state.pool, a.env_id(), "bank8:ledger:parameter:created",
+    super::emit_event(
+        &state.pool,
+        a.env_id(),
+        "bank8:ledger:parameter:created",
         serde_json::json!({ "parameter_id": param.id }),
-    ).await;
+    )
+    .await;
     conn.commit().await.map_err(err_db)?;
     Ok(Json(param))
 }
@@ -77,9 +102,17 @@ pub async fn list_parameters(
     headers: HeaderMap,
 ) -> Result<Json<Vec<ParameterResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let rows = sqlx::query(
         r#"SELECT id, name, description, is_instance, is_template, is_derived, data_type, constraints, created_at
              FROM parameters ORDER BY created_at DESC"#,
@@ -108,15 +141,19 @@ pub struct CreateParameterValueRequest {
     pub parameter_id: Uuid,
     pub account_id: Option<Uuid>,
     pub hierarchy_node_id: Option<Uuid>,
-    #[serde(default)] pub is_global: bool,
+    #[serde(default)]
+    pub is_global: bool,
     pub value: serde_json::Value,
-    #[serde(default)] pub effective_from_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(default)]
+    pub effective_from_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ListParamValuesQuery {
-    #[serde(default)] pub parameter_id: Option<Uuid>,
-    #[serde(default)] pub account_id: Option<Uuid>,
+    #[serde(default)]
+    pub parameter_id: Option<Uuid>,
+    #[serde(default)]
+    pub account_id: Option<Uuid>,
 }
 
 /// `POST /v1/parameter-values` — create a parameter value.
@@ -126,9 +163,17 @@ pub async fn create_parameter_value(
     Json(req): Json<CreateParameterValueRequest>,
 ) -> Result<Json<ParameterValueResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"INSERT INTO parameter_values (env_id, parameter_id, account_id, hierarchy_node_id, is_global, value, effective_from_timestamp)
            VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -139,9 +184,13 @@ pub async fn create_parameter_value(
     .bind(&req.value).bind(req.effective_from_timestamp.unwrap_or_else(chrono::Utc::now))
     .fetch_one(&mut *conn).await.map_err(err_db)?;
     let pv = row_to_param_value(&row);
-    super::emit_event(&state.pool, a.env_id(), "bank8:ledger:parametervalue:created",
+    super::emit_event(
+        &state.pool,
+        a.env_id(),
+        "bank8:ledger:parametervalue:created",
         serde_json::json!({ "parameter_id": req.parameter_id, "value_id": pv.id }),
-    ).await;
+    )
+    .await;
 
     conn.commit().await.map_err(err_db)?;
     Ok(Json(pv))
@@ -154,9 +203,17 @@ pub async fn list_parameter_values(
     Query(q): Query<ListParamValuesQuery>,
 ) -> Result<Json<Vec<ParameterValueResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let rows = sqlx::query(
         r#"SELECT id, parameter_id, account_id, hierarchy_node_id, is_global, value, effective_from_timestamp, effective_to_timestamp, created_at
              FROM parameter_values
@@ -184,7 +241,13 @@ pub async fn view_effective_parameter(
     Query(q): Query<ViewEffectiveQuery>,
 ) -> Result<Json<ParameterValueResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read"),
+    )
+    .await?;
     let snapshot = q.snapshot_timestamp.unwrap_or_else(chrono::Utc::now);
     let cache_key = EffectiveCacheKey {
         env_id: a.env_id(),
@@ -196,7 +259,9 @@ pub async fn view_effective_parameter(
         return Ok(Json(cached));
     }
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     // Try account-level first, then hierarchy, then global.
     let row = if let Some(account_id) = q.account_id {
         sqlx::query(
@@ -209,7 +274,9 @@ pub async fn view_effective_parameter(
         )
         .bind(q.parameter_id).bind(account_id).bind(snapshot)
         .fetch_optional(&mut *conn).await.map_err(err_db)?
-    } else { None };
+    } else {
+        None
+    };
     let row = if row.is_none() {
         sqlx::query(
             r#"SELECT id, parameter_id, account_id, hierarchy_node_id, is_global, value, effective_from_timestamp, effective_to_timestamp, created_at
@@ -221,10 +288,17 @@ pub async fn view_effective_parameter(
         )
         .bind(q.parameter_id).bind(snapshot)
         .fetch_optional(&mut *conn).await.map_err(err_db)?
-    } else { row };
-    let row = row.ok_or((StatusCode::NOT_FOUND, "no effective parameter value found".into()))?;
+    } else {
+        row
+    };
+    let row = row.ok_or((
+        StatusCode::NOT_FOUND,
+        "no effective parameter value found".into(),
+    ))?;
     let response = row_to_param_value(&row);
-    state.effective_param_cache.insert(cache_key, response.clone());
+    state
+        .effective_param_cache
+        .insert(cache_key, response.clone());
     Ok(Json(response))
 }
 
@@ -262,10 +336,7 @@ impl EffectiveParamCache {
     /// count of *live* entries.
     const MAX_ENTRIES: usize = 4096;
 
-    fn get(
-        &self,
-        key: &EffectiveCacheKey,
-    ) -> Option<ParameterValueResponse> {
+    fn get(&self, key: &EffectiveCacheKey) -> Option<ParameterValueResponse> {
         let mut entries = self.entries.lock().ok()?;
         let (value, fetched_at) = entries.get(key)?;
         if fetched_at.elapsed() > Self::TTL {
@@ -280,7 +351,7 @@ impl EffectiveParamCache {
             return;
         };
         // Prune expired entries before inserting (bounded-cache pattern).
-        entries.retain(|_, ( _, fetched_at)| fetched_at.elapsed() <= Self::TTL);
+        entries.retain(|_, (_, fetched_at)| fetched_at.elapsed() <= Self::TTL);
         if entries.len() >= Self::MAX_ENTRIES {
             // Evict by oldest fetched-at — a tiny O(n) scan at capacity,
             // cheaper than tracking an ordering structure for a cold path.
@@ -316,8 +387,10 @@ mod cache_tests {
     fn cache_hit_returns_value() {
         let cache = EffectiveParamCache::default();
         let key = EffectiveCacheKey {
-            env_id: uuid::Uuid::new_v4(), parameter_id: uuid::Uuid::new_v4(),
-            account_id: None, snapshot_timestamp: chrono::Utc::now(),
+            env_id: uuid::Uuid::new_v4(),
+            parameter_id: uuid::Uuid::new_v4(),
+            account_id: None,
+            snapshot_timestamp: chrono::Utc::now(),
         };
         assert!(cache.get(&key).is_none());
         cache.insert(key.clone(), resp("v1"));
@@ -329,8 +402,10 @@ mod cache_tests {
         let cache = EffectiveParamCache::default();
         for i in 0..(EffectiveParamCache::MAX_ENTRIES + 10) {
             let key = EffectiveCacheKey {
-                env_id: uuid::Uuid::new_v4(), parameter_id: uuid::Uuid::new_v4(),
-                account_id: None, snapshot_timestamp: chrono::Utc::now(),
+                env_id: uuid::Uuid::new_v4(),
+                parameter_id: uuid::Uuid::new_v4(),
+                account_id: None,
+                snapshot_timestamp: chrono::Utc::now(),
             };
             cache.insert(key, resp(&i.to_string()));
         }
@@ -342,8 +417,10 @@ mod cache_tests {
 #[derive(Debug, Deserialize)]
 pub struct ViewEffectiveQuery {
     pub parameter_id: Uuid,
-    #[serde(default)] pub account_id: Option<Uuid>,
-    #[serde(default)] pub snapshot_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(default)]
+    pub account_id: Option<Uuid>,
+    #[serde(default)]
+    pub snapshot_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 // ── Hierarchy Nodes ──────────────────────────────────────────────────────
@@ -370,24 +447,46 @@ pub async fn create_hierarchy_node(
     Json(req): Json<CreateHierarchyNodeRequest>,
 ) -> Result<Json<HierarchyNodeResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let layer = if let Some(parent_id) = req.parent_id {
         sqlx::query_scalar("SELECT layer + 1 FROM parameter_value_hierarchy_nodes WHERE id = $1")
-            .bind(parent_id).fetch_one(&mut *conn).await.unwrap_or(1)
-    } else { 0 };
+            .bind(parent_id)
+            .fetch_one(&mut *conn)
+            .await
+            .unwrap_or(1)
+    } else {
+        0
+    };
     let row = sqlx::query(
         r#"INSERT INTO parameter_value_hierarchy_nodes (env_id, parent_id, name, layer)
            VALUES ($1, $2, $3, $4)
            RETURNING id, parent_id, name, layer, created_at"#,
     )
-    .bind(a.env_id()).bind(req.parent_id).bind(&req.name).bind(layer)
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(a.env_id())
+    .bind(req.parent_id)
+    .bind(&req.name)
+    .bind(layer)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     let node_id: Uuid = row.get("id");
-    super::emit_event(&state.pool, a.env_id(), "bank8:ledger:hierarchynode:created",
+    super::emit_event(
+        &state.pool,
+        a.env_id(),
+        "bank8:ledger:hierarchynode:created",
         serde_json::json!({ "node_id": node_id }),
-    ).await;
+    )
+    .await;
 
     conn.commit().await.map_err(err_db)?;
     Ok(Json(HierarchyNodeResponse {
@@ -405,21 +504,33 @@ pub async fn list_hierarchy_nodes(
     headers: HeaderMap,
 ) -> Result<Json<Vec<HierarchyNodeResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let rows = sqlx::query(
         r#"SELECT id, parent_id, name, layer, created_at FROM parameter_value_hierarchy_nodes ORDER BY layer, name"#,
     )
     .fetch_all(&mut *conn).await.map_err(err_db)?;
     conn.commit().await.map_err(err_db)?;
-    Ok(Json(rows.iter().map(|r| HierarchyNodeResponse {
-        id: r.get("id"),
-        parent_id: r.get("parent_id"),
-        name: r.get("name"),
-        layer: r.get("layer"),
-        created_at: r.get("created_at"),
-    }).collect()))
+    Ok(Json(
+        rows.iter()
+            .map(|r| HierarchyNodeResponse {
+                id: r.get("id"),
+                parent_id: r.get("parent_id"),
+                name: r.get("name"),
+                layer: r.get("layer"),
+                created_at: r.get("created_at"),
+            })
+            .collect(),
+    ))
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────

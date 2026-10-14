@@ -41,7 +41,9 @@ pub struct PostingInstruction {
     pub description: Option<String>,
 }
 
-fn default_denom() -> String { "CAD".into() }
+fn default_denom() -> String {
+    "CAD".into()
+}
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreatePostingRequest {
@@ -100,20 +102,37 @@ pub async fn create_posting(
     Json(req): Json<CreatePostingRequest>,
 ) -> Result<Json<PostingResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:postings:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:postings:write"),
+    )
+    .await?;
     if req.instructions.is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "at least one instruction required".into()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "at least one instruction required".into(),
+        ));
     }
     // Validate amounts.
     for instr in &req.instructions {
-        let amount = instr.amount.parse::<Decimal>().map_err(|e| (StatusCode::BAD_REQUEST, format!("invalid amount: {e}")))?;
+        let amount = instr
+            .amount
+            .parse::<Decimal>()
+            .map_err(|e| (StatusCode::BAD_REQUEST, format!("invalid amount: {e}")))?;
         if amount <= Decimal::ZERO {
-            return Err((StatusCode::BAD_REQUEST, format!("amount must be positive: {amount}")));
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("amount must be positive: {amount}"),
+            ));
         }
     }
 
     let mut tx = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut tx, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut tx, a.env_id())
+        .await
+        .map_err(err_db)?;
     tracing::info!(env_id = %a.env_id(), batch_id = %req.batch_id, dry_run = req.dry_run, instructions = req.instructions.len(), "ledger: create_posting tx started");
 
     // Idempotency check.
@@ -121,8 +140,11 @@ pub async fn create_posting(
         let existing: Option<Uuid> = sqlx::query_scalar(
             "SELECT id FROM postings WHERE idempotency_key = $1 AND env_id = $2",
         )
-        .bind(key).bind(a.env_id())
-        .fetch_optional(&mut *tx).await.map_err(err_db)?;
+        .bind(key)
+        .bind(a.env_id())
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(err_db)?;
         if let Some(id) = existing {
             let row = sqlx::query(
                 r#"SELECT id, batch_id, status, instruction_count, created_at, completed_at FROM postings WHERE id = $1"#,
@@ -150,9 +172,13 @@ pub async fn create_posting(
            DO UPDATE SET batch_id = postings.batch_id
            RETURNING id, batch_id, status, instruction_count, created_at, completed_at"#,
     )
-    .bind(a.env_id()).bind(&req.batch_id).bind(&req.idempotency_key)
+    .bind(a.env_id())
+    .bind(&req.batch_id)
+    .bind(&req.idempotency_key)
     .bind(req.instructions.len() as i32)
-    .fetch_one(&mut *tx).await.map_err(err_db)?;
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(err_db)?;
 
     let posting_id: Uuid = row.get("id");
     let mut affected_balances: Vec<(Uuid, String)> = Vec::new();
@@ -160,7 +186,10 @@ pub async fn create_posting(
     if req.dry_run {
         // Dry run: skip commit, events, balance updates.
         sqlx::query("UPDATE postings SET status = 'rejected', completed_at = now() WHERE id = $1")
-            .bind(posting_id).execute(&mut *tx).await.map_err(err_db)?;
+            .bind(posting_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(err_db)?;
         tx.commit().await.map_err(err_db)?;
         return Ok(Json(PostingResponse {
             id: row.get("id"),
@@ -185,12 +214,14 @@ pub async fn create_posting(
     // the weighted debit direction (WITHDRAWAL/FEE/REVERSAL debit the source)
     // vs credit direction must balance (§4.1). Checked before any row is
     // written. Pure logic lives in `check_double_entry` (unit-tested).
-    check_double_entry(&req.instructions)
-        .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
+    check_double_entry(&req.instructions).map_err(|e| (StatusCode::BAD_REQUEST, e))?;
 
     // Module context cache — product id → (modules, parameters). Loaded once
     // per product so every instruction in the batch reuses it.
-    let mut module_ctx_cache: std::collections::HashMap<Uuid, (Vec<String>, serde_json::Value, serde_json::Value)> = std::collections::HashMap::new();
+    let mut module_ctx_cache: std::collections::HashMap<
+        Uuid,
+        (Vec<String>, serde_json::Value, serde_json::Value),
+    > = std::collections::HashMap::new();
 
     for instr in &req.instructions {
         let amount: Decimal = instr.amount.parse().unwrap();
@@ -204,31 +235,52 @@ pub async fn create_posting(
         let debit_product = sqlx::query(
             r#"SELECT product_id, product_type FROM accounts WHERE id = $1 AND env_id = $2"#,
         )
-        .bind(instr.debit_account).bind(a.env_id())
-        .fetch_optional(&mut *tx).await.map_err(err_db)?;
+        .bind(instr.debit_account)
+        .bind(a.env_id())
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(err_db)?;
         if let Some(prow) = debit_product {
             let product_id: Option<Uuid> = prow.get("product_id");
             let product_type: Option<String> = prow.get("product_type");
             if let Some(pid) = product_id {
-                let (modules, params, instance_params) = if let Some(v) = module_ctx_cache.get(&pid) {
-                    v.clone()
-                } else {
-                    let prow = sqlx::query(
+                let (modules, params, instance_params) =
+                    if let Some(v) = module_ctx_cache.get(&pid) {
+                        v.clone()
+                    } else {
+                        let prow = sqlx::query(
                         r#"SELECT parameters, modules FROM products WHERE id = $1 AND env_id = $2"#,
                     )
                     .bind(pid).bind(a.env_id())
                     .fetch_optional(&mut *tx).await.map_err(err_db)?;
-                    let v = prow.map(|r| {
-                        let params: serde_json::Value = r.get("parameters");
-                        let modules_val: serde_json::Value = r.get("modules");
-                        let modules: Vec<String> = modules_val.as_array()
-                            .map(|arr| arr.iter().filter_map(|m| m.as_str().map(String::from)).collect())
-                            .unwrap_or_default();
-                        (modules, params, serde_json::Value::Object(serde_json::Map::new()))
-                    }).unwrap_or_else(|| (vec![], serde_json::Value::Object(serde_json::Map::new()), serde_json::Value::Object(serde_json::Map::new())));
-                    module_ctx_cache.insert(pid, v.clone());
-                    v
-                };
+                        let v = prow
+                            .map(|r| {
+                                let params: serde_json::Value = r.get("parameters");
+                                let modules_val: serde_json::Value = r.get("modules");
+                                let modules: Vec<String> = modules_val
+                                    .as_array()
+                                    .map(|arr| {
+                                        arr.iter()
+                                            .filter_map(|m| m.as_str().map(String::from))
+                                            .collect()
+                                    })
+                                    .unwrap_or_default();
+                                (
+                                    modules,
+                                    params,
+                                    serde_json::Value::Object(serde_json::Map::new()),
+                                )
+                            })
+                            .unwrap_or_else(|| {
+                                (
+                                    vec![],
+                                    serde_json::Value::Object(serde_json::Map::new()),
+                                    serde_json::Value::Object(serde_json::Map::new()),
+                                )
+                            });
+                        module_ctx_cache.insert(pid, v.clone());
+                        v
+                    };
                 // Current committed balance of the debit account.
                 let current_balance: Decimal = sqlx::query_scalar(
                     r#"SELECT COALESCE(amount, 0) FROM balances
@@ -239,19 +291,32 @@ pub async fn create_posting(
                 .unwrap_or(Decimal::ZERO);
                 // Daily totals for this account across the batch (same
                 // instruction type contributes to its per-type total).
-                let daily_deposit_total: Decimal = req.instructions.iter()
-                    .filter(|i| i.debit_account == instr.debit_account
-                        && i.instruction_type.eq_ignore_ascii_case("DEPOSIT"))
+                let daily_deposit_total: Decimal = req
+                    .instructions
+                    .iter()
+                    .filter(|i| {
+                        i.debit_account == instr.debit_account
+                            && i.instruction_type.eq_ignore_ascii_case("DEPOSIT")
+                    })
                     .map(|i| i.amount.parse::<Decimal>().unwrap_or(Decimal::ZERO))
                     .fold(Decimal::ZERO, |acc, x| acc + x);
-                let daily_withdrawal_total: Decimal = req.instructions.iter()
-                    .filter(|i| i.debit_account == instr.debit_account
-                        && i.instruction_type.eq_ignore_ascii_case("WITHDRAWAL"))
+                let daily_withdrawal_total: Decimal = req
+                    .instructions
+                    .iter()
+                    .filter(|i| {
+                        i.debit_account == instr.debit_account
+                            && i.instruction_type.eq_ignore_ascii_case("WITHDRAWAL")
+                    })
                     .map(|i| i.amount.parse::<Decimal>().unwrap_or(Decimal::ZERO))
                     .fold(Decimal::ZERO, |acc, x| acc + x);
-                let daily_txn_type_total: Decimal = req.instructions.iter()
-                    .filter(|i| i.debit_account == instr.debit_account
-                        && i.instruction_type.eq_ignore_ascii_case(&instr.instruction_type))
+                let daily_txn_type_total: Decimal = req
+                    .instructions
+                    .iter()
+                    .filter(|i| {
+                        i.debit_account == instr.debit_account
+                            && i.instruction_type
+                                .eq_ignore_ascii_case(&instr.instruction_type)
+                    })
                     .map(|i| i.amount.parse::<Decimal>().unwrap_or(Decimal::ZERO))
                     .fold(Decimal::ZERO, |acc, x| acc + x);
                 let v2 = crate::types::PostingInstructionV2 {
@@ -271,8 +336,12 @@ pub async fn create_posting(
                     instance_params: &instance_params,
                 };
                 if let Err(e) = crate::modules::validate_posting(
-                    &ctx, &v2, current_balance,
-                    daily_deposit_total - amount, daily_withdrawal_total - amount, daily_txn_type_total - amount,
+                    &ctx,
+                    &v2,
+                    current_balance,
+                    daily_deposit_total - amount,
+                    daily_withdrawal_total - amount,
+                    daily_txn_type_total - amount,
                 ) {
                     tracing::warn!(error = %e, product_type = ?product_type, batch_id = %req.batch_id, "posting rejected by module validation");
                     return Err((StatusCode::UNPROCESSABLE_ENTITY, e.to_string()));
@@ -281,7 +350,10 @@ pub async fn create_posting(
                 // has a sweep, the sweep covers the gap from the linked
                 // savings account — surfaced as a hook result, the posting
                 // itself proceeds (sweep amount recorded in the audit trail).
-                if let Some(sweep) = crate::modules::validate_posting_overdraft_sweep(&ctx, &v2, current_balance).unwrap_or(None) {
+                if let Some(sweep) =
+                    crate::modules::validate_posting_overdraft_sweep(&ctx, &v2, current_balance)
+                        .unwrap_or(None)
+                {
                     tracing::info!(batch_id = %req.batch_id, sweep = %sweep, "overdraft sweep triggered");
                 }
             }
@@ -294,7 +366,7 @@ pub async fn create_posting(
         )
         .bind(a.env_id()).bind(posting_id)
         .bind(&instr.instruction_type).bind(instr.debit_account).bind(instr.credit_account)
-        .bind(&amount).bind(&instr.denomination).bind(value_ts)
+        .bind(amount).bind(&instr.denomination).bind(value_ts)
         .execute(&mut *tx).await.map_err(err_db)?;
 
         // Update balances: debit decreases, credit increases (COMMITTED phase, DEFAULT address).
@@ -304,8 +376,13 @@ pub async fn create_posting(
                ON CONFLICT (account_id, denomination, address, phase)
                DO UPDATE SET amount = balances.amount - ($4), updated_at = now()"#,
         )
-        .bind(a.env_id()).bind(instr.debit_account).bind(&instr.denomination).bind(&amount)
-        .execute(&mut *tx).await.map_err(err_db)?;
+        .bind(a.env_id())
+        .bind(instr.debit_account)
+        .bind(&instr.denomination)
+        .bind(amount)
+        .execute(&mut *tx)
+        .await
+        .map_err(err_db)?;
 
         sqlx::query(
             r#"INSERT INTO balances (env_id, account_id, denomination, address, phase, amount)
@@ -313,8 +390,13 @@ pub async fn create_posting(
                ON CONFLICT (account_id, denomination, address, phase)
                DO UPDATE SET amount = balances.amount + ($4), updated_at = now()"#,
         )
-        .bind(a.env_id()).bind(instr.credit_account).bind(&instr.denomination).bind(&amount)
-        .execute(&mut *tx).await.map_err(err_db)?;
+        .bind(a.env_id())
+        .bind(instr.credit_account)
+        .bind(&instr.denomination)
+        .bind(amount)
+        .execute(&mut *tx)
+        .await
+        .map_err(err_db)?;
 
         // Create transaction records for both accounts.
         sqlx::query(
@@ -322,7 +404,7 @@ pub async fn create_posting(
                VALUES ($1, $2, $3, $4, $5, 'debit', $6, $7, now())"#,
         )
         .bind(a.env_id()).bind(instr.debit_account).bind(posting_id)
-        .bind(&amount).bind(&instr.denomination).bind(instr.description.as_deref()).bind(value_ts)
+        .bind(amount).bind(&instr.denomination).bind(instr.description.as_deref()).bind(value_ts)
         .execute(&mut *tx).await.map_err(err_db)?;
 
         sqlx::query(
@@ -330,7 +412,7 @@ pub async fn create_posting(
                VALUES ($1, $2, $3, $4, $5, 'credit', $6, $7, now())"#,
         )
         .bind(a.env_id()).bind(instr.credit_account).bind(posting_id)
-        .bind(&amount).bind(&instr.denomination).bind(instr.description.as_deref()).bind(value_ts)
+        .bind(amount).bind(&instr.denomination).bind(instr.description.as_deref()).bind(value_ts)
         .execute(&mut *tx).await.map_err(err_db)?;
 
         affected_balances.push((instr.debit_account, instr.denomination.clone()));
@@ -339,7 +421,10 @@ pub async fn create_posting(
 
     // Mark posting as completed.
     sqlx::query("UPDATE postings SET status = 'accepted', completed_at = now() WHERE id = $1")
-        .bind(posting_id).execute(&mut *tx).await.map_err(err_db)?;
+        .bind(posting_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(err_db)?;
 
     // Emit audit event (§8.4 — exactly five columns / five values; errors
     // propagate so an audit failure aborts the posting instead of committing
@@ -372,7 +457,10 @@ pub async fn create_posting(
     .await
     .map_err(|e| {
         tracing::error!(error = %e, posting_id = %posting_id, "posting outbox insert failed");
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("posting outbox insert failed: {e}"))
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("posting outbox insert failed: {e}"),
+        )
     })?;
 
     tx.commit().await.map_err(err_db)?;
@@ -415,7 +503,7 @@ pub async fn create_posting(
         }
     }
 
-/* removed misplaced commit */
+    /* removed misplaced commit */
     Ok(Json(PostingResponse {
         id: row.get("id"),
         batch_id: row.get("batch_id"),
@@ -446,21 +534,36 @@ pub async fn create_posting_async(
     Json(req): Json<AsyncPostingRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:postings:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:postings:write"),
+    )
+    .await?;
     if req.instructions.is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "at least one instruction required".into()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "at least one instruction required".into(),
+        ));
     }
     // Insert as pending, will be processed by worker.
     let mut tx = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut tx, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut tx, a.env_id())
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"INSERT INTO postings (env_id, batch_id, status, idempotency_key, instruction_count)
            VALUES ($1, $2, 'pending', $3, $4)
            RETURNING id, batch_id"#,
     )
-    .bind(a.env_id()).bind(&req.batch_id).bind(&req.idempotency_key)
+    .bind(a.env_id())
+    .bind(&req.batch_id)
+    .bind(&req.idempotency_key)
     .bind(req.instructions.len() as i32)
-    .fetch_one(&mut *tx).await.map_err(err_db)?;
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(err_db)?;
     let posting_id: Uuid = row.get("id");
 
     // Store instructions as pending.
@@ -473,7 +576,7 @@ pub async fn create_posting_async(
         )
         .bind(a.env_id()).bind(posting_id)
         .bind(&instr.instruction_type).bind(instr.debit_account).bind(instr.credit_account)
-        .bind(&amount).bind(&instr.denomination)
+        .bind(amount).bind(&instr.denomination)
         .execute(&mut *tx).await.map_err(err_db)?;
     }
 
@@ -503,7 +606,9 @@ pub async fn create_posting_async(
     })?;
 
     tx.commit().await.map_err(err_db)?;
-    Ok(Json(serde_json::json!({ "id": posting_id, "status": "pending" })))
+    Ok(Json(
+        serde_json::json!({ "id": posting_id, "status": "pending" }),
+    ))
 }
 
 /// `GET /v1/postings/{id}` — batch status.
@@ -525,9 +630,17 @@ pub async fn get_posting(
     Path(id): Path<Uuid>,
 ) -> Result<Json<PostingResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:postings:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:postings:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"SELECT id, batch_id, status, instruction_count, created_at, completed_at FROM postings WHERE id = $1"#,
     )
@@ -561,9 +674,17 @@ pub async fn get_posting_instructions(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:postings:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:postings:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let rows = sqlx::query(
         r#"SELECT id, instruction_type, debit_account, credit_account, amount, denomination, value_timestamp, status
              FROM posting_instructions WHERE posting_id = $1 ORDER BY created_at"#,
@@ -590,22 +711,37 @@ pub async fn list_postings_batches(
     headers: HeaderMap,
 ) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:postings:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:postings:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let rows = sqlx::query(
         r#"SELECT id, batch_id, status, instruction_count, created_at, completed_at
              FROM postings ORDER BY created_at DESC LIMIT 100"#,
     )
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
-    let batches: Vec<serde_json::Value> = rows.iter().map(|r| serde_json::json!({
-        "id": r.get::<Uuid, _>("id"),
-        "batch_id": r.get::<String, _>("batch_id"),
-        "status": r.get::<String, _>("status"),
-        "instruction_count": r.get::<i32, _>("instruction_count"),
-        "created_at": r.get::<chrono::DateTime<chrono::Utc>, _>("created_at"),
-        "completed_at": r.get::<Option<chrono::DateTime<chrono::Utc>>, _>("completed_at"),
-    })).collect();
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
+    let batches: Vec<serde_json::Value> = rows
+        .iter()
+        .map(|r| {
+            serde_json::json!({
+                "id": r.get::<Uuid, _>("id"),
+                "batch_id": r.get::<String, _>("batch_id"),
+                "status": r.get::<String, _>("status"),
+                "instruction_count": r.get::<i32, _>("instruction_count"),
+                "created_at": r.get::<chrono::DateTime<chrono::Utc>, _>("created_at"),
+                "completed_at": r.get::<Option<chrono::DateTime<chrono::Utc>>, _>("completed_at"),
+            })
+        })
+        .collect();
     Ok(Json(batches))
 }
 
@@ -635,36 +771,72 @@ pub async fn list_dlq(
     headers: HeaderMap,
 ) -> Result<Json<Vec<DlqResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:dlq:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:dlq:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     // Local posting DLQ entries.
     let rows = sqlx::query(
         r#"SELECT id, message_type, payload, error_message, retry_count, created_at
              FROM dlq ORDER BY created_at DESC LIMIT 100"#,
     )
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
-    let mut entries: Vec<DlqResponse> = rows.iter().map(|r| DlqResponse {
-        id: r.get("id"),
-        message_type: r.get("message_type"),
-        payload: r.get("payload"),
-        error_message: r.get("error_message"),
-        retry_count: r.get("retry_count"),
-        created_at: r.get("created_at"),
-    }).collect();
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
+    let mut entries: Vec<DlqResponse> = rows
+        .iter()
+        .map(|r| DlqResponse {
+            id: r.get("id"),
+            message_type: r.get("message_type"),
+            payload: r.get("payload"),
+            error_message: r.get("error_message"),
+            retry_count: r.get("retry_count"),
+            created_at: r.get("created_at"),
+        })
+        .collect();
     // Also fetch schedule-related DLQ entries from Cron.
-    let cron = crate::cron_client::CronClient::new(&state.config.sentin8_cron_url, &state.config.sentin8_cron_token);
+    let cron = crate::cron_client::CronClient::new(
+        &state.config.sentin8_cron_url,
+        &state.config.sentin8_cron_token,
+    );
     if let Ok(sentin8_cron_dlq) = cron.list_dlq().await {
         for entry in sentin8_cron_dlq {
             if let Some(domain) = entry.get("domain").and_then(|v| v.as_str()) {
                 if domain == "ledger" {
                     entries.push(DlqResponse {
-                        id: entry.get("id").and_then(|v| v.as_str()).and_then(|s| uuid::Uuid::parse_str(s).ok()).unwrap_or_default(),
-                        message_type: entry.get("message_type").and_then(|v| v.as_str()).unwrap_or("schedule").to_string(),
+                        id: entry
+                            .get("id")
+                            .and_then(|v| v.as_str())
+                            .and_then(|s| uuid::Uuid::parse_str(s).ok())
+                            .unwrap_or_default(),
+                        message_type: entry
+                            .get("message_type")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("schedule")
+                            .to_string(),
                         payload: entry.get("payload").cloned().unwrap_or_default(),
-                        error_message: entry.get("error_message").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                        retry_count: entry.get("retry_count").and_then(|v| v.as_i64()).unwrap_or(0) as i32,
-                        created_at: entry.get("created_at").and_then(|v| v.as_str()).and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()).map(|dt| dt.with_timezone(&chrono::Utc)).unwrap_or_else(chrono::Utc::now),
+                        error_message: entry
+                            .get("error_message")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        retry_count: entry
+                            .get("retry_count")
+                            .and_then(|v| v.as_i64())
+                            .unwrap_or(0) as i32,
+                        created_at: entry
+                            .get("created_at")
+                            .and_then(|v| v.as_str())
+                            .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+                            .map(|dt| dt.with_timezone(&chrono::Utc))
+                            .unwrap_or_else(chrono::Utc::now),
                     });
                 }
             }
@@ -692,12 +864,23 @@ pub async fn republish_dlq(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:dlq:republish")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:dlq:republish"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     // Try local DLQ first.
     let local = sqlx::query("SELECT payload, message_type, error_message FROM dlq WHERE id = $1")
-        .bind(id).fetch_optional(&mut *conn).await.map_err(err_db)?;
+        .bind(id)
+        .fetch_optional(&mut *conn)
+        .await
+        .map_err(err_db)?;
     if let Some(row) = local {
         let payload: serde_json::Value = row.get("payload");
         let message_type: String = row.get("message_type");
@@ -719,7 +902,14 @@ pub async fn republish_dlq(
             idempotency_key: Some(id.to_string()),
             publisher_id_token,
             publisher_subject: Some(a.claims.sub.clone()),
-        }).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("bus produce failed: {e}")))?;
+        })
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("bus produce failed: {e}"),
+            )
+        })?;
         // Emit the dedicated republished event (design §11).
         let original_error: String = row.get("error_message");
         super::emit_event(
@@ -729,16 +919,29 @@ pub async fn republish_dlq(
             serde_json::json!({ "posting_id": payload.get("posting_id").cloned().unwrap_or(serde_json::json!(id.to_string())), "original_error": original_error }),
         ).await;
         sqlx::query("UPDATE dlq SET retry_count = retry_count + 1 WHERE id = $1")
-            .bind(id).execute(&mut *conn).await.map_err(err_db)?;
-        return Ok(Json(serde_json::json!({ "republished": true, "source": "local" })));
+            .bind(id)
+            .execute(&mut *conn)
+            .await
+            .map_err(err_db)?;
+        return Ok(Json(
+            serde_json::json!({ "republished": true, "source": "local" }),
+        ));
     }
     // Not in local DLQ — try Cron DLQ.
-    let cron = crate::cron_client::CronClient::new(&state.config.sentin8_cron_url, &state.config.cron_token().await);
+    let cron = crate::cron_client::CronClient::new(
+        &state.config.sentin8_cron_url,
+        &state.config.cron_token().await,
+    );
 
     conn.commit().await.map_err(err_db)?;
     match cron.republish_dlq(&id.to_string()).await {
-        Ok(()) => Ok(Json(serde_json::json!({ "republished": true, "source": "cron" }))),
-        Err(e) => Err((StatusCode::NOT_FOUND, format!("DLQ entry not found in local or Cron: {e}"))),
+        Ok(()) => Ok(Json(
+            serde_json::json!({ "republished": true, "source": "cron" }),
+        )),
+        Err(e) => Err((
+            StatusCode::NOT_FOUND,
+            format!("DLQ entry not found in local or Cron: {e}"),
+        )),
     }
 }
 // ── Double-entry batch validation (pure logic — unit-tested) ────────────
@@ -759,13 +962,12 @@ fn debits_source(instruction_type: &str) -> bool {
 /// instruction is trivially balanced (its debit leg equals its credit leg),
 /// so batches of size 1 always pass — multi-instruction batches must net
 /// out. Returns `Err(message)` on imbalance.
-pub fn check_double_entry(
-    instructions: &[PostingInstruction],
-) -> Result<(), String> {
+pub fn check_double_entry(instructions: &[PostingInstruction]) -> Result<(), String> {
     if instructions.len() <= 1 {
         return Ok(());
     }
-    let mut sums: std::collections::HashMap<String, (Decimal, Decimal)> = std::collections::HashMap::new();
+    let mut sums: std::collections::HashMap<String, (Decimal, Decimal)> =
+        std::collections::HashMap::new();
     for instr in instructions {
         let amount = instr.amount.parse::<Decimal>().unwrap_or(Decimal::ZERO);
         let entry = sums
@@ -784,7 +986,9 @@ pub fn check_double_entry(
 }
 
 /// Default denomination (re-exported for LEDG-COMPLETE handlers).
-pub fn default_denomination() -> String { "CAD".into() }
+pub fn default_denomination() -> String {
+    "CAD".into()
+}
 
 /// Replay a posting batch by batch_id (journal replay). Idempotent:
 /// the posting idempotency/batch identity means a replay of an already-
@@ -815,17 +1019,26 @@ pub async fn replay_batch(
     match parsed {
         Ok(instrs) if !instrs.is_empty() => {
             let req = CreatePostingRequest {
-                batch_id: format!("{batch_id}-replay-{}", chrono::Utc::now().format("%Y%m%d%H%M%S")),
+                batch_id: format!(
+                    "{batch_id}-replay-{}",
+                    chrono::Utc::now().format("%Y%m%d%H%M%S")
+                ),
                 idempotency_key: Some(format!("journal-replay:{batch_id}")),
                 dry_run: false,
                 instructions: instrs,
             };
             match create_posting_inner(state, env_id, req).await {
-                Ok(resp) => serde_json::json!({ "batch_id": batch_id, "posting_id": resp.id, "replayed": true, "status": resp.status }),
-                Err((_code, e)) => serde_json::json!({ "batch_id": batch_id, "replayed": false, "error": e }),
+                Ok(resp) => {
+                    serde_json::json!({ "batch_id": batch_id, "posting_id": resp.id, "replayed": true, "status": resp.status })
+                }
+                Err((_code, e)) => {
+                    serde_json::json!({ "batch_id": batch_id, "replayed": false, "error": e })
+                }
             }
         }
-        _ => serde_json::json!({ "batch_id": batch_id, "replayed": false, "error": "no parsable instructions in journal payload" }),
+        _ => {
+            serde_json::json!({ "batch_id": batch_id, "replayed": false, "error": "no parsable instructions in journal payload" })
+        }
     }
 }
 
@@ -846,9 +1059,17 @@ async fn create_posting_inner(
     let mut tx = state.pool.begin().await.map_err(err_db)?;
     set_tenant_context(&mut tx, env_id).await.map_err(err_db)?;
     for instr in &req.instructions {
-        let amount = instr.amount.parse::<Decimal>().map_err(|e| (axum::http::StatusCode::BAD_REQUEST, format!("invalid amount: {e}")))?;
+        let amount = instr.amount.parse::<Decimal>().map_err(|e| {
+            (
+                axum::http::StatusCode::BAD_REQUEST,
+                format!("invalid amount: {e}"),
+            )
+        })?;
         if amount <= Decimal::ZERO {
-            return Err((axum::http::StatusCode::BAD_REQUEST, format!("amount must be positive: {amount}")));
+            return Err((
+                axum::http::StatusCode::BAD_REQUEST,
+                format!("amount must be positive: {amount}"),
+            ));
         }
     }
     check_double_entry(&req.instructions).map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e))?;
@@ -859,9 +1080,13 @@ async fn create_posting_inner(
            DO UPDATE SET batch_id = postings.batch_id
            RETURNING id, batch_id, status, instruction_count, created_at, completed_at"#,
     )
-    .bind(env_id).bind(&req.batch_id).bind(&req.idempotency_key)
+    .bind(env_id)
+    .bind(&req.batch_id)
+    .bind(&req.idempotency_key)
     .bind(req.instructions.len() as i32)
-    .fetch_one(&mut *tx).await.map_err(err_db)?;
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(err_db)?;
     let posting_id: Uuid = row.get("id");
     for instr in &req.instructions {
         let amount: Decimal = instr.amount.parse().unwrap_or(Decimal::ZERO);
@@ -872,40 +1097,62 @@ async fn create_posting_inner(
         )
         .bind(env_id).bind(posting_id)
         .bind(&instr.instruction_type).bind(instr.debit_account).bind(instr.credit_account)
-        .bind(&amount).bind(&instr.denomination).bind(instr.value_timestamp)
+        .bind(amount).bind(&instr.denomination).bind(instr.value_timestamp)
         .execute(&mut *tx).await.map_err(err_db)?;
-        let (debit_delta, credit_delta) = if debits_source(&instr.instruction_type) { (-amount, amount) } else { (amount, -amount) };
+        let (debit_delta, credit_delta) = if debits_source(&instr.instruction_type) {
+            (-amount, amount)
+        } else {
+            (amount, -amount)
+        };
         sqlx::query(
             r#"INSERT INTO balances (env_id, account_id, denomination, address, phase, amount)
                VALUES ($1, $2, $3, 'DEFAULT', 'COMMITTED', $4)
                ON CONFLICT (account_id, denomination, address, phase)
                DO UPDATE SET amount = balances.amount + ($4), updated_at = now()"#,
         )
-        .bind(env_id).bind(instr.debit_account).bind(&instr.denomination).bind(debit_delta)
-        .execute(&mut *tx).await.map_err(err_db)?;
+        .bind(env_id)
+        .bind(instr.debit_account)
+        .bind(&instr.denomination)
+        .bind(debit_delta)
+        .execute(&mut *tx)
+        .await
+        .map_err(err_db)?;
         sqlx::query(
             r#"INSERT INTO balances (env_id, account_id, denomination, address, phase, amount)
                VALUES ($1, $2, $3, 'DEFAULT', 'COMMITTED', $4)
                ON CONFLICT (account_id, denomination, address, phase)
                DO UPDATE SET amount = balances.amount + ($4), updated_at = now()"#,
         )
-        .bind(env_id).bind(instr.credit_account).bind(&instr.denomination).bind(credit_delta)
-        .execute(&mut *tx).await.map_err(err_db)?;
+        .bind(env_id)
+        .bind(instr.credit_account)
+        .bind(&instr.denomination)
+        .bind(credit_delta)
+        .execute(&mut *tx)
+        .await
+        .map_err(err_db)?;
     }
     // Journal the replay payload as plain JSON (PostingInstruction is
     // Deserialize-only; the payload records the wire shape, not the struct).
     let journaled_instructions: serde_json::Value =
         serde_json::to_value(&req.instructions).unwrap_or_else(|_| serde_json::json!([]));
     crate::handlers::journal::append_journal_event(
-        &mut tx, env_id, "posting", posting_id, "replay",
+        &mut tx,
+        env_id,
+        "posting",
+        posting_id,
+        "replay",
         &serde_json::json!({ "batch_id": req.batch_id, "instructions": journaled_instructions }),
-    ).await?;
+    )
+    .await?;
     sqlx::query(
         r#"INSERT INTO audit_events (env_id, action, target_resource_type, target_resource_id)
            VALUES ($1, 'journal_replay', 'posting', $2)"#,
     )
-    .bind(env_id).bind(posting_id.to_string())
-    .execute(&mut *tx).await.map_err(err_db)?;
+    .bind(env_id)
+    .bind(posting_id.to_string())
+    .execute(&mut *tx)
+    .await
+    .map_err(err_db)?;
     sentin8::bus::outbox::insert_outbox_row(
         &mut *tx,
         env_id,
@@ -916,10 +1163,13 @@ async fn create_posting_inner(
     .await
     .map_err(|e| {
         tracing::error!(error = %e, posting_id = %posting_id, "replay outbox insert failed");
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("replay outbox insert failed: {e}"))
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("replay outbox insert failed: {e}"),
+        )
     })?;
     tx.commit().await.map_err(err_db)?;
-/* removed misplaced commit */
+    /* removed misplaced commit */
     Ok(PostingResponse {
         id: posting_id,
         batch_id: req.batch_id,
@@ -969,7 +1219,8 @@ mod tests {
         check_double_entry(&[
             instr("WITHDRAWAL", "100", "CAD"),
             instr("DEPOSIT", "100", "CAD"),
-        ]).unwrap();
+        ])
+        .unwrap();
     }
 
     #[test]
@@ -977,7 +1228,8 @@ mod tests {
         let e = check_double_entry(&[
             instr("WITHDRAWAL", "100", "CAD"),
             instr("DEPOSIT", "99.99", "CAD"),
-        ]).unwrap_err();
+        ])
+        .unwrap_err();
         assert!(e.contains("double-entry violation"));
     }
 
@@ -989,7 +1241,8 @@ mod tests {
             instr("DEPOSIT", "100", "CAD"),
             instr("WITHDRAWAL", "50", "USD"),
             instr("DEPOSIT", "10", "USD"),
-        ]).unwrap_err();
+        ])
+        .unwrap_err();
         assert!(e.contains("double-entry violation"));
     }
 
@@ -1002,7 +1255,8 @@ mod tests {
             instr("DEPOSIT", "100", "CAD"),
             instr("WITHDRAWAL", "25", "USD"),
             instr("DEPOSIT", "25", "USD"),
-        ]).unwrap();
+        ])
+        .unwrap();
     }
 
     #[test]
@@ -1012,7 +1266,8 @@ mod tests {
             instr("WITHDRAWAL", "60", "CAD"),
             instr("WITHDRAWAL", "40", "CAD"),
             instr("DEPOSIT", "100", "CAD"),
-        ]).unwrap();
+        ])
+        .unwrap();
     }
 
     #[test]
@@ -1022,7 +1277,8 @@ mod tests {
         check_double_entry(&[
             instr("WITHDRAWAL", "not-a-number", "CAD"),
             instr("DEPOSIT", "0", "CAD"),
-        ]).unwrap();
+        ])
+        .unwrap();
     }
 
     #[test]
@@ -1033,12 +1289,14 @@ mod tests {
             instr("FEE_APPLICATION", "5", "CAD"),
             instr("FEE_APPLICATION", "5", "CAD"),
             instr("DEPOSIT", "10", "CAD"),
-        ]).unwrap();
+        ])
+        .unwrap();
         // One fee + smaller deposit → imbalanced.
         assert!(check_double_entry(&[
             instr("FEE_APPLICATION", "5", "CAD"),
             instr("DEPOSIT", "4", "CAD"),
-        ]).is_err());
+        ])
+        .is_err());
     }
 
     #[test]
@@ -1049,11 +1307,13 @@ mod tests {
             instr("DEPOSIT", "1", "EUR"),
             instr("WITHDRAWAL", "2", "GBP"),
             instr("DEPOSIT", "2", "GBP"),
-        ]).unwrap();
+        ])
+        .unwrap();
         assert!(check_double_entry(&[
             instr("WITHDRAWAL", "1", "EUR"),
             instr("DEPOSIT", "2", "EUR"),
-        ]).is_err());
+        ])
+        .is_err());
     }
 
     // ── debits_source ────────────────────────────────────────────────────

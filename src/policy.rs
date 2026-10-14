@@ -17,7 +17,6 @@
 //! Ledger authorization model: ledger §6.1 (one engine, three models
 //! RBAC/ABAC/ReBAC all Shield; RLS stays the tenant-isolation barrier).
 
-
 #[allow(unused_imports)]
 pub use sentin8::shield::runtime::{
     check_policy, engine_for, policy_bus_client, request_ctx, spawn_hot_reload,

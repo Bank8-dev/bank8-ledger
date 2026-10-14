@@ -85,8 +85,9 @@ pub async fn create_bulk_batch(
         .await
         .map_err(err_db)?;
     let item_count = req.items.as_array().map(|a| a.len()).unwrap_or(0) as i32;
-    let (id, kind) = if req.kind == "migration" {
-        let row = sqlx::query(
+    let (id, kind) =
+        if req.kind == "migration" {
+            let row = sqlx::query(
             r#"INSERT INTO account_migrations (env_id, source_system, payload, item_count, status)
                VALUES ($1, $2, $3, $4, 'pending') RETURNING id"#,
         )
@@ -94,20 +95,20 @@ pub async fn create_bulk_batch(
         .fetch_one(&mut *tx)
         .await
         .map_err(err_db)?;
-        (row.get::<Uuid, _>("id"), "migration")
-    } else {
-        let row = sqlx::query(
-            r#"INSERT INTO account_update_batches (env_id, payload, item_count, status)
+            (row.get::<Uuid, _>("id"), "migration")
+        } else {
+            let row = sqlx::query(
+                r#"INSERT INTO account_update_batches (env_id, payload, item_count, status)
                VALUES ($1, $2, $3, 'pending') RETURNING id"#,
-        )
-        .bind(a.env_id())
-        .bind(&req.items)
-        .bind(item_count)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(err_db)?;
-        (row.get::<Uuid, _>("id"), "account_update")
-    };
+            )
+            .bind(a.env_id())
+            .bind(&req.items)
+            .bind(item_count)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(err_db)?;
+            (row.get::<Uuid, _>("id"), "account_update")
+        };
     append_journal_event(
         &mut tx,
         a.env_id(),
@@ -118,7 +119,7 @@ pub async fn create_bulk_batch(
     )
     .await?;
     tx.commit().await.map_err(err_db)?;
-/* removed misplaced commit */
+    /* removed misplaced commit */
     Ok(Json(BulkBatchResponse {
         id,
         kind: kind.into(),
@@ -239,11 +240,17 @@ pub async fn bulk_retry_batch(
     let payload: Option<(String, JsonValue)> = sqlx::query(
         r#"SELECT status, payload FROM account_update_batches WHERE id = $1 AND env_id = $2"#,
     )
-    .bind(id).bind(a.env_id())
+    .bind(id)
+    .bind(a.env_id())
     .fetch_optional(&mut *conn)
     .await
     .map_err(err_db)?
-    .map(|r| (r.get::<String, _>("status"), r.get::<JsonValue, _>("payload")))
+    .map(|r| {
+        (
+            r.get::<String, _>("status"),
+            r.get::<JsonValue, _>("payload"),
+        )
+    })
     .map(|(status, payload)| (format!("account_update:{status}"), payload));
     let (tag, payload) = match payload {
         Some(p) => p,
@@ -251,7 +258,8 @@ pub async fn bulk_retry_batch(
             let row = sqlx::query(
                 r#"SELECT status, payload FROM account_migrations WHERE id = $1 AND env_id = $2"#,
             )
-            .bind(id).bind(a.env_id())
+            .bind(id)
+            .bind(a.env_id())
             .fetch_optional(&mut *conn)
             .await
             .map_err(err_db)?

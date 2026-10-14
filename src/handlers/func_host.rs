@@ -71,7 +71,8 @@ pub async fn func_host(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bank8:ledger:postings:write"),
-    ).await?;
+    )
+    .await?;
     // Cross-check: the Func runtime must call for an env its token can
     // address (platform M2M tokens carry `sys` env; ledger-scoped M2M carry
     // their own). Requests for a different env are rejected unless the
@@ -81,20 +82,36 @@ pub async fn func_host(
     }
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, req.env_id).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, req.env_id)
+        .await
+        .map_err(err_db)?;
 
     match req.function.as_str() {
         "get_account" => {
-            let id = req.args.get("account_id").and_then(|v| v.as_str())
+            let id = req
+                .args
+                .get("account_id")
+                .and_then(|v| v.as_str())
                 .and_then(|s| Uuid::parse_str(s).ok())
-                .or_else(|| req.args.get("0").and_then(|v| v.as_str()).and_then(|s| Uuid::parse_str(s).ok()))
-                .ok_or((StatusCode::BAD_REQUEST, "get_account: account_id required".into()))?;
+                .or_else(|| {
+                    req.args
+                        .get("0")
+                        .and_then(|v| v.as_str())
+                        .and_then(|s| Uuid::parse_str(s).ok())
+                })
+                .ok_or((
+                    StatusCode::BAD_REQUEST,
+                    "get_account: account_id required".into(),
+                ))?;
             let row = sqlx::query(
                 r#"SELECT id, account_type, product_type, nickname, denomination, status
                      FROM accounts WHERE id = $1 AND env_id = $2 AND deleted_at IS NULL"#,
             )
-            .bind(id).bind(req.env_id)
-            .fetch_optional(&mut *conn).await.map_err(err_db)?
+            .bind(id)
+            .bind(req.env_id)
+            .fetch_optional(&mut *conn)
+            .await
+            .map_err(err_db)?
             .ok_or((StatusCode::NOT_FOUND, format!("account {id} not found")))?;
             Ok(Json(FuncHostResponse {
                 ok: true,
@@ -110,11 +127,26 @@ pub async fn func_host(
             }))
         }
         "get_balance" => {
-            let id = req.args.get("account_id").and_then(|v| v.as_str())
+            let id = req
+                .args
+                .get("account_id")
+                .and_then(|v| v.as_str())
                 .and_then(|s| Uuid::parse_str(s).ok())
-                .or_else(|| req.args.get("0").and_then(|v| v.as_str()).and_then(|s| Uuid::parse_str(s).ok()))
-                .ok_or((StatusCode::BAD_REQUEST, "get_balance: account_id required".into()))?;
-            let denom = req.args.get("denomination").and_then(|v| v.as_str()).unwrap_or("CAD");
+                .or_else(|| {
+                    req.args
+                        .get("0")
+                        .and_then(|v| v.as_str())
+                        .and_then(|s| Uuid::parse_str(s).ok())
+                })
+                .ok_or((
+                    StatusCode::BAD_REQUEST,
+                    "get_balance: account_id required".into(),
+                ))?;
+            let denom = req
+                .args
+                .get("denomination")
+                .and_then(|v| v.as_str())
+                .unwrap_or("CAD");
             let amount: Option<Decimal> = sqlx::query_scalar(
                 r#"SELECT amount FROM balances
                     WHERE account_id = $1 AND denomination = $2 AND address = 'DEFAULT' AND phase = 'COMMITTED'"#,
@@ -132,43 +164,100 @@ pub async fn func_host(
             }))
         }
         "set_flag" => {
-            let id = req.args.get("account_id").and_then(|v| v.as_str())
+            let id = req
+                .args
+                .get("account_id")
+                .and_then(|v| v.as_str())
                 .and_then(|s| Uuid::parse_str(s).ok())
-                .ok_or((StatusCode::BAD_REQUEST, "set_flag: account_id required".into()))?;
-            let flag_name = req.args.get("flag_name").and_then(|v| v.as_str())
-                .ok_or((StatusCode::BAD_REQUEST, "set_flag: flag_name required".into()))?;
-            let value = req.args.get("value").and_then(|v| v.as_str()).unwrap_or("ON");
+                .ok_or((
+                    StatusCode::BAD_REQUEST,
+                    "set_flag: account_id required".into(),
+                ))?;
+            let flag_name = req.args.get("flag_name").and_then(|v| v.as_str()).ok_or((
+                StatusCode::BAD_REQUEST,
+                "set_flag: flag_name required".into(),
+            ))?;
+            let value = req
+                .args
+                .get("value")
+                .and_then(|v| v.as_str())
+                .unwrap_or("ON");
             sqlx::query(
                 r#"INSERT INTO account_flags (env_id, account_id, flag_name, value)
                    VALUES ($1, $2, $3, $4)
                    ON CONFLICT (account_id, flag_name)
                    DO UPDATE SET value = $4, updated_at = now()"#,
             )
-            .bind(req.env_id).bind(id).bind(flag_name).bind(value)
-            .execute(&mut *conn).await.map_err(err_db)?;
-            Ok(Json(FuncHostResponse { ok: true, result: Some(serde_json::json!({ "flag": flag_name, "value": value })), error: None }))
+            .bind(req.env_id)
+            .bind(id)
+            .bind(flag_name)
+            .bind(value)
+            .execute(&mut *conn)
+            .await
+            .map_err(err_db)?;
+            Ok(Json(FuncHostResponse {
+                ok: true,
+                result: Some(serde_json::json!({ "flag": flag_name, "value": value })),
+                error: None,
+            }))
         }
         "create_posting" => {
-            let instruction_type = req.args.get("instruction_type").and_then(|v| v.as_str())
+            let instruction_type = req
+                .args
+                .get("instruction_type")
+                .and_then(|v| v.as_str())
                 .unwrap_or("ADJUSTMENT");
-            let debit = req.args.get("debit_account").and_then(|v| v.as_str())
+            let debit = req
+                .args
+                .get("debit_account")
+                .and_then(|v| v.as_str())
                 .and_then(|s| Uuid::parse_str(s).ok())
-                .ok_or((StatusCode::BAD_REQUEST, "create_posting: debit_account required".into()))?;
-            let credit = req.args.get("credit_account").and_then(|v| v.as_str())
+                .ok_or((
+                    StatusCode::BAD_REQUEST,
+                    "create_posting: debit_account required".into(),
+                ))?;
+            let credit = req
+                .args
+                .get("credit_account")
+                .and_then(|v| v.as_str())
                 .and_then(|s| Uuid::parse_str(s).ok())
-                .ok_or((StatusCode::BAD_REQUEST, "create_posting: credit_account required".into()))?;
-            let amount_s = req.args.get("amount")
-                .and_then(|v| v.as_str().map(String::from)
-                    .or_else(|| v.as_f64().map(|f| f.to_string())))
-                .ok_or((StatusCode::BAD_REQUEST, "create_posting: amount required".into()))?;
-            let amount = amount_s.parse::<Decimal>()
-                .map_err(|e| (StatusCode::BAD_REQUEST, format!("create_posting: invalid amount: {e}")))?;
-            let denom = req.args.get("denomination").and_then(|v| v.as_str()).unwrap_or("CAD");
-            let batch_id = req.args.get("batch_id").and_then(|v| v.as_str())
+                .ok_or((
+                    StatusCode::BAD_REQUEST,
+                    "create_posting: credit_account required".into(),
+                ))?;
+            let amount_s = req
+                .args
+                .get("amount")
+                .and_then(|v| {
+                    v.as_str()
+                        .map(String::from)
+                        .or_else(|| v.as_f64().map(|f| f.to_string()))
+                })
+                .ok_or((
+                    StatusCode::BAD_REQUEST,
+                    "create_posting: amount required".into(),
+                ))?;
+            let amount = amount_s.parse::<Decimal>().map_err(|e| {
+                (
+                    StatusCode::BAD_REQUEST,
+                    format!("create_posting: invalid amount: {e}"),
+                )
+            })?;
+            let denom = req
+                .args
+                .get("denomination")
+                .and_then(|v| v.as_str())
+                .unwrap_or("CAD");
+            let batch_id = req
+                .args
+                .get("batch_id")
+                .and_then(|v| v.as_str())
                 .map(String::from)
                 .unwrap_or_else(|| format!("func-host-{}", Uuid::new_v4()));
             let mut tx = state.pool.begin().await.map_err(err_db)?;
-            set_tenant_context(&mut tx, req.env_id).await.map_err(err_db)?;
+            set_tenant_context(&mut tx, req.env_id)
+                .await
+                .map_err(err_db)?;
             let prow = sqlx::query(
                 r#"INSERT INTO postings (env_id, batch_id, status, idempotency_key, instruction_count)
                    VALUES ($1, $2, 'accepted', $3, 1)
@@ -183,7 +272,7 @@ pub async fn func_host(
                    VALUES ($1, $2, $3, $4, $5, $6, $7, now(), 'accepted')"#,
             )
             .bind(req.env_id).bind(posting_id).bind(instruction_type).bind(debit).bind(credit)
-            .bind(&amount).bind(denom)
+            .bind(amount).bind(denom)
             .execute(&mut *tx).await.map_err(err_db)?;
             sqlx::query(
                 r#"INSERT INTO balances (env_id, account_id, denomination, address, phase, amount)
@@ -191,16 +280,26 @@ pub async fn func_host(
                    ON CONFLICT (account_id, denomination, address, phase)
                    DO UPDATE SET amount = balances.amount - ($4), updated_at = now()"#,
             )
-            .bind(req.env_id).bind(debit).bind(denom).bind(&amount)
-            .execute(&mut *tx).await.map_err(err_db)?;
+            .bind(req.env_id)
+            .bind(debit)
+            .bind(denom)
+            .bind(amount)
+            .execute(&mut *tx)
+            .await
+            .map_err(err_db)?;
             sqlx::query(
                 r#"INSERT INTO balances (env_id, account_id, denomination, address, phase, amount)
                    VALUES ($1, $2, $3, 'DEFAULT', 'COMMITTED', $4)
                    ON CONFLICT (account_id, denomination, address, phase)
                    DO UPDATE SET amount = balances.amount + ($4), updated_at = now()"#,
             )
-            .bind(req.env_id).bind(credit).bind(denom).bind(&amount)
-            .execute(&mut *tx).await.map_err(err_db)?;
+            .bind(req.env_id)
+            .bind(credit)
+            .bind(denom)
+            .bind(amount)
+            .execute(&mut *tx)
+            .await
+            .map_err(err_db)?;
             sqlx::query(
                 r#"INSERT INTO audit_events (env_id, action, target_resource_type, target_resource_id)
                    VALUES ($1, $2, 'posting', $3)"#,

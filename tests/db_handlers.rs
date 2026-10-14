@@ -18,8 +18,8 @@
 //! RLS tenant-context discipline (context set on the same connection
 //! as the query).
 
-use sqlx::{PgPool, Row};
 use sqlx::Acquire;
+use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
 /// Connect to the test database (the bank8 vertical database when
@@ -43,7 +43,9 @@ async fn test_pool() -> Option<PgPool> {
 /// same SELECT shape `list_accounts` runs.
 #[tokio::test]
 async fn account_insert_and_list_roundtrip() {
-    let Some(pool) = test_pool().await else { return; };
+    let Some(pool) = test_pool().await else {
+        return;
+    };
     let env_id = Uuid::new_v4();
     let product_id = Uuid::new_v4();
     let mut conn = pool.acquire().await.expect("conn");
@@ -110,7 +112,9 @@ async fn account_insert_and_list_roundtrip() {
 /// class).
 #[tokio::test]
 async fn posting_batch_commit_and_readback() {
-    let Some(pool) = test_pool().await else { return; };
+    let Some(pool) = test_pool().await else {
+        return;
+    };
     let env_id = Uuid::new_v4();
     let mut conn = pool.acquire().await.expect("conn");
     // Context-set + seed inserts share one explicit transaction
@@ -273,7 +277,9 @@ async fn posting_batch_commit_and_readback() {
 /// the ORIGINAL row (ON CONFLICT), never a second posting.
 #[tokio::test]
 async fn posting_idempotency_conflict_returns_original() {
-    let Some(pool) = test_pool().await else { return; };
+    let Some(pool) = test_pool().await else {
+        return;
+    };
     let env_id = Uuid::new_v4();
     let mut conn = pool.acquire().await.expect("conn");
     // Context-set + both idempotent inserts share one explicit transaction
@@ -317,7 +323,10 @@ async fn posting_idempotency_conflict_returns_original() {
     .await
     .expect("second insert");
     let returned_id: Uuid = second.get("id");
-    assert_eq!(returned_id, original_id, "duplicate idempotency key must return the original posting");
+    assert_eq!(
+        returned_id, original_id,
+        "duplicate idempotency key must return the original posting"
+    );
 
     let count: i64 = sqlx::query_scalar(
         "SELECT count(*)::bigint FROM ledger.postings WHERE env_id = $1 AND idempotency_key = $2",
@@ -336,7 +345,9 @@ async fn posting_idempotency_conflict_returns_original() {
 /// (FORCE RLS), and the outbox insert path works under the same context.
 #[tokio::test]
 async fn rls_context_isolation_and_outbox_insert() {
-    let Some(pool) = test_pool().await else { return; };
+    let Some(pool) = test_pool().await else {
+        return;
+    };
     let env_id = Uuid::new_v4();
 
     // Connection A: context + insert inside ONE explicit transaction —
@@ -361,13 +372,12 @@ async fn rls_context_isolation_and_outbox_insert() {
     .await
     .expect("insert under context");
 
-    let visible_a: i64 = sqlx::query_scalar(
-        "SELECT count(*)::bigint FROM ledger.accounts WHERE env_id = $1",
-    )
-    .bind(env_id)
-    .fetch_one(&mut *txa)
-    .await
-    .expect("count a");
+    let visible_a: i64 =
+        sqlx::query_scalar("SELECT count(*)::bigint FROM ledger.accounts WHERE env_id = $1")
+            .bind(env_id)
+            .fetch_one(&mut *txa)
+            .await
+            .expect("count a");
     assert_eq!(visible_a, 1, "same-connection query must see the row");
 
     // Connection B without context: sees nothing (context_initialized false).
@@ -378,17 +388,19 @@ async fn rls_context_isolation_and_outbox_insert() {
     let visible_b: i64 = {
         let mut b = pool.acquire().await.expect("conn b");
         let mut tx = b.begin().await.expect("tx b");
-        let v = sqlx::query_scalar(
-            "SELECT count(*)::bigint FROM ledger.accounts WHERE env_id = $1",
-        )
-        .bind(env_id)
-        .fetch_one(&mut *tx)
-        .await
-        .expect("count b");
+        let v =
+            sqlx::query_scalar("SELECT count(*)::bigint FROM ledger.accounts WHERE env_id = $1")
+                .bind(env_id)
+                .fetch_one(&mut *tx)
+                .await
+                .expect("count b");
         tx.commit().await.expect("commit b");
         v
     };
-    assert_eq!(visible_b, 0, "context-less connection must see nothing (FORCE RLS)");
+    assert_eq!(
+        visible_b, 0,
+        "context-less connection must see nothing (FORCE RLS)"
+    );
 
     // Outbox insert under the same context (the DBX producer path).
     let outbox_id = sentin8::bus::outbox::insert_outbox_row(
@@ -427,7 +439,9 @@ async fn rls_context_isolation_and_outbox_insert() {
 /// insert a schedule, verify the due-window SELECT finds it.
 #[tokio::test]
 async fn schedule_due_window_select() {
-    let Some(pool) = test_pool().await else { return; };
+    let Some(pool) = test_pool().await else {
+        return;
+    };
     let env_id = Uuid::new_v4();
     let mut conn = pool.acquire().await.expect("conn");
     // Context-set + insert + due-window scan share one explicit transaction

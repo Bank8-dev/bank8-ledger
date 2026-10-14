@@ -16,8 +16,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::auth;
-use rust_decimal::Decimal;
 use crate::handlers::{err_db, set_tenant_context, AppState};
+use rust_decimal::Decimal;
 
 // Statement generation needs the naive-date + offset helpers (design §10).
 use chrono::Datelike;
@@ -45,8 +45,10 @@ pub struct CreateScheduleRequest {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ListSchedulesQuery {
-    #[serde(default)] pub account_id: Option<Uuid>,
-    #[serde(default)] pub schedule_type: Option<String>,
+    #[serde(default)]
+    pub account_id: Option<Uuid>,
+    #[serde(default)]
+    pub schedule_type: Option<String>,
 }
 
 /// `POST /v1/schedules` — create a schedule, delegating execution to Cron.
@@ -70,9 +72,17 @@ pub async fn create_schedule(
     Json(req): Json<CreateScheduleRequest>,
 ) -> Result<Json<ScheduleResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:schedules:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:schedules:write"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     // Store a local reference in schedules.
     let row = sqlx::query(
         r#"INSERT INTO schedules (env_id, account_id, schedule_type, cron_expression, status)
@@ -83,7 +93,10 @@ pub async fn create_schedule(
     .fetch_one(&mut *conn).await.map_err(err_db)?;
     let local_id: Uuid = row.get("id");
     // Delegate to Cron — create the actual schedule there.
-    let cron = crate::cron_client::CronClient::new(&state.config.sentin8_cron_url, &state.config.cron_token().await);
+    let cron = crate::cron_client::CronClient::new(
+        &state.config.sentin8_cron_url,
+        &state.config.cron_token().await,
+    );
     let target_config = serde_json::json!({
         "ledger_schedule_id": local_id,
         "account_id": req.account_id,
@@ -100,8 +113,10 @@ pub async fn create_schedule(
         Ok(sentin8_cron_sched) => {
             // Update local record with Cron schedule ID reference.
             let _ = sqlx::query("UPDATE schedules SET next_run_at = $2 WHERE id = $1")
-                .bind(local_id).bind(sentin8_cron_sched.next_run_at)
-                .execute(&mut *conn).await;
+                .bind(local_id)
+                .bind(sentin8_cron_sched.next_run_at)
+                .execute(&mut *conn)
+                .await;
         }
         Err(e) => {
             tracing::warn!(error = %e, "failed to create schedule in Cron; local record kept");
@@ -114,9 +129,13 @@ pub async fn create_schedule(
     )
     .bind(local_id).fetch_one(&mut *conn).await.map_err(err_db)?;
     let schedule = row_to_schedule(&row);
-    super::emit_event(&state.pool, a.env_id(), "bank8:ledger:schedule:created",
+    super::emit_event(
+        &state.pool,
+        a.env_id(),
+        "bank8:ledger:schedule:created",
         serde_json::json!({ "schedule_id": local_id, "account_id": req.account_id }),
-    ).await;
+    )
+    .await;
     conn.commit().await.map_err(err_db)?;
     Ok(Json(schedule))
 }
@@ -142,9 +161,17 @@ pub async fn list_schedules(
     Query(q): Query<ListSchedulesQuery>,
 ) -> Result<Json<Vec<ScheduleResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:schedules:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:schedules:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let rows = sqlx::query(
         r#"SELECT id, account_id, schedule_type, cron_expression, status, last_run_at, next_run_at, created_at
              FROM schedules
@@ -176,9 +203,17 @@ pub async fn get_schedule(
     Path(id): Path<Uuid>,
 ) -> Result<Json<ScheduleResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:schedules:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:schedules:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"SELECT id, account_id, schedule_type, cron_expression, status, last_run_at, next_run_at, created_at
              FROM schedules WHERE id = $1"#,
@@ -205,9 +240,17 @@ pub async fn list_account_schedules(
     Path(account_id): Path<Uuid>,
 ) -> Result<Json<Vec<ScheduleResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:schedules:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:schedules:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let rows = sqlx::query(
         r#"SELECT s.id, s.account_id, s.schedule_type, s.cron_expression, s.status, s.last_run_at, s.next_run_at, s.created_at
              FROM schedules s
@@ -252,9 +295,17 @@ pub async fn list_jobs(
     Query(q): Query<ListJobsQuery>,
 ) -> Result<Json<Vec<JobResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:jobs:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:jobs:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let rows = sqlx::query(
         r#"SELECT id, schedule_id, job_type, status, started_at, completed_at, error_message, created_at
              FROM jobs
@@ -269,8 +320,10 @@ pub async fn list_jobs(
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ListJobsQuery {
-    #[serde(default)] pub schedule_id: Option<Uuid>,
-    #[serde(default)] pub status: Option<String>,
+    #[serde(default)]
+    pub schedule_id: Option<Uuid>,
+    #[serde(default)]
+    pub status: Option<String>,
 }
 
 /// `GET /v1/jobs/{id}` — job detail.
@@ -292,9 +345,17 @@ pub async fn get_job(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JobResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:jobs:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:jobs:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"SELECT id, schedule_id, job_type, status, started_at, completed_at, error_message, created_at
              FROM jobs WHERE id = $1"#,
@@ -321,9 +382,17 @@ pub async fn retry_job(
     Path(id): Path<Uuid>,
 ) -> Result<Json<JobResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:jobs:admin")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:jobs:admin"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"UPDATE jobs SET status = 'pending', error_message = NULL, started_at = NULL, completed_at = NULL
             WHERE id = $1 AND status = 'failed'
@@ -331,9 +400,13 @@ pub async fn retry_job(
     )
     .bind(id).fetch_one(&mut *conn).await.map_err(err_db)?;
     let job = row_to_job(&row);
-    super::emit_event(&state.pool, a.env_id(), "bank8:ledger:job:retried",
+    super::emit_event(
+        &state.pool,
+        a.env_id(),
+        "bank8:ledger:job:retried",
         serde_json::json!({ "job_id": job.id }),
-    ).await;
+    )
+    .await;
 
     conn.commit().await.map_err(err_db)?;
     Ok(Json(job))
@@ -357,15 +430,27 @@ pub async fn batch_republish_jobs(
     Json(req): Json<BatchRepublishRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:jobs:admin")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:jobs:admin"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let count = sqlx::query("UPDATE jobs SET status = 'overridden', error_message = COALESCE(error_message, 'manually overridden via jobs:batchRepublish'), completed_at = now() WHERE id = ANY($1) AND status = 'failed'")
         .bind(&req.ids)
         .execute(&mut *conn).await.map(|r| r.rows_affected()).map_err(err_db)?;
-    super::emit_event(&state.pool, a.env_id(), "bank8:ledger:job:batchrepublished",
+    super::emit_event(
+        &state.pool,
+        a.env_id(),
+        "bank8:ledger:job:batchrepublished",
         serde_json::json!({ "job_ids": req.ids }),
-    ).await;
+    )
+    .await;
 
     conn.commit().await.map_err(err_db)?;
     Ok(Json(serde_json::json!({ "overridden": count })))
@@ -395,8 +480,8 @@ async fn generate_statements(
     // Period = prior calendar month (statement cycles run monthly; the
     // credit-card cycle parameters refine SCOD per product later).
     let now = chrono::Utc::now();
-    let first_of_month = chrono::NaiveDate::from_ymd_opt(now.year(), now.month(), 1)
-        .ok_or("calendar error")?;
+    let first_of_month =
+        chrono::NaiveDate::from_ymd_opt(now.year(), now.month(), 1).ok_or("calendar error")?;
     let period_start = first_of_month.pred_opt().ok_or("calendar error")?;
     let period_start_ts = period_start
         .and_hms_opt(0, 0, 0)
@@ -413,8 +498,10 @@ async fn generate_statements(
             r#"SELECT id, denomination, status FROM accounts
                 WHERE id = $1 AND env_id = $2 AND deleted_at IS NULL"#,
         )
-        .bind(aid).bind(env_id)
-        .fetch_all(&state.pool).await
+        .bind(aid)
+        .bind(env_id)
+        .fetch_all(&state.pool)
+        .await
         .map_err(|e| format!("load schedule account: {e}"))?
     } else {
         sqlx::query(
@@ -423,7 +510,8 @@ async fn generate_statements(
                   AND deleted_at IS NULL LIMIT 500"#,
         )
         .bind(env_id)
-        .fetch_all(&state.pool).await
+        .fetch_all(&state.pool)
+        .await
         .map_err(|e| format!("load schedule accounts: {e}"))?
     };
 
@@ -432,7 +520,18 @@ async fn generate_statements(
     for row in accounts {
         let acc_id: Uuid = row.get("id");
         let denom: String = row.get("denomination");
-        generate_statement_for_account(state, env_id, &storage, acc_id, &denom, &period_label, period_start_ts, period_end_ts, &mut results).await?;
+        generate_statement_for_account(
+            state,
+            env_id,
+            &storage,
+            acc_id,
+            &denom,
+            &period_label,
+            period_start_ts,
+            period_end_ts,
+            &mut results,
+        )
+        .await?;
     }
     Ok(results)
 }
@@ -452,8 +551,14 @@ async fn generate_statement_for_account(
     period_end: chrono::DateTime<chrono::Utc>,
     results: &mut Vec<serde_json::Value>,
 ) -> Result<(), String> {
-    let mut tx = state.pool.begin().await.map_err(|e| format!("begin statement tx: {e}"))?;
-    crate::handlers::set_tenant_context(&mut tx, env_id).await.map_err(|e| format!("set tenant context: {e}"))?;
+    let mut tx = state
+        .pool
+        .begin()
+        .await
+        .map_err(|e| format!("begin statement tx: {e}"))?;
+    crate::handlers::set_tenant_context(&mut tx, env_id)
+        .await
+        .map_err(|e| format!("set tenant context: {e}"))?;
 
     // Opening balance = the last committed balance at or before period start;
     // closing = current committed balance (period end = generation time).
@@ -473,9 +578,18 @@ async fn generate_statement_for_account(
               AND value_timestamp >= $3 AND value_timestamp < $4
               AND status = 'accepted'"#,
     )
-    .bind(env_id).bind(account_id).bind(period_start).bind(period_end)
-    .fetch_one(&mut *tx).await
-    .map(|r| (r.try_get::<Decimal, _>(0).unwrap_or(Decimal::ZERO), r.try_get::<Decimal, _>(1).unwrap_or(Decimal::ZERO)))
+    .bind(env_id)
+    .bind(account_id)
+    .bind(period_start)
+    .bind(period_end)
+    .fetch_one(&mut *tx)
+    .await
+    .map(|r| {
+        (
+            r.try_get::<Decimal, _>(0).unwrap_or(Decimal::ZERO),
+            r.try_get::<Decimal, _>(1).unwrap_or(Decimal::ZERO),
+        )
+    })
     .map_err(|e| format!("load posting sums: {e}"))?;
     let _ = credits; // sums feed the document body below
 
@@ -486,7 +600,8 @@ async fn generate_statement_for_account(
         "opening_balance": opening.to_string(), "closing_balance": opening.to_string(),
         "denomination": denomination,
     });
-    let doc_bytes = serde_json::to_vec_pretty(&document).map_err(|e| format!("render statement: {e}"))?;
+    let doc_bytes =
+        serde_json::to_vec_pretty(&document).map_err(|e| format!("render statement: {e}"))?;
     let object_path = format!("statements/objects/{env_id}/{account_id}/{statement_id}.json");
     storage.put_statement(&object_path, doc_bytes).await?;
 
@@ -501,7 +616,9 @@ async fn generate_statement_for_account(
     .bind(env_id).bind(account_id).bind(period_start).bind(period_end)
     .bind(opening).bind(opening).bind(&object_path)
     .fetch_optional(&mut *tx).await.map_err(|e| format!("insert statement: {e}"))?;
-    tx.commit().await.map_err(|e| format!("commit statement: {e}"))?;
+    tx.commit()
+        .await
+        .map_err(|e| format!("commit statement: {e}"))?;
 
     if inserted.is_some() {
         // Trigger the per-account-period regen workflow (design §10):
@@ -509,7 +626,7 @@ async fn generate_statement_for_account(
         // storage write) so a failure retries per account instead of
         // redoing the whole batch. Deduped by Flow's pending-index on
         // correlation = account_id:period.
-        crate::statements::trigger_regen_workflow(state, env_id, account_id, &period_label).await;
+        crate::statements::trigger_regen_workflow(state, env_id, account_id, period_label).await;
         results.push(serde_json::json!({
             "account_id": account_id, "statement_id": statement_id,
             "period": period_label, "storage_path": object_path,
@@ -545,19 +662,38 @@ pub async fn internal_schedule_run(
     Json(req): Json<ScheduleRunRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let _a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &_a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:schedules:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &_a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:schedules:write"),
+    )
+    .await?;
     // Extract the local schedule ID and account ID from target_config.
-    let ledger_schedule_id = req.target_config.get("ledger_schedule_id")
-        .and_then(|v| v.as_str()).and_then(|s| Uuid::parse_str(s).ok());
-    let account_id = req.target_config.get("account_id")
-        .and_then(|v| v.as_str()).and_then(|s| Uuid::parse_str(s).ok());
+    let ledger_schedule_id = req
+        .target_config
+        .get("ledger_schedule_id")
+        .and_then(|v| v.as_str())
+        .and_then(|s| Uuid::parse_str(s).ok());
+    let account_id = req
+        .target_config
+        .get("account_id")
+        .and_then(|v| v.as_str())
+        .and_then(|s| Uuid::parse_str(s).ok());
     // Look up the local schedule to determine the schedule_type.
     let mut conn = state.pool.begin().await.map_err(err_db)?;
     let schedule_type: Option<String> = if let Some(sid) = ledger_schedule_id {
-        set_tenant_context(&mut conn, _a.env_id()).await.map_err(err_db)?;
+        set_tenant_context(&mut conn, _a.env_id())
+            .await
+            .map_err(err_db)?;
         sqlx::query_scalar("SELECT schedule_type FROM schedules WHERE id = $1")
-            .bind(sid).fetch_optional(&mut *conn).await.map_err(err_db)?
-    } else { None };
+            .bind(sid)
+            .fetch_optional(&mut *conn)
+            .await
+            .map_err(err_db)?
+    } else {
+        None
+    };
     let schedule_type = schedule_type.unwrap_or_else(|| "unknown".into());
     // Record a job entry.
     let job_row = sqlx::query(
@@ -565,8 +701,12 @@ pub async fn internal_schedule_run(
            VALUES ($1, $2, $3, 'running')
            RETURNING id"#,
     )
-    .bind(_a.env_id()).bind(ledger_schedule_id).bind(&schedule_type)
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(_a.env_id())
+    .bind(ledger_schedule_id)
+    .bind(&schedule_type)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     let job_id: Uuid = job_row.get("id");
 
     // Execute the scheduled work by dispatching to the on-schedule modules
@@ -577,10 +717,16 @@ pub async fn internal_schedule_run(
     let response = match run_result {
         Ok(results) => {
             sqlx::query("UPDATE jobs SET status = 'completed', completed_at = now() WHERE id = $1")
-                .bind(job_id).execute(&mut *conn).await.map_err(err_db)?;
+                .bind(job_id)
+                .execute(&mut *conn)
+                .await
+                .map_err(err_db)?;
             if let Some(sid) = ledger_schedule_id {
                 sqlx::query("UPDATE schedules SET last_run_at = now() WHERE id = $1")
-                    .bind(sid).execute(&mut *conn).await.map_err(err_db)?;
+                    .bind(sid)
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(err_db)?;
             }
             Ok(Json(serde_json::json!({
                 "job_id" : job_id,
@@ -608,7 +754,8 @@ pub async fn internal_schedule_run(
                 "job_id": job_id,
             }))
             .bind(&msg)
-            .execute(&mut *conn).await;
+            .execute(&mut *conn)
+            .await;
             Err((StatusCode::INTERNAL_SERVER_ERROR, msg))
         }
     };
@@ -651,8 +798,10 @@ async fn run_scheduled_work(
             r#"SELECT id, product_id, product_type, denomination, status, opened_at
                  FROM accounts WHERE id = $1 AND env_id = $2 AND deleted_at IS NULL"#,
         )
-        .bind(aid).bind(env_id)
-        .fetch_all(&state.pool).await
+        .bind(aid)
+        .bind(env_id)
+        .fetch_all(&state.pool)
+        .await
         .map_err(|e| format!("load schedule account: {e}"))?
     } else {
         sqlx::query(
@@ -679,8 +828,13 @@ async fn run_scheduled_work(
         let Some(prow) = product else { continue };
         let params: serde_json::Value = prow.get("parameters");
         let modules_val: serde_json::Value = prow.get("modules");
-        let modules: Vec<String> = modules_val.as_array()
-            .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        let modules: Vec<String> = modules_val
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
             .unwrap_or_default();
         let ctx = crate::modules::ModuleContext {
             product_parameters: &params,
@@ -698,7 +852,8 @@ async fn run_scheduled_work(
         .unwrap_or(Decimal::ZERO);
         let denom: String = sqlx::query_scalar("SELECT denomination FROM accounts WHERE id = $1")
             .bind(acc_id)
-            .fetch_one(&state.pool).await
+            .fetch_one(&state.pool)
+            .await
             .map_err(|e| format!("load denomination {acc_id}: {e}"))?;
         let account_v2 = crate::types::AccountV2 {
             id: acc_id,
@@ -708,7 +863,9 @@ async fn run_scheduled_work(
             account_type: "CUSTOMER".into(),
             product_type: row.try_get("product_type").ok(),
             nickname: None,
-            status: row.try_get::<String, _>("status").unwrap_or_else(|_| "OPEN".into()),
+            status: row
+                .try_get::<String, _>("status")
+                .unwrap_or_else(|_| "OPEN".into()),
             denomination: denom.clone(),
             permitted_denominations: vec![],
             tside: "LIABILITY".into(),
@@ -728,13 +885,18 @@ async fn run_scheduled_work(
             r#"SELECT COALESCE(EXTRACT(DAY FROM now() - MAX(booking_timestamp))::BIGINT, 365)"#,
         )
         .bind(acc_id)
-        .fetch_one(&state.pool).await
+        .fetch_one(&state.pool)
+        .await
         .map_err(|e| format!("load last activity {acc_id}: {e}"))?;
 
         match normalized.as_str() {
             "interest_accrual" => {
-                let accrued = crate::modules::on_schedule_interest_accrual(&ctx, &account_v2, current_balance)
-                    .map_err(|e| e.to_string())?;
+                let accrued = crate::modules::on_schedule_interest_accrual(
+                    &ctx,
+                    &account_v2,
+                    current_balance,
+                )
+                .map_err(|e| e.to_string())?;
                 if accrued != Decimal::ZERO {
                     // Accrual books to the accrued-interest internal account
                     // the posting credits the customer account on application,
@@ -746,8 +908,12 @@ async fn run_scheduled_work(
                 }
             }
             "interest_application" => {
-                let applied = crate::modules::on_schedule_interest_application(&ctx, &account_v2, current_balance)
-                    .map_err(|e| e.to_string())?;
+                let applied = crate::modules::on_schedule_interest_application(
+                    &ctx,
+                    &account_v2,
+                    current_balance,
+                )
+                .map_err(|e| e.to_string())?;
                 if applied != Decimal::ZERO {
                     generated.push(crate::types::PostingInstructionV2 {
                         instruction_type: "INTEREST_APPLICATION".into(),
@@ -760,28 +926,51 @@ async fn run_scheduled_work(
                         client_transaction_id: None,
                         description: Some("scheduled interest application".into()),
                     });
-                    results.push(serde_json::json!({ "account_id": acc_id, "applied": applied.to_string() }));
+                    results.push(
+                        serde_json::json!({ "account_id": acc_id, "applied": applied.to_string() }),
+                    );
                 }
             }
             "fee_application" | "maintenance_fee" | "maintenance_fees" => {
-                let fee = crate::modules::on_schedule_maintenance_fee(&ctx).map_err(|e| e.to_string())?;
+                let fee =
+                    crate::modules::on_schedule_maintenance_fee(&ctx).map_err(|e| e.to_string())?;
                 if fee != Decimal::ZERO {
-                    generated.push(fee_instruction(acc_id, &denom, fee, "scheduled maintenance fee"));
+                    generated.push(fee_instruction(
+                        acc_id,
+                        &denom,
+                        fee,
+                        "scheduled maintenance fee",
+                    ));
                     results.push(serde_json::json!({ "account_id": acc_id, "fee": fee.to_string(), "kind": "maintenance" }));
                 }
-                let inactivity = crate::modules::on_schedule_inactivity_fee(&ctx, last_activity_days).map_err(|e| e.to_string())?;
+                let inactivity =
+                    crate::modules::on_schedule_inactivity_fee(&ctx, last_activity_days)
+                        .map_err(|e| e.to_string())?;
                 if inactivity != Decimal::ZERO {
-                    generated.push(fee_instruction(acc_id, &denom, inactivity, "scheduled inactivity fee"));
+                    generated.push(fee_instruction(
+                        acc_id,
+                        &denom,
+                        inactivity,
+                        "scheduled inactivity fee",
+                    ));
                     results.push(serde_json::json!({ "account_id": acc_id, "fee": inactivity.to_string(), "kind": "inactivity" }));
                 }
-                let min_fee = crate::modules::on_schedule_minimum_balance_fee(&ctx, current_balance).map_err(|e| e.to_string())?;
+                let min_fee =
+                    crate::modules::on_schedule_minimum_balance_fee(&ctx, current_balance)
+                        .map_err(|e| e.to_string())?;
                 if min_fee != Decimal::ZERO {
-                    generated.push(fee_instruction(acc_id, &denom, min_fee, "scheduled minimum balance fee"));
+                    generated.push(fee_instruction(
+                        acc_id,
+                        &denom,
+                        min_fee,
+                        "scheduled minimum balance fee",
+                    ));
                     results.push(serde_json::json!({ "account_id": acc_id, "fee": min_fee.to_string(), "kind": "minimum_balance" }));
                 }
             }
             "dormancy" => {
-                let dormant = crate::modules::on_schedule_dormancy(&ctx, last_activity_days).map_err(|e| e.to_string())?;
+                let dormant = crate::modules::on_schedule_dormancy(&ctx, last_activity_days)
+                    .map_err(|e| e.to_string())?;
                 if dormant {
                     // Set the ACCOUNT_DORMANT flag (idempotent insert).
                     let _ = sqlx::query(
@@ -795,7 +984,9 @@ async fn run_scheduled_work(
                 }
             }
             "maturity_processing" | "closure" => {
-                let applied = crate::modules::on_closure_interest_application(&ctx, current_balance).map_err(|e| e.to_string())?;
+                let applied =
+                    crate::modules::on_closure_interest_application(&ctx, current_balance)
+                        .map_err(|e| e.to_string())?;
                 results.push(serde_json::json!({ "account_id": acc_id, "closure_interest": applied.to_string() }));
             }
             other => {
@@ -808,10 +999,23 @@ async fn run_scheduled_work(
     // engine as POST /v1/postings). Idempotency key = schedule identity +
     // UTC date — a Cron retry on the same day dedupes.
     if !generated.is_empty() {
-        let batch_id = format!("sched-{schedule_type}-{}", chrono::Utc::now().format("%Y%m%d"));
-        let idem = format!("sched:{}:{}", ledger_schedule_key(schedule_type, account_id), chrono::Utc::now().format("%Y%m%d"));
-        let mut tx = state.pool.begin().await.map_err(|e| format!("begin batch tx: {e}"))?;
-        crate::handlers::set_tenant_context(&mut tx, env_id).await.map_err(|e| format!("set tenant context: {e}"))?;
+        let batch_id = format!(
+            "sched-{schedule_type}-{}",
+            chrono::Utc::now().format("%Y%m%d")
+        );
+        let idem = format!(
+            "sched:{}:{}",
+            ledger_schedule_key(schedule_type, account_id),
+            chrono::Utc::now().format("%Y%m%d")
+        );
+        let mut tx = state
+            .pool
+            .begin()
+            .await
+            .map_err(|e| format!("begin batch tx: {e}"))?;
+        crate::handlers::set_tenant_context(&mut tx, env_id)
+            .await
+            .map_err(|e| format!("set tenant context: {e}"))?;
         let prow = sqlx::query(
             r#"INSERT INTO postings (env_id, batch_id, status, idempotency_key, instruction_count, correlation_id)
                VALUES ($1, $2, 'accepted', $3, $4, $5)
@@ -831,7 +1035,7 @@ async fn run_scheduled_work(
             )
             .bind(env_id).bind(posting_id)
             .bind(&instr.instruction_type).bind(instr.debit_account).bind(instr.credit_account)
-            .bind(&amount).bind(&instr.denomination)
+            .bind(amount).bind(&instr.denomination)
             .execute(&mut *tx).await.map_err(|e| format!("insert instruction: {e}"))?;
             // Debit decreases (fees charge the account), credit increases.
             sqlx::query(
@@ -840,16 +1044,26 @@ async fn run_scheduled_work(
                    ON CONFLICT (account_id, denomination, address, phase)
                    DO UPDATE SET amount = balances.amount - ($4), updated_at = now()"#,
             )
-            .bind(env_id).bind(instr.debit_account).bind(&instr.denomination).bind(&amount)
-            .execute(&mut *tx).await.map_err(|e| format!("update debit balance: {e}"))?;
+            .bind(env_id)
+            .bind(instr.debit_account)
+            .bind(&instr.denomination)
+            .bind(amount)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| format!("update debit balance: {e}"))?;
             sqlx::query(
                 r#"INSERT INTO balances (env_id, account_id, denomination, address, phase, amount)
                    VALUES ($1, $2, $3, 'DEFAULT', 'COMMITTED', $4)
                    ON CONFLICT (account_id, denomination, address, phase)
                    DO UPDATE SET amount = balances.amount + ($4), updated_at = now()"#,
             )
-            .bind(env_id).bind(instr.credit_account).bind(&instr.denomination).bind(&amount)
-            .execute(&mut *tx).await.map_err(|e| format!("update credit balance: {e}"))?;
+            .bind(env_id)
+            .bind(instr.credit_account)
+            .bind(&instr.denomination)
+            .bind(amount)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| format!("update credit balance: {e}"))?;
         }
         // Audit + outbox (§8.4 — errors propagate). Outbox-first: the
         // ledger.outbox row commits atomically with the schedule batch;
@@ -858,8 +1072,12 @@ async fn run_scheduled_work(
             r#"INSERT INTO audit_events (env_id, action, target_resource_type, target_resource_id)
                VALUES ($1, $2, 'posting', $3)"#,
         )
-        .bind(env_id).bind("schedule_run").bind(posting_id.to_string())
-        .execute(&mut *tx).await.map_err(|e| format!("insert audit: {e}"))?;
+        .bind(env_id)
+        .bind("schedule_run")
+        .bind(posting_id.to_string())
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| format!("insert audit: {e}"))?;
         sentin8::bus::outbox::insert_outbox_row(
             &mut *tx,
             env_id,
@@ -869,7 +1087,9 @@ async fn run_scheduled_work(
         )
         .await
         .map_err(|e| format!("insert outbox: {e}"))?;
-        tx.commit().await.map_err(|e| format!("commit batch: {e}"))?;
+        tx.commit()
+            .await
+            .map_err(|e| format!("commit batch: {e}"))?;
         tracing::info!(posting_id = %posting_id, schedule_type, instructions = generated.len(), "scheduled posting batch committed");
     }
     Ok(results)
@@ -885,7 +1105,12 @@ fn ledger_schedule_key(schedule_type: &str, account_id: Option<Uuid>) -> String 
 }
 
 /// Fee posting instruction — debit the customer account (the fee is charged).
-fn fee_instruction(account_id: Uuid, denom: &str, fee: Decimal, description: &str) -> crate::types::PostingInstructionV2 {
+fn fee_instruction(
+    account_id: Uuid,
+    denom: &str,
+    fee: Decimal,
+    description: &str,
+) -> crate::types::PostingInstructionV2 {
     crate::types::PostingInstructionV2 {
         instruction_type: "FEE_APPLICATION".into(),
         debit_account: account_id,
@@ -911,14 +1136,25 @@ pub async fn run_correction_for_account(
     // The on-schedule module set is the same the schedule engine drives; the
     // correction run re-applies interest/fee computations against the current
     // committed state and books the delta as a FEE_APPLICATION-style batch.
-    let results = run_scheduled_work(state, env_id, "fee_application", Some(account_id)).await
+    let results = run_scheduled_work(state, env_id, "fee_application", Some(account_id))
+        .await
         .map_err(|e| format!("correction computation: {e}"))?;
-    let mut tx = state.pool.begin().await.map_err(|e| format!("begin correction tx: {e}"))?;
-    crate::handlers::set_tenant_context(&mut tx, env_id).await.map_err(|e| format!("set context: {e}"))?;
+    let mut tx = state
+        .pool
+        .begin()
+        .await
+        .map_err(|e| format!("begin correction tx: {e}"))?;
+    crate::handlers::set_tenant_context(&mut tx, env_id)
+        .await
+        .map_err(|e| format!("set context: {e}"))?;
     // Find the batch created by run_scheduled_work for this run (it commits
     // its own transaction keyed on sched-fee_application-<day>); resolve it
     // by the idempotency key the engine derives.
-    let idem = format!("sched:{}:{}", ledger_schedule_key("fee_application", Some(account_id)), chrono::Utc::now().format("%Y%m%d"));
+    let idem = format!(
+        "sched:{}:{}",
+        ledger_schedule_key("fee_application", Some(account_id)),
+        chrono::Utc::now().format("%Y%m%d")
+    );
     let batch_id: Option<Uuid> = sqlx::query_scalar(
         r#"SELECT id FROM postings WHERE env_id = $1 AND idempotency_key = $2 ORDER BY created_at DESC LIMIT 1"#,
     )
@@ -957,7 +1193,9 @@ pub struct CreateCalendarRequest {
     pub timezone: String,
 }
 
-fn default_utc() -> String { "UTC".into() }
+fn default_utc() -> String {
+    "UTC".into()
+}
 
 /// `POST /v1/calendars` — create a calendar.
 #[utoipa::path(
@@ -977,20 +1215,37 @@ pub async fn create_calendar(
     Json(req): Json<CreateCalendarRequest>,
 ) -> Result<Json<CalendarResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:schedules:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:schedules:write"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"INSERT INTO calendars (env_id, name, description, timezone)
            VALUES ($1, $2, $3, $4)
            RETURNING id, name, description, timezone, is_active, created_at"#,
     )
-    .bind(a.env_id()).bind(&req.name).bind(req.description.as_deref()).bind(&req.timezone)
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(a.env_id())
+    .bind(&req.name)
+    .bind(req.description.as_deref())
+    .bind(&req.timezone)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     let calendar_id: Uuid = row.get("id");
-    super::emit_event(&state.pool, a.env_id(), "bank8:ledger:calendar:created",
+    super::emit_event(
+        &state.pool,
+        a.env_id(),
+        "bank8:ledger:calendar:created",
         serde_json::json!({ "calendar_id": calendar_id }),
-    ).await;
+    )
+    .await;
 
     conn.commit().await.map_err(err_db)?;
     Ok(Json(CalendarResponse {
@@ -1019,22 +1274,34 @@ pub async fn list_calendars(
     headers: HeaderMap,
 ) -> Result<Json<Vec<CalendarResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:schedules:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:schedules:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let rows = sqlx::query(
         r#"SELECT id, name, description, timezone, is_active, created_at FROM calendars ORDER BY created_at DESC"#,
     )
     .fetch_all(&mut *conn).await.map_err(err_db)?;
     conn.commit().await.map_err(err_db)?;
-    Ok(Json(rows.iter().map(|r| CalendarResponse {
-        id: r.get("id"),
-        name: r.get("name"),
-        description: r.get("description"),
-        timezone: r.get("timezone"),
-        is_active: r.get("is_active"),
-        created_at: r.get("created_at"),
-    }).collect()))
+    Ok(Json(
+        rows.iter()
+            .map(|r| CalendarResponse {
+                id: r.get("id"),
+                name: r.get("name"),
+                description: r.get("description"),
+                timezone: r.get("timezone"),
+                is_active: r.get("is_active"),
+                created_at: r.get("created_at"),
+            })
+            .collect(),
+    ))
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -1082,7 +1349,10 @@ mod schedule_tests {
         );
         // Env-wide run (no account) — distinct key so a per-account retry
         // never collides with the daily env sweep.
-        assert_eq!(ledger_schedule_key("fee_application", None), "fee_application:env");
+        assert_eq!(
+            ledger_schedule_key("fee_application", None),
+            "fee_application:env"
+        );
         assert_ne!(
             ledger_schedule_key("fee_application", Some(acct)),
             ledger_schedule_key("fee_application", None)
@@ -1100,14 +1370,25 @@ mod schedule_tests {
     fn daily_idem_key_varies_by_day() {
         let acct = Uuid::new_v4();
         let key = ledger_schedule_key("fee_application", Some(acct));
-        let d1 = chrono::NaiveDate::from_ymd_opt(2026, 9, 6).unwrap().format("%Y%m%d");
-        let d2 = chrono::NaiveDate::from_ymd_opt(2026, 9, 7).unwrap().format("%Y%m%d");
+        let d1 = chrono::NaiveDate::from_ymd_opt(2026, 9, 6)
+            .unwrap()
+            .format("%Y%m%d");
+        let d2 = chrono::NaiveDate::from_ymd_opt(2026, 9, 7)
+            .unwrap()
+            .format("%Y%m%d");
         let idem1 = format!("sched:{key}:{d1}");
         let idem2 = format!("sched:{key}:{d2}");
         assert_eq!(idem1, format!("sched:fee_application:{acct}:20260906"));
         assert_ne!(idem1, idem2, "different days must not dedupe together");
         // Correction path resolves the same key the engine committed under.
-        assert_eq!(idem1, format!("sched:{}:{}", ledger_schedule_key("fee_application", Some(acct)), "20260906"));
+        assert_eq!(
+            idem1,
+            format!(
+                "sched:{}:{}",
+                ledger_schedule_key("fee_application", Some(acct)),
+                "20260906"
+            )
+        );
     }
 
     /// Fee instruction shape: debit == credit (the fee is charged against

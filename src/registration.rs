@@ -12,18 +12,16 @@ use sentin8::registration::{
 };
 use utoipa::OpenApi;
 
-const PG_ROLES: &[PgRole] = &[
-    PgRole {
-        scope: "bank8:ledger:read,bank8:ledger:write",
-        role: "bank8_ledger_service",
-        bypass_rls: false,
-        // Grants live in the bank8 vertical database only (DBX §6.6
-        // database-per-vertical, schema-per-service).
-        database: "bank8",
-        // Ledger owns all its reads — no cross-schema grants.
-        cross_schema_grants: &[],
-    },
-];
+const PG_ROLES: &[PgRole] = &[PgRole {
+    scope: "bank8:ledger:read,bank8:ledger:write",
+    role: "bank8_ledger_service",
+    bypass_rls: false,
+    // Grants live in the bank8 vertical database only (DBX §6.6
+    // database-per-vertical, schema-per-service).
+    database: "bank8",
+    // Ledger owns all its reads — no cross-schema grants.
+    cross_schema_grants: &[],
+}];
 
 /// M2M DCR scope grants (self-registration design §3.11). One entry per
 /// workload this service registers via DCR; `vertical enroll` upserts
@@ -40,7 +38,12 @@ const PG_ROLES: &[PgRole] = &[
 const M2M_GRANTS: &[M2mGrant] = &[
     M2mGrant {
         workload: "bank8:ledger",
-        scopes: &["sentin8:bus:produce", "sentin8:bus:consume", "bank8:ledger:admin", "sentin8:stat:measure"],
+        scopes: &[
+            "sentin8:bus:produce",
+            "sentin8:bus:consume",
+            "bank8:ledger:admin",
+            "sentin8:stat:measure",
+        ],
     },
     // The runtime DCR call sites pass the bare short name (`ledger`
     // ledger/src/server.rs bus client + M2M token source, and
@@ -48,7 +51,12 @@ const M2M_GRANTS: &[M2mGrant] = &[
     // spellings; the gate looks up the exact client_name.
     M2mGrant {
         workload: "ledger",
-        scopes: &["sentin8:bus:produce", "sentin8:bus:consume", "bank8:ledger:admin", "sentin8:stat:measure"],
+        scopes: &[
+            "sentin8:bus:produce",
+            "sentin8:bus:consume",
+            "bank8:ledger:admin",
+            "sentin8:stat:measure",
+        ],
     },
     // Shell audit-journal pusher workload (audit crate §6.8; boot step 8c).
     M2mGrant {
@@ -86,62 +94,257 @@ const M2M_GRANTS: &[M2mGrant] = &[
     M2mGrant {
         workload: "bank8-ledger-tls",
         scopes: &["sentin8:sys:instances:read"],
-    },];
+    },
+];
 
 const ADMIN_SCOPES: &[AdminScope] = &[
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:products:write" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:products:publish" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:products:read" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:accounts:write" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:accounts:read" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:postings:write" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:postings:read" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:schedules:write" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:schedules:read" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:jobs:read" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:jobs:admin" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:dlq:read" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:dlq:republish" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:balances:read" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:audit:read" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:customers:write" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:postings:dry_run" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:plans:read" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:plans:write" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:journal:read" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:journal:replay" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:contracts:simulate" },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:products:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:products:publish",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:products:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:accounts:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:accounts:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:postings:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:postings:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:schedules:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:schedules:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:jobs:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:jobs:admin",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:dlq:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:dlq:republish",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:balances:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:audit:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:customers:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:postings:dry_run",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:plans:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:plans:write",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:journal:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:journal:replay",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:contracts:simulate",
+    },
     // Policy-admin surface (policy design §3.6; principles §6.0b per-service scope).
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:policy:read" },
-    AdminScope::Typed { role: "bank8:ledger:admin", scope: "bank8:ledger:policy:write" },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:policy:read",
+    },
+    AdminScope::Typed {
+        role: "bank8:ledger:admin",
+        scope: "bank8:ledger:policy:write",
+    },
 ];
 
 const ERROR_CODES: &[ErrorCode] = &[
-    ErrorCode { enum_name: "LedgerAccountNotFound", error_code: "ledger_account_not_found", status_code: 404 },
-    ErrorCode { enum_name: "LedgerPostingFailed", error_code: "ledger_posting_failed", status_code: 500 },
+    ErrorCode {
+        enum_name: "LedgerAccountNotFound",
+        error_code: "ledger_account_not_found",
+        status_code: 404,
+    },
+    ErrorCode {
+        enum_name: "LedgerPostingFailed",
+        error_code: "ledger_posting_failed",
+        status_code: 500,
+    },
 ];
 
 const ADMIN_UI_PAGES: &[AdminUiPage] = &[
-    AdminUiPage { route: "overview", label: "Overview", ui_endpoint: "/v1/admin/ui/overview", data_endpoint: "/v1/admin/overview", icon: "0xe1b1" },
-    AdminUiPage { route: "accounts", label: "Accounts", ui_endpoint: "/v1/admin/ui/accounts", data_endpoint: "/v1/admin/accounts", icon: "0xe040" },
-    AdminUiPage { route: "postings", label: "Postings", ui_endpoint: "/v1/admin/ui/postings", data_endpoint: "/v1/admin/postings", icon: "0xe50d" },
-    AdminUiPage { route: "products", label: "Products", ui_endpoint: "/v1/admin/ui/products", data_endpoint: "/v1/admin/products", icon: "0xe349" },
-    AdminUiPage { route: "schedules", label: "Schedules", ui_endpoint: "/v1/admin/ui/schedules", data_endpoint: "/v1/admin/schedules", icon: "0xf04fb" },
-    AdminUiPage { route: "jobs", label: "Jobs", ui_endpoint: "/v1/admin/ui/jobs", data_endpoint: "/v1/admin/jobs", icon: "0xe979" },
-    AdminUiPage { route: "dlq", label: "DLQ", ui_endpoint: "/v1/admin/ui/dlq", data_endpoint: "/v1/admin/dlq", icon: "0xe238" },
-    AdminUiPage { route: "reconcile", label: "Reconcile", ui_endpoint: "/v1/admin/ui/reconcile", data_endpoint: "/v1/admin/reconcile", icon: "0xe159" },
-    AdminUiPage { route: "balances", label: "Balances", ui_endpoint: "/v1/admin/ui/balances", data_endpoint: "/v1/admin/balances", icon: "0xe083" },
-    AdminUiPage { route: "parameters", label: "Parameters", ui_endpoint: "/v1/admin/ui/parameters", data_endpoint: "/v1/admin/parameters", icon: "0xe683" },
-    AdminUiPage { route: "restrictions", label: "Restrictions", ui_endpoint: "/v1/admin/ui/restrictions", data_endpoint: "/v1/admin/restrictions", icon: "0xe3ae" },
-    AdminUiPage { route: "flags", label: "Flags", ui_endpoint: "/v1/admin/ui/flags", data_endpoint: "/v1/admin/flags", icon: "0xe28e" },
-    AdminUiPage { route: "customers", label: "Customers", ui_endpoint: "/v1/admin/ui/customers", data_endpoint: "/v1/admin/customers", icon: "0xe486" },
-    AdminUiPage { route: "statements", label: "Statements", ui_endpoint: "/v1/admin/ui/statements", data_endpoint: "/v1/admin/statements", icon: "0xe1bf" },
-    AdminUiPage { route: "settings", label: "Settings", ui_endpoint: "/v1/admin/ui/settings", data_endpoint: "/v1/admin/settings", icon: "0xe57f" },
+    AdminUiPage {
+        route: "overview",
+        label: "Overview",
+        ui_endpoint: "/v1/admin/ui/overview",
+        data_endpoint: "/v1/admin/overview",
+        icon: "0xe1b1",
+    },
+    AdminUiPage {
+        route: "accounts",
+        label: "Accounts",
+        ui_endpoint: "/v1/admin/ui/accounts",
+        data_endpoint: "/v1/admin/accounts",
+        icon: "0xe040",
+    },
+    AdminUiPage {
+        route: "postings",
+        label: "Postings",
+        ui_endpoint: "/v1/admin/ui/postings",
+        data_endpoint: "/v1/admin/postings",
+        icon: "0xe50d",
+    },
+    AdminUiPage {
+        route: "products",
+        label: "Products",
+        ui_endpoint: "/v1/admin/ui/products",
+        data_endpoint: "/v1/admin/products",
+        icon: "0xe349",
+    },
+    AdminUiPage {
+        route: "schedules",
+        label: "Schedules",
+        ui_endpoint: "/v1/admin/ui/schedules",
+        data_endpoint: "/v1/admin/schedules",
+        icon: "0xf04fb",
+    },
+    AdminUiPage {
+        route: "jobs",
+        label: "Jobs",
+        ui_endpoint: "/v1/admin/ui/jobs",
+        data_endpoint: "/v1/admin/jobs",
+        icon: "0xe979",
+    },
+    AdminUiPage {
+        route: "dlq",
+        label: "DLQ",
+        ui_endpoint: "/v1/admin/ui/dlq",
+        data_endpoint: "/v1/admin/dlq",
+        icon: "0xe238",
+    },
+    AdminUiPage {
+        route: "reconcile",
+        label: "Reconcile",
+        ui_endpoint: "/v1/admin/ui/reconcile",
+        data_endpoint: "/v1/admin/reconcile",
+        icon: "0xe159",
+    },
+    AdminUiPage {
+        route: "balances",
+        label: "Balances",
+        ui_endpoint: "/v1/admin/ui/balances",
+        data_endpoint: "/v1/admin/balances",
+        icon: "0xe083",
+    },
+    AdminUiPage {
+        route: "parameters",
+        label: "Parameters",
+        ui_endpoint: "/v1/admin/ui/parameters",
+        data_endpoint: "/v1/admin/parameters",
+        icon: "0xe683",
+    },
+    AdminUiPage {
+        route: "restrictions",
+        label: "Restrictions",
+        ui_endpoint: "/v1/admin/ui/restrictions",
+        data_endpoint: "/v1/admin/restrictions",
+        icon: "0xe3ae",
+    },
+    AdminUiPage {
+        route: "flags",
+        label: "Flags",
+        ui_endpoint: "/v1/admin/ui/flags",
+        data_endpoint: "/v1/admin/flags",
+        icon: "0xe28e",
+    },
+    AdminUiPage {
+        route: "customers",
+        label: "Customers",
+        ui_endpoint: "/v1/admin/ui/customers",
+        data_endpoint: "/v1/admin/customers",
+        icon: "0xe486",
+    },
+    AdminUiPage {
+        route: "statements",
+        label: "Statements",
+        ui_endpoint: "/v1/admin/ui/statements",
+        data_endpoint: "/v1/admin/statements",
+        icon: "0xe1bf",
+    },
+    AdminUiPage {
+        route: "settings",
+        label: "Settings",
+        ui_endpoint: "/v1/admin/ui/settings",
+        data_endpoint: "/v1/admin/settings",
+        icon: "0xe57f",
+    },
     // Sentin8:Policy admin surface (§3.6, post pattern).
-    AdminUiPage { route: "policy-sets", label: "Policy Sets", ui_endpoint: "/v1/admin/ui/policy-sets", data_endpoint: "/v1/admin/policy-sets", icon: "0xe8b8" },
-    AdminUiPage { route: "policy-decisions", label: "Policy Decisions", ui_endpoint: "/v1/admin/ui/policy-decisions", data_endpoint: "/v1/admin/policy-decisions", icon: "0xf070" },
-    AdminUiPage { route: "relations", label: "Relations", ui_endpoint: "/v1/admin/ui/relations", data_endpoint: "/v1/admin/relations", icon: "0xe572" },
-    AdminUiPage { route: "attributes", label: "Attributes", ui_endpoint: "/v1/admin/ui/attributes", data_endpoint: "/v1/admin/attributes", icon: "0xe8d3" },
+    AdminUiPage {
+        route: "policy-sets",
+        label: "Policy Sets",
+        ui_endpoint: "/v1/admin/ui/policy-sets",
+        data_endpoint: "/v1/admin/policy-sets",
+        icon: "0xe8b8",
+    },
+    AdminUiPage {
+        route: "policy-decisions",
+        label: "Policy Decisions",
+        ui_endpoint: "/v1/admin/ui/policy-decisions",
+        data_endpoint: "/v1/admin/policy-decisions",
+        icon: "0xf070",
+    },
+    AdminUiPage {
+        route: "relations",
+        label: "Relations",
+        ui_endpoint: "/v1/admin/ui/relations",
+        data_endpoint: "/v1/admin/relations",
+        icon: "0xe572",
+    },
+    AdminUiPage {
+        route: "attributes",
+        label: "Attributes",
+        ui_endpoint: "/v1/admin/ui/attributes",
+        data_endpoint: "/v1/admin/attributes",
+        icon: "0xe8d3",
+    },
 ];
 
 /// Default declarative policy set (Sentin8:Policy design §3.2/§3.4,
@@ -176,7 +379,8 @@ const RELATIONS: &[RelationDecl] = &[];
 const SQL_1_INIT: &str = include_str!("../sql/init.sql");
 
 fn openapi_spec() -> serde_json::Value {
-    serde_json::to_value(crate::openapi::LedgerOpenApi::openapi()).unwrap_or(serde_json::Value::Null)
+    serde_json::to_value(crate::openapi::LedgerOpenApi::openapi())
+        .unwrap_or(serde_json::Value::Null)
 }
 
 /// Print the registration JSON to stdout.
@@ -199,9 +403,11 @@ pub fn print(section: Option<String>) -> anyhow::Result<()> {
             service_flag: "ledger",
             pages: ADMIN_UI_PAGES,
         }),
-        sql_migrations: vec![
-            SqlMigration { version: 1, name: "init", sql: SQL_1_INIT },
-        ],
+        sql_migrations: vec![SqlMigration {
+            version: 1,
+            name: "init",
+            sql: SQL_1_INIT,
+        }],
         pg_roles: PG_ROLES,
         audit_findings: None,
         service_actions: None,

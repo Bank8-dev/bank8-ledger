@@ -84,7 +84,11 @@ pub async fn create_calendar_event(
            VALUES ($1, $2, $3, $4, $5)
            RETURNING id, calendar_id, event_date, event_type, description"#,
     )
-    .bind(a.env_id()).bind(calendar_id).bind(req.event_date).bind(&req.event_type).bind(req.description.as_deref())
+    .bind(a.env_id())
+    .bind(calendar_id)
+    .bind(req.event_date)
+    .bind(&req.event_type)
+    .bind(req.description.as_deref())
     .fetch_one(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -402,7 +406,10 @@ pub async fn upsert_bookkeeping_date(
              SET bookkeeping_date = EXCLUDED.bookkeeping_date, updated_at = now()
            RETURNING calendar_id, effective_date, bookkeeping_date, updated_at"#,
     )
-    .bind(a.env_id()).bind(req.calendar_id).bind(date).bind(req.bookkeeping_date)
+    .bind(a.env_id())
+    .bind(req.calendar_id)
+    .bind(date)
+    .bind(req.bookkeeping_date)
     .fetch_one(&mut *conn)
     .await
     .map_err(err_db)?;

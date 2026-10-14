@@ -5,7 +5,11 @@
 
 //! Audit handlers — audit events and action logs.
 
-use axum::{extract::{Query, State}, http::{HeaderMap, StatusCode}, Json};
+use axum::{
+    extract::{Query, State},
+    http::{HeaderMap, StatusCode},
+    Json,
+};
 use serde::Deserialize;
 use sqlx::Row;
 use utoipa::ToSchema;
@@ -26,8 +30,10 @@ pub struct AuditEventResponse {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ListAuditQuery {
-    #[serde(default)] pub action: Option<String>,
-    #[serde(default)] pub target_resource_type: Option<String>,
+    #[serde(default)]
+    pub action: Option<String>,
+    #[serde(default)]
+    pub target_resource_type: Option<String>,
 }
 
 /// `GET /v1/audit` — query audit events.
@@ -51,9 +57,17 @@ pub async fn list_audit_events(
     Query(q): Query<ListAuditQuery>,
 ) -> Result<Json<Vec<AuditEventResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:audit:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:audit:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let rows = sqlx::query(
         r#"SELECT id, actor_user_id, action, target_resource_type, target_resource_id, correlation_id, timestamp
              FROM audit_events
@@ -63,15 +77,19 @@ pub async fn list_audit_events(
     )
     .bind(q.action.as_deref()).bind(q.target_resource_type.as_deref())
     .fetch_all(&mut *conn).await.map_err(err_db)?;
-    Ok(Json(rows.iter().map(|r| AuditEventResponse {
-        id: r.get("id"),
-        actor_user_id: r.get("actor_user_id"),
-        action: r.get("action"),
-        target_resource_type: r.get("target_resource_type"),
-        target_resource_id: r.get("target_resource_id"),
-        correlation_id: r.get("correlation_id"),
-        timestamp: r.get("timestamp"),
-    }).collect()))
+    Ok(Json(
+        rows.iter()
+            .map(|r| AuditEventResponse {
+                id: r.get("id"),
+                actor_user_id: r.get("actor_user_id"),
+                action: r.get("action"),
+                target_resource_type: r.get("target_resource_type"),
+                target_resource_id: r.get("target_resource_id"),
+                correlation_id: r.get("correlation_id"),
+                timestamp: r.get("timestamp"),
+            })
+            .collect(),
+    ))
 }
 
 // ── Action logs  ──────────────────────────────────────────────────
@@ -95,9 +113,17 @@ pub async fn list_action_logs(
     Query(q): Query<ActionLogQuery>,
 ) -> Result<Json<Vec<AuditEventResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:audit:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:audit:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let rows = sqlx::query(
         r#"SELECT id, actor_user_id, action, target_resource_type, target_resource_id, correlation_id, timestamp
              FROM audit_events
@@ -108,18 +134,23 @@ pub async fn list_action_logs(
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
-    Ok(Json(rows.iter().map(|r| AuditEventResponse {
-        id: r.get("id"),
-        actor_user_id: r.get("actor_user_id"),
-        action: r.get("action"),
-        target_resource_type: r.get("target_resource_type"),
-        target_resource_id: r.get("target_resource_id"),
-        correlation_id: r.get("correlation_id"),
-        timestamp: r.get("timestamp"),
-    }).collect()))
+    Ok(Json(
+        rows.iter()
+            .map(|r| AuditEventResponse {
+                id: r.get("id"),
+                actor_user_id: r.get("actor_user_id"),
+                action: r.get("action"),
+                target_resource_type: r.get("target_resource_type"),
+                target_resource_id: r.get("target_resource_id"),
+                correlation_id: r.get("correlation_id"),
+                timestamp: r.get("timestamp"),
+            })
+            .collect(),
+    ))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ActionLogQuery {
-    #[serde(default)] pub action: Option<String>,
+    #[serde(default)]
+    pub action: Option<String>,
 }

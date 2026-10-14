@@ -76,7 +76,10 @@ pub async fn create_internal_account(
            VALUES ($1, 'internal', $2, $3, $4, 'active')
            RETURNING id, nickname, product_type, denomination, status"#,
     )
-    .bind(a.env_id()).bind(&req.product_type).bind(&req.nickname).bind(&req.denomination)
+    .bind(a.env_id())
+    .bind(&req.product_type)
+    .bind(&req.nickname)
+    .bind(&req.denomination)
     .fetch_one(&mut *conn)
     .await;
     let row = match row {

@@ -10,8 +10,8 @@ use axum::{
     http::{HeaderMap, StatusCode},
     Json,
 };
-use serde::Deserialize;
 use rust_decimal::Decimal;
+use serde::Deserialize;
 use sqlx::Row;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -83,7 +83,9 @@ pub struct CreateAccountRequest {
     pub denomination: String,
 }
 
-fn default_denom() -> String { "CAD".into() }
+fn default_denom() -> String {
+    "CAD".into()
+}
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateAccountRequest {
@@ -124,13 +126,24 @@ pub async fn create_account(
     Json(req): Json<CreateAccountRequest>,
 ) -> Result<Json<AccountResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write"),
+    )
+    .await?;
     if !matches!(req.account_type.as_str(), "customer" | "internal") {
-        return Err((StatusCode::BAD_REQUEST, "account_type must be customer|internal".into()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "account_type must be customer|internal".into(),
+        ));
     }
     let env_id = a.env_id();
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context_ext(&mut conn, env_id, &a).await.map_err(err_db)?;
+    set_tenant_context_ext(&mut conn, env_id, &a)
+        .await
+        .map_err(err_db)?;
     // DB constraint allows: active, closed, frozen. Customer accounts start
     // as "active" (the account is immediately usable). Internal accounts
     // also start as "active".
@@ -164,14 +177,25 @@ pub async fn create_account(
     // Module validation: if product_id is set, load the product's modules + parameters
     // and run validate_creation (denomination-validation, deposit-limits, etc.).
     if let Some(product_id) = req.product_id {
-        let product_row = sqlx::query("SELECT product_type, parameters, modules FROM products WHERE id = $1 AND env_id = $2")
-            .bind(product_id).bind(env_id).fetch_optional(&mut *conn).await.map_err(err_db)?;
+        let product_row = sqlx::query(
+            "SELECT product_type, parameters, modules FROM products WHERE id = $1 AND env_id = $2",
+        )
+        .bind(product_id)
+        .bind(env_id)
+        .fetch_optional(&mut *conn)
+        .await
+        .map_err(err_db)?;
         if let Some(row) = product_row {
             let product_type: Option<String> = row.get("product_type");
             let params: serde_json::Value = row.get("parameters");
             let modules_val: serde_json::Value = row.get("modules");
-            let modules: Vec<String> = modules_val.as_array()
-                .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+            let modules: Vec<String> = modules_val
+                .as_array()
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|v| v.as_str().map(String::from))
+                        .collect()
+                })
                 .unwrap_or_default();
             let ctx = crate::modules::ModuleContext {
                 product_parameters: &params,
@@ -234,7 +258,8 @@ pub async fn create_account(
             "product_id": req.product_id,
             "customer_id": effective_customer_id,
         }),
-    ).await;
+    )
+    .await;
     conn.commit().await.map_err(err_db)?;
     Ok(Json(account))
 }
@@ -249,14 +274,19 @@ pub async fn create_account(
 /// customer.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ListAccountsQuery {
-    #[serde(default)] pub customer_id: Option<Uuid>,
-    #[serde(default)] pub product_id: Option<Uuid>,
-    #[serde(default)] pub account_type: Option<String>,
-    #[serde(default)] pub status: Option<String>,
+    #[serde(default)]
+    pub customer_id: Option<Uuid>,
+    #[serde(default)]
+    pub product_id: Option<Uuid>,
+    #[serde(default)]
+    pub account_type: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
     /// §10.1 — staff-realm env override for internal-account reads.
     /// Validated against org membership; ignored for customer/delegated
     /// tokens (env-locked) and never widens customer-data visibility.
-    #[serde(default)] pub env_id: Option<String>,
+    #[serde(default)]
+    pub env_id: Option<String>,
 }
 
 #[utoipa::path(
@@ -282,7 +312,13 @@ pub async fn list_accounts(
     Query(q): Query<ListAccountsQuery>,
 ) -> Result<Json<Vec<AccountResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
     // §10.1 — staff-realm env override (isolation-design §10 pattern).
     // Internal accounts are counterparty plumbing seeded per CUSTOMER env,
@@ -294,21 +330,25 @@ pub async fn list_accounts(
     // exposed by this branch. Customer/delegated/M2M callers keep the
     // strict env-lock below.
     let mut staff_env_override: Option<Uuid> = None;
-    if let Some(ref s) = q.env_id.as_deref().filter(|s| !s.is_empty()) {
+    if let Some(s) = q.env_id.as_deref().filter(|s| !s.is_empty()) {
         if a.claims.sentin8_auth_user_uuid().is_some() && !a.is_holder_view_all() {
             if let Ok(requested) = uuid::Uuid::parse_str(s) {
                 if requested != a.env_id() && !a.is_platform_admin() {
- // VDC §VDC.5 — the org relationship is resolved through Sys's
- // tenant-snapshot API (the sanctioned on-demand cross-tenant
- // read); the former cross-database `sentin8.auth_*`/`sentin8.sys_*`
- // joins never existed in the vertical's own database and failed
- // every request with a 500 (same shape as `list_customers`).
+                    // VDC §VDC.5 — the org relationship is resolved through Sys's
+                    // tenant-snapshot API (the sanctioned on-demand cross-tenant
+                    // read); the former cross-database `sentin8.auth_*`/`sentin8.sys_*`
+                    // joins never existed in the vertical's own database and failed
+                    // every request with a 500 (same shape as `list_customers`).
                     let caller_org = crate::tenant_snapshot::env_org_id(a.env_id())
                         .await
-                        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("org check: {e}")))?;
+                        .map_err(|e| {
+                            (StatusCode::INTERNAL_SERVER_ERROR, format!("org check: {e}"))
+                        })?;
                     let requested_org = crate::tenant_snapshot::env_org_id(requested)
                         .await
-                        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("org check: {e}")))?;
+                        .map_err(|e| {
+                            (StatusCode::INTERNAL_SERVER_ERROR, format!("org check: {e}"))
+                        })?;
                     let has_org_access = matches!(
                         (caller_org, requested_org),
                         (Some(c), Some(r)) if c == r
@@ -324,9 +364,13 @@ pub async fn list_accounts(
     // Org-validated cross-env read → staff-override stamp (the RLS
     // policy admits stamped requests for this env only).
     if staff_env_override.is_some() {
-        set_staff_override_context(&mut conn, effective_env, &a).await.map_err(err_db)?;
+        set_staff_override_context(&mut conn, effective_env, &a)
+            .await
+            .map_err(err_db)?;
     } else {
-        set_tenant_context_ext(&mut conn, effective_env, &a).await.map_err(err_db)?;
+        set_tenant_context_ext(&mut conn, effective_env, &a)
+            .await
+            .map_err(err_db)?;
     }
     // Force customer_id for holder callers (defence-in-depth, §4.3c).
     // If the holder has no customers row, return an empty list
@@ -340,7 +384,10 @@ pub async fn list_accounts(
         // internal scoping only (request without account_type=internal is
         // rejected to keep this branch narrow).
         if q.account_type.as_deref() != Some("internal") {
-            return Err((StatusCode::FORBIDDEN, "staff env override is only valid for account_type=internal".into()));
+            return Err((
+                StatusCode::FORBIDDEN,
+                "staff env override is only valid for account_type=internal".into(),
+            ));
         }
         (None, Some("internal".to_string()))
     } else if a.is_holder() {
@@ -366,9 +413,14 @@ pub async fn list_accounts(
               AND ($4::text IS NULL OR a.status = $4)
             ORDER BY a.created_at DESC LIMIT 100"#,
     )
-    .bind(effective_customer_id).bind(q.product_id).bind(effective_account_type.as_deref()).bind(q.status.as_deref())
+    .bind(effective_customer_id)
+    .bind(q.product_id)
+    .bind(effective_account_type.as_deref())
+    .bind(q.status.as_deref())
     .bind(effective_env)
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
     // §10.2 — resilient env-init seeding. The event-driven env-init
     // (seed_accounts via the Bus consumer) is the primary trigger, but the
     // SSE message can be lost on a mid-batch reconnect, leaving an enabled
@@ -381,7 +433,12 @@ pub async fn list_accounts(
     {
         crate::handlers::seed_accounts::seed_internal_accounts(&state.pool, effective_env)
             .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("internal-account seeding failed: {e}")))?;
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("internal-account seeding failed: {e}"),
+                )
+            })?;
         sqlx::query(
             r#"SELECT a.id, a.env_id, a.customer_id, a.product_id, a.account_type, a.product_type,
                       a.nickname, a.status, a.denomination, a.opened_at, a.closed_at, a.created_at,
@@ -396,9 +453,14 @@ pub async fn list_accounts(
                   AND ($4::text IS NULL OR a.status = $4)
                 ORDER BY a.created_at DESC LIMIT 100"#,
         )
-        .bind(effective_customer_id).bind(q.product_id).bind(effective_account_type.as_deref()).bind(q.status.as_deref())
+        .bind(effective_customer_id)
+        .bind(q.product_id)
+        .bind(effective_account_type.as_deref())
+        .bind(q.status.as_deref())
         .bind(effective_env)
-        .fetch_all(&mut *conn).await.map_err(err_db)?
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?
     } else {
         rows
     };
@@ -427,28 +489,38 @@ pub async fn get_account(
     Path(id): Path<Uuid>,
 ) -> Result<Json<AccountResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context_ext(&mut conn, a.env_id(), &a).await.map_err(err_db)?;
+    set_tenant_context_ext(&mut conn, a.env_id(), &a)
+        .await
+        .map_err(err_db)?;
     // Defence-in-depth (AGENTS.md: explicit WHERE env_id is mandatory):
     // holders (§4.3c) can only fetch their own customer accounts.
     let row = if a.is_holder() {
         let caller_customer_id = resolve_caller_customer_id(&mut conn, &a).await;
         match caller_customer_id {
             None => return Err((StatusCode::NOT_FOUND, "account not found".into())),
-            Some(cid) => {
-                sqlx::query(
-                    r#"SELECT id, env_id, customer_id, product_id, account_type, product_type,
+            Some(cid) => sqlx::query(
+                r#"SELECT id, env_id, customer_id, product_id, account_type, product_type,
                               nickname, status, denomination, opened_at, closed_at, created_at,
                               NULL::numeric AS current_balance
                          FROM accounts
                         WHERE id = $1 AND env_id = $2 AND customer_id = $3
                           AND account_type = 'customer' AND deleted_at IS NULL"#,
-                )
-                .bind(id).bind(a.env_id()).bind(cid)
-                .fetch_optional(&mut *conn).await.map_err(err_db)?
-                    .ok_or((StatusCode::NOT_FOUND, "account not found".into()))?
-            }
+            )
+            .bind(id)
+            .bind(a.env_id())
+            .bind(cid)
+            .fetch_optional(&mut *conn)
+            .await
+            .map_err(err_db)?
+            .ok_or((StatusCode::NOT_FOUND, "account not found".into()))?,
         }
     } else {
         sqlx::query(
@@ -457,9 +529,12 @@ pub async fn get_account(
                       NULL::numeric AS current_balance
                  FROM accounts WHERE id = $1 AND env_id = $2 AND deleted_at IS NULL"#,
         )
-        .bind(id).bind(a.env_id())
-        .fetch_optional(&mut *conn).await.map_err(err_db)?
-            .ok_or((StatusCode::NOT_FOUND, "account not found".into()))?
+        .bind(id)
+        .bind(a.env_id())
+        .fetch_optional(&mut *conn)
+        .await
+        .map_err(err_db)?
+        .ok_or((StatusCode::NOT_FOUND, "account not found".into()))?
     };
     Ok(Json(row_to_account(&row)))
 }
@@ -484,11 +559,19 @@ pub async fn update_account(
     Json(req): Json<UpdateAccountRequest>,
 ) -> Result<Json<AccountResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
     // Extended setter (scopes + user id reach the RLS GUCs) — the legacy
     // 2-arg form left holder-scoped UPDATE policies untestable.
-    set_tenant_context_ext(&mut conn, a.env_id(), &a).await.map_err(err_db)?;
+    set_tenant_context_ext(&mut conn, a.env_id(), &a)
+        .await
+        .map_err(err_db)?;
     // Ownership check (§4.3c): holders may only update their own customer
     // accounts; `holder:view-all` callers may update any env account.
     if a.is_holder() {
@@ -500,8 +583,12 @@ pub async fn update_account(
                     WHERE id = $1 AND env_id = $2 AND customer_id = $3
                       AND account_type = 'customer' AND deleted_at IS NULL"#,
             )
-            .bind(id).bind(a.env_id()).bind(cid)
-            .fetch_optional(&mut *conn).await.map_err(err_db)?,
+            .bind(id)
+            .bind(a.env_id())
+            .bind(cid)
+            .fetch_optional(&mut *conn)
+            .await
+            .map_err(err_db)?,
         };
         if owned.is_none() {
             return Err((StatusCode::NOT_FOUND, "account not found".into()));
@@ -518,9 +605,13 @@ pub async fn update_account(
                      nickname, status, denomination, opened_at, closed_at, created_at,
                      NULL::numeric AS current_balance"#,
     )
-    .bind(id).bind(req.nickname.as_deref()).bind(req.status.as_deref())
+    .bind(id)
+    .bind(req.nickname.as_deref())
+    .bind(req.status.as_deref())
     .bind(a.env_id())
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     let account = row_to_account(&row);
     // Story — emit account.updated event to outbox.
     let fields_changed: Vec<&str> = [
@@ -538,7 +629,8 @@ pub async fn update_account(
             "account_id": id,
             "fields_changed": fields_changed,
         }),
-    ).await;
+    )
+    .await;
 
     conn.commit().await.map_err(err_db)?;
     Ok(Json(account))
@@ -573,9 +665,17 @@ pub async fn get_account_balances(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Vec<BalanceResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:balances:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:balances:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context_ext(&mut conn, a.env_id(), &a).await.map_err(err_db)?;
+    set_tenant_context_ext(&mut conn, a.env_id(), &a)
+        .await
+        .map_err(err_db)?;
     // Defence-in-depth (§4.3c): holders can only see balances for their own
     // customer accounts. Verify ownership (scoped to the token env) before
     // returning balances.
@@ -594,14 +694,20 @@ pub async fn get_account_balances(
         r#"SELECT account_id, denomination, address, phase, amount
              FROM balances WHERE account_id = $1"#,
     )
-    .bind(id).fetch_all(&mut *conn).await.map_err(err_db)?;
-    let balances: Vec<BalanceResponse> = rows.iter().map(|r| BalanceResponse {
-        account_id: r.get("account_id"),
-        denomination: r.get("denomination"),
-        address: r.get("address"),
-        phase: r.get("phase"),
-        amount: r.get("amount"),
-    }).collect();
+    .bind(id)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
+    let balances: Vec<BalanceResponse> = rows
+        .iter()
+        .map(|r| BalanceResponse {
+            account_id: r.get("account_id"),
+            denomination: r.get("denomination"),
+            address: r.get("address"),
+            phase: r.get("phase"),
+            amount: r.get("amount"),
+        })
+        .collect();
     Ok(Json(balances))
 }
 
@@ -643,9 +749,17 @@ pub async fn get_account_transactions(
     Query(q): Query<TransactionQuery>,
 ) -> Result<Json<Vec<TransactionResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context_ext(&mut conn, a.env_id(), &a).await.map_err(err_db)?;
+    set_tenant_context_ext(&mut conn, a.env_id(), &a)
+        .await
+        .map_err(err_db)?;
     // Defence-in-depth (§4.3c): holders can only see transactions for their
     // own customer accounts, scoped to the token env.
     if a.is_holder() {
@@ -668,26 +782,35 @@ pub async fn get_account_transactions(
               AND ($3::timestamptz IS NULL OR value_timestamp <= $3)
             ORDER BY value_timestamp DESC LIMIT 200"#,
     )
-    .bind(id).bind(q.from).bind(q.to)
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
-    let txns: Vec<TransactionResponse> = rows.iter().map(|r| TransactionResponse {
-        id: r.get("id"),
-        account_id: r.get("account_id"),
-        posting_id: r.get("posting_id"),
-        amount: r.get("amount"),
-        denomination: r.get("denomination"),
-        direction: r.get("direction"),
-        description: r.get("description"),
-        value_timestamp: r.get("value_timestamp"),
-        booking_timestamp: r.get("booking_timestamp"),
-    }).collect();
+    .bind(id)
+    .bind(q.from)
+    .bind(q.to)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
+    let txns: Vec<TransactionResponse> = rows
+        .iter()
+        .map(|r| TransactionResponse {
+            id: r.get("id"),
+            account_id: r.get("account_id"),
+            posting_id: r.get("posting_id"),
+            amount: r.get("amount"),
+            denomination: r.get("denomination"),
+            direction: r.get("direction"),
+            description: r.get("description"),
+            value_timestamp: r.get("value_timestamp"),
+            booking_timestamp: r.get("booking_timestamp"),
+        })
+        .collect();
     Ok(Json(txns))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct TransactionQuery {
-    #[serde(default)] pub from: Option<chrono::DateTime<chrono::Utc>>,
-    #[serde(default)] pub to: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(default)]
+    pub from: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(default)]
+    pub to: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 // ── Statements ───────────────────────────────────────────────────────────
@@ -723,9 +846,17 @@ pub async fn get_account_statements(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Vec<StatementResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context_ext(&mut conn, a.env_id(), &a).await.map_err(err_db)?;
+    set_tenant_context_ext(&mut conn, a.env_id(), &a)
+        .await
+        .map_err(err_db)?;
     // Defence-in-depth (§4.3c): holders can only see statements for their own
     // customer accounts, scoped to the token env.
     if a.is_holder() {
@@ -744,18 +875,24 @@ pub async fn get_account_statements(
                   document_url, document_format, created_at
              FROM statements WHERE account_id = $1 ORDER BY period_start DESC"#,
     )
-    .bind(id).fetch_all(&mut *conn).await.map_err(err_db)?;
-    let stmts: Vec<StatementResponse> = rows.iter().map(|r| StatementResponse {
-        id: r.get("id"),
-        account_id: r.get("account_id"),
-        period_start: r.get("period_start"),
-        period_end: r.get("period_end"),
-        opening_balance: r.get("opening_balance"),
-        closing_balance: r.get("closing_balance"),
-        document_url: r.get("document_url"),
-        document_format: r.get("document_format"),
-        created_at: r.get("created_at"),
-    }).collect();
+    .bind(id)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
+    let stmts: Vec<StatementResponse> = rows
+        .iter()
+        .map(|r| StatementResponse {
+            id: r.get("id"),
+            account_id: r.get("account_id"),
+            period_start: r.get("period_start"),
+            period_end: r.get("period_end"),
+            opening_balance: r.get("opening_balance"),
+            closing_balance: r.get("closing_balance"),
+            document_url: r.get("document_url"),
+            document_format: r.get("document_format"),
+            created_at: r.get("created_at"),
+        })
+        .collect();
     conn.commit().await.map_err(err_db)?;
     Ok(Json(stmts))
 }

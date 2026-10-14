@@ -10,7 +10,11 @@
 //! data path of the regen workflow (the scheduled path wrote the row and
 //! the first render) — a workflow retry re-enters here.
 
-use axum::{extract::State, http::{HeaderMap, StatusCode}, Json};
+use axum::{
+    extract::State,
+    http::{HeaderMap, StatusCode},
+    Json,
+};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use uuid::Uuid;
@@ -108,8 +112,12 @@ pub async fn statement_regen_step(
              FROM statements WHERE account_id = $1 AND env_id = $2
                AND to_char(period_start, 'YYYY-MM') = $3"#,
     )
-    .bind(account_id).bind(env_id).bind(&period)
-    .fetch_optional(&mut *tx).await.map_err(err_db)?
+    .bind(account_id)
+    .bind(env_id)
+    .bind(&period)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(err_db)?
     .ok_or_else(|| {
         (
             StatusCode::NOT_FOUND,
@@ -129,11 +137,13 @@ pub async fn statement_regen_step(
         "opening_balance": opening.to_string(), "closing_balance": opening.to_string(),
         "denomination": denomination, "regenerated": true,
     });
-    let doc_bytes = serde_json::to_vec_pretty(&document)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("render statement: {e}")))?;
-    let object_path = format!(
-        "statements/objects/{env_id}/{account_id}/{statement_id}.json"
-    );
+    let doc_bytes = serde_json::to_vec_pretty(&document).map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("render statement: {e}"),
+        )
+    })?;
+    let object_path = format!("statements/objects/{env_id}/{account_id}/{statement_id}.json");
     let storage = crate::statements::StatementStorage::from_config(&state.config);
     storage
         .put_statement(&object_path, doc_bytes)

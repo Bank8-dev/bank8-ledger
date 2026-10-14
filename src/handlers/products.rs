@@ -65,26 +65,43 @@ pub async fn create_product(
     Json(req): Json<CreateProductRequest>,
 ) -> Result<Json<ProductResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:products:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:products:write"),
+    )
+    .await?;
     // Staff SSO tokens carry the STAFF env; the managed env comes from the
     // TLS-injected X-Sentin8-Env-Id header (Bank8:Admin is served at
     // bank8-admin.prod.{org}.{tld}). Same pattern as admin_ui.rs — see
     // resolve_org_env docs.
     let env_id = crate::handlers::resolve_org_env(&headers, uuid::Uuid::nil(), a.env_id());
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, env_id).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, env_id)
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"INSERT INTO products (env_id, product_type, name, parameters, modules)
            VALUES ($1, $2, $3, $4, $5)
            RETURNING id, product_type, name, version, status, parameters, modules, created_at"#,
     )
-    .bind(env_id).bind(&req.product_type).bind(&req.name)
-    .bind(&req.parameters).bind(&req.modules)
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(env_id)
+    .bind(&req.product_type)
+    .bind(&req.name)
+    .bind(&req.parameters)
+    .bind(&req.modules)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     let product = row_to_product(&row);
-    super::emit_event(&state.pool, env_id, "bank8:ledger:product:created",
+    super::emit_event(
+        &state.pool,
+        env_id,
+        "bank8:ledger:product:created",
         serde_json::json!({ "product_id": product.id, "product_type": req.product_type }),
-    ).await;
+    )
+    .await;
     conn.commit().await.map_err(err_db)?;
 
     Ok(Json(product))
@@ -106,12 +123,20 @@ pub async fn list_products(
     headers: HeaderMap,
 ) -> Result<Json<Vec<ProductResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:products:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:products:read"),
+    )
+    .await?;
     // TLS-injected env wins over the token env — Bank8:Admin staff SSO
     // tokens carry the staff env but manage the prod env (see create_product).
     let env_id = crate::handlers::resolve_org_env(&headers, uuid::Uuid::nil(), a.env_id());
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, env_id).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, env_id)
+        .await
+        .map_err(err_db)?;
     tracing::info!(%env_id, "bank8:ledger: list_products querying products");
     let rows = sqlx::query(
         r#"SELECT id, product_type, name, version, status, parameters, modules, created_at
@@ -120,7 +145,9 @@ pub async fn list_products(
              ORDER BY created_at DESC"#,
     )
     .bind(env_id)
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
     tracing::info!(count = rows.len(), %env_id, "bank8:ledger: list_products returned");
     Ok(Json(rows.iter().map(row_to_product).collect()))
 }
@@ -144,17 +171,28 @@ pub async fn get_product(
     Path(id): Path<Uuid>,
 ) -> Result<Json<ProductResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:products:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:products:read"),
+    )
+    .await?;
     let env_id = crate::handlers::resolve_org_env(&headers, uuid::Uuid::nil(), a.env_id());
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, env_id).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, env_id)
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"SELECT id, product_type, name, version, status, parameters, modules, created_at
              FROM products
              WHERE id = $1 AND env_id = $2"#,
     )
-    .bind(id).bind(env_id)
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(id)
+    .bind(env_id)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(row_to_product(&row)))
 }
 
@@ -178,10 +216,18 @@ pub async fn update_product(
     Json(req): Json<UpdateProductRequest>,
 ) -> Result<Json<ProductResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:products:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:products:write"),
+    )
+    .await?;
     let env_id = crate::handlers::resolve_org_env(&headers, uuid::Uuid::nil(), a.env_id());
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, env_id).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, env_id)
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"UPDATE products
               SET name = COALESCE($2, name),
@@ -191,12 +237,21 @@ pub async fn update_product(
             WHERE id = $1
             RETURNING id, product_type, name, version, status, parameters, modules, created_at"#,
     )
-    .bind(id).bind(req.name.as_deref()).bind(req.parameters.as_ref()).bind(req.modules.as_ref())
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(id)
+    .bind(req.name.as_deref())
+    .bind(req.parameters.as_ref())
+    .bind(req.modules.as_ref())
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     let product = row_to_product(&row);
-    super::emit_event(&state.pool, env_id, "bank8:ledger:product:updated",
+    super::emit_event(
+        &state.pool,
+        env_id,
+        "bank8:ledger:product:updated",
         serde_json::json!({ "product_id": id }),
-    ).await;
+    )
+    .await;
     conn.commit().await.map_err(err_db)?;
     Ok(Json(product))
 }
@@ -223,14 +278,29 @@ pub async fn activate_product(
     // the broader `products:write` admin scope are also accepted (the scope
     // is nested in the ledger admin role).
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:products:publish")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:products:publish"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     sqlx::query("UPDATE products SET status = 'active', updated_at = now() WHERE id = $1")
-        .bind(id).execute(&mut *conn).await.map_err(err_db)?;
-    super::emit_event(&state.pool, a.env_id(), "bank8:ledger:product:activated",
+        .bind(id)
+        .execute(&mut *conn)
+        .await
+        .map_err(err_db)?;
+    super::emit_event(
+        &state.pool,
+        a.env_id(),
+        "bank8:ledger:product:activated",
         serde_json::json!({ "product_id": id }),
-    ).await;
+    )
+    .await;
     conn.commit().await.map_err(err_db)?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -284,9 +354,17 @@ pub async fn create_product_version(
     Json(req): Json<CreateProductVersionRequest>,
 ) -> Result<Json<ProductVersionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:products:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:products:write"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     // Get next version number.
     let next_version: i32 = sqlx::query_scalar(
         "SELECT COALESCE(MAX(version_number), 0) + 1 FROM product_versions_ext WHERE product_id = $1",
@@ -304,9 +382,13 @@ pub async fn create_product_version(
     .bind(&req.parameters).bind(&req.expected_parameters)
     .fetch_one(&mut *conn).await.map_err(err_db)?;
     let version = row_to_version(&row);
-    super::emit_event(&state.pool, a.env_id(), "bank8:ledger:productversion:created",
+    super::emit_event(
+        &state.pool,
+        a.env_id(),
+        "bank8:ledger:productversion:created",
         serde_json::json!({ "product_id": product_id, "version_id": version.id }),
-    ).await;
+    )
+    .await;
 
     conn.commit().await.map_err(err_db)?;
     Ok(Json(version))
@@ -330,16 +412,27 @@ pub async fn list_product_versions(
     Path(product_id): Path<Uuid>,
 ) -> Result<Json<Vec<ProductVersionResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:products:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:products:read"),
+    )
+    .await?;
     let env_id = crate::handlers::resolve_org_env(&headers, uuid::Uuid::nil(), a.env_id());
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, env_id).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, env_id)
+        .await
+        .map_err(err_db)?;
     let rows = sqlx::query(
         r#"SELECT id, product_id, version_number, tside, contract_modules, supported_denominations,
                   parameters, expected_parameters, status, created_at
              FROM product_versions_ext WHERE product_id = $1 ORDER BY version_number DESC"#,
     )
-    .bind(product_id).fetch_all(&mut *conn).await.map_err(err_db)?;
+    .bind(product_id)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
     conn.commit().await.map_err(err_db)?;
 
     Ok(Json(rows.iter().map(row_to_version).collect()))

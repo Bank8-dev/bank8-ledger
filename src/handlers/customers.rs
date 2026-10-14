@@ -5,7 +5,11 @@
 
 //! Customer handlers — customers CRUD.
 
-use axum::{extract::{Path, State}, http::{HeaderMap, StatusCode}, Json};
+use axum::{
+    extract::{Path, State},
+    http::{HeaderMap, StatusCode},
+    Json,
+};
 use serde::Deserialize;
 use sqlx::Row;
 use utoipa::ToSchema;
@@ -76,9 +80,17 @@ pub async fn create_customer(
     Json(req): Json<CreateCustomerRequest>,
 ) -> Result<Json<CustomerResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context_ext(&mut conn, a.env_id(), &a).await.map_err(err_db)?;
+    set_tenant_context_ext(&mut conn, a.env_id(), &a)
+        .await
+        .map_err(err_db)?;
     // Stamp `sentin8_auth_user_id` for every USER token (the §4.3c holder
     // link). This used to be gated on the dead `subject_type ==
     // "customer"` check — user access tokens never return "customer", so
@@ -91,9 +103,13 @@ pub async fn create_customer(
            VALUES ($1, $2, $3, $4, $5)
            RETURNING id, display_name, email, phone, status, sentin8_auth_user_id, created_at"#,
     )
-    .bind(a.env_id()).bind(&req.display_name).bind(req.email.as_deref()).bind(req.phone.as_deref())
+    .bind(a.env_id())
+    .bind(&req.display_name)
+    .bind(req.email.as_deref())
+    .bind(req.phone.as_deref())
     .bind(sentin8_auth_user_id)
-    .fetch_one(&mut *conn).await;
+    .fetch_one(&mut *conn)
+    .await;
     let row = match row {
         Ok(r) => r,
         Err(sqlx::Error::Database(ref e)) if e.is_unique_violation() => {
@@ -102,9 +118,13 @@ pub async fn create_customer(
         Err(e) => return Err(err_db(e)),
     };
     let customer = row_to_customer(&row);
-    super::emit_event(&state.pool, a.env_id(), "bank8:ledger:customer:created",
+    super::emit_event(
+        &state.pool,
+        a.env_id(),
+        "bank8:ledger:customer:created",
         serde_json::json!({ "customer_id": customer.id, "display_name": req.display_name }),
-    ).await;
+    )
+    .await;
     conn.commit().await.map_err(err_db)?;
     Ok(Json(customer))
 }
@@ -133,7 +153,13 @@ pub async fn list_customers(
     axum::extract::Query(q): axum::extract::Query<ListCustomersQuery>,
 ) -> Result<Json<Vec<CustomerResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
     // Resolve the effective env_id (isolation-design §10 — staff-realm
     // directory reads).
@@ -156,7 +182,7 @@ pub async fn list_customers(
     // The SQL query's `WHERE env_id = $N` clause remains the primary data
     // scoping; RLS is the backstop.
     let staff_realm = a.claims.sentin8_auth_user_uuid().is_some();
-    let effective_env_id = if let Some(ref s) = q.env_id.as_deref().filter(|s| !s.is_empty()) {
+    let effective_env_id = if let Some(s) = q.env_id.as_deref().filter(|s| !s.is_empty()) {
         let requested = uuid::Uuid::parse_str(s)
             .map_err(|_| (StatusCode::BAD_REQUEST, "invalid env_id format".into()))?;
         if requested == a.env_id() || a.is_platform_admin() {
@@ -181,20 +207,29 @@ pub async fn list_customers(
                 (Some(c), Some(r)) if c == r
             );
             if !has_org_access {
-                return Err((StatusCode::FORBIDDEN, "not authorized for this organization".into()));
+                return Err((
+                    StatusCode::FORBIDDEN,
+                    "not authorized for this organization".into(),
+                ));
             }
             if !has_org_access {
-                return Err((StatusCode::FORBIDDEN, "not authorized for this organization".into()));
+                return Err((
+                    StatusCode::FORBIDDEN,
+                    "not authorized for this organization".into(),
+                ));
             }
             requested
         } else {
             // Customer-realm caller requesting a foreign env — fail closed.
-            return Err((StatusCode::FORBIDDEN, "cross-environment access is not permitted".into()));
+            return Err((
+                StatusCode::FORBIDDEN,
+                "cross-environment access is not permitted".into(),
+            ));
         }
     } else {
         a.env_id()
     };
-        // Scope by env_id — these explicit WHERE clauses are the primary
+    // Scope by env_id — these explicit WHERE clauses are the primary
     // scoping; RLS is the backstop.
     // Local-only search (VDC §VDC.2): the ledger matches its OWN columns.
     // The former `sentin8.auth_users` enrichment join never existed in the
@@ -205,7 +240,9 @@ pub async fn list_customers(
     // check above ran under no tenant context (its tables are remote),
     // so the context must be set HERE — before the customer query — on
     // the SAME transaction connection, or the RLS gate hides every row.
-    set_tenant_context(&mut conn, effective_env_id).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, effective_env_id)
+        .await
+        .map_err(err_db)?;
     tracing::info!(env = %effective_env_id, search = ?q.search, caller_env = %a.env_id(), "bank8:ledger: list_customers query");
     let rows = if let Some(ref s) = q.search {
         let pattern = format!("%{}%", s.trim());
@@ -218,8 +255,11 @@ pub async fn list_customers(
                   AND c.env_id = $2
                 ORDER BY c.created_at DESC"#,
         )
-        .bind(&pattern).bind(effective_env_id)
-        .fetch_all(&mut *conn).await.map_err(err_db)?
+        .bind(&pattern)
+        .bind(effective_env_id)
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?
     } else {
         sqlx::query(
             r#"SELECT c.id, c.display_name, c.email, c.phone, c.status,
@@ -229,7 +269,9 @@ pub async fn list_customers(
                 ORDER BY c.created_at DESC"#,
         )
         .bind(effective_env_id)
-        .fetch_all(&mut *conn).await.map_err(err_db)?
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(err_db)?
     };
     Ok(Json(rows.iter().map(row_to_customer).collect()))
 }
@@ -253,7 +295,13 @@ pub async fn get_customer(
     Path(id): Path<Uuid>,
 ) -> Result<Json<CustomerResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
     // Staff-realm directory read (isolation-design §10): resolve the row's
     // env, then authorize via org membership — a staff teller must be able
@@ -263,13 +311,11 @@ pub async fn get_customer(
     // env; cross-env requests 404 (never reveal existence cross-env).
     let caller_env = a.env_id();
     let staff_realm = a.claims.sentin8_auth_user_uuid().is_some();
-    let row_env: Option<Uuid> = sqlx::query_scalar(
-        "SELECT env_id FROM customers WHERE id = $1",
-    )
-    .bind(id)
-    .fetch_optional(&mut *conn)
-    .await
-    .map_err(err_db)?;
+    let row_env: Option<Uuid> = sqlx::query_scalar("SELECT env_id FROM customers WHERE id = $1")
+        .bind(id)
+        .fetch_optional(&mut *conn)
+        .await
+        .map_err(err_db)?;
     let Some(row_env) = row_env else {
         return Err((StatusCode::NOT_FOUND, "customer not found".into()));
     };
@@ -295,15 +341,20 @@ pub async fn get_customer(
     } else {
         return Err((StatusCode::NOT_FOUND, "customer not found".into()));
     };
-    set_tenant_context(&mut conn, effective_env_id).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, effective_env_id)
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"SELECT c.id, c.display_name, c.email, c.phone, c.status,
                   c.sentin8_auth_user_id, c.created_at
              FROM customers c
             WHERE c.id = $1 AND c.env_id = $2"#,
     )
-    .bind(id).bind(effective_env_id)
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(id)
+    .bind(effective_env_id)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(row_to_customer(&row)))
 }
 
@@ -326,7 +377,11 @@ fn row_to_customer(row: &sqlx::postgres::PgRow) -> CustomerResponse {
             (None, Some(l)) => l.clone(),
             (None, None) => String::new(),
         };
-        if full.is_empty() { None } else { Some(full) }
+        if full.is_empty() {
+            None
+        } else {
+            Some(full)
+        }
     };
 
     let resolved_email = if email.as_deref().map(|e| !e.is_empty()).unwrap_or(false) {
@@ -382,18 +437,33 @@ pub async fn link_auth(
     Json(req): Json<LinkAuthRequest>,
 ) -> Result<Json<CustomerResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:customers:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:customers:write"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     // Reject if the Auth user is already linked to a different customer.
     let existing: Option<(Uuid,)> = sqlx::query_as(
         r#"SELECT id FROM customers
             WHERE env_id = $1 AND sentin8_auth_user_id = $2 AND id <> $3"#,
     )
-    .bind(a.env_id()).bind(req.sentin8_auth_user_id).bind(id)
-    .fetch_optional(&mut *conn).await.map_err(err_db)?;
+    .bind(a.env_id())
+    .bind(req.sentin8_auth_user_id)
+    .bind(id)
+    .fetch_optional(&mut *conn)
+    .await
+    .map_err(err_db)?;
     if existing.is_some() {
-        return Err((StatusCode::CONFLICT, "sentin8_auth_user_id already linked to another customer".into()));
+        return Err((
+            StatusCode::CONFLICT,
+            "sentin8_auth_user_id already linked to another customer".into(),
+        ));
     }
     let row = sqlx::query(
         r#"UPDATE customers c
@@ -405,14 +475,22 @@ pub async fn link_auth(
            RETURNING c.id, c.display_name, c.email, c.phone, c.status,
                      c.sentin8_auth_user_id, c.created_at"#,
     )
-    .bind(id).bind(req.sentin8_auth_user_id).bind(a.env_id())
+    .bind(id)
+    .bind(req.sentin8_auth_user_id)
+    .bind(a.env_id())
     .bind(req.display_name.as_deref().unwrap_or(""))
     .bind(req.email.as_deref().unwrap_or(""))
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     let customer = row_to_customer(&row);
-    super::emit_event(&state.pool, a.env_id(), "bank8:ledger:customer:authlinked",
+    super::emit_event(
+        &state.pool,
+        a.env_id(),
+        "bank8:ledger:customer:authlinked",
         serde_json::json!({ "customer_id": id, "sentin8_auth_user_id": req.sentin8_auth_user_id }),
-    ).await;
+    )
+    .await;
 
     conn.commit().await.map_err(err_db)?;
     Ok(Json(customer))
@@ -422,9 +500,12 @@ pub async fn link_auth(
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateCustomerRequest {
-    #[serde(default)] pub display_name: Option<String>,
-    #[serde(default)] pub email: Option<String>,
-    #[serde(default)] pub phone: Option<String>,
+    #[serde(default)]
+    pub display_name: Option<String>,
+    #[serde(default)]
+    pub email: Option<String>,
+    #[serde(default)]
+    pub phone: Option<String>,
 }
 
 /// `PUT /v1/customers/{id}/update` — update customer (display name / contact).
@@ -448,9 +529,17 @@ pub async fn update_customer(
     Json(req): Json<UpdateCustomerRequest>,
 ) -> Result<Json<CustomerResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:customers:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:customers:write"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context_ext(&mut conn, a.env_id(), &a).await.map_err(err_db)?;
+    set_tenant_context_ext(&mut conn, a.env_id(), &a)
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"UPDATE customers SET
                display_name = COALESCE($2, display_name),
@@ -460,15 +549,22 @@ pub async fn update_customer(
            WHERE id = $1 AND env_id = $5
            RETURNING id, display_name, email, phone, status, sentin8_auth_user_id, created_at"#,
     )
-    .bind(id).bind(req.display_name.as_deref()).bind(req.email.as_deref())
-    .bind(req.phone.as_deref()).bind(a.env_id())
+    .bind(id)
+    .bind(req.display_name.as_deref())
+    .bind(req.email.as_deref())
+    .bind(req.phone.as_deref())
+    .bind(a.env_id())
     .fetch_optional(&mut *conn)
     .await
     .map_err(err_db)?
     .ok_or((StatusCode::NOT_FOUND, format!("customer {id} not found")))?;
-    super::emit_event(&state.pool, a.env_id(), "bank8:ledger:customer:updated",
-        serde_json::json!({ "customer_id": id, "fields_changed": ["profile"] }))
-        .await;
+    super::emit_event(
+        &state.pool,
+        a.env_id(),
+        "bank8:ledger:customer:updated",
+        serde_json::json!({ "customer_id": id, "fields_changed": ["profile"] }),
+    )
+    .await;
     conn.commit().await.map_err(err_db)?;
     Ok(Json(row_to_customer(&row)))
 }

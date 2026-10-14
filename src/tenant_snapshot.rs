@@ -38,7 +38,11 @@ pub async fn env_org_id(env_id: uuid::Uuid) -> Result<Option<uuid::Uuid>, String
     );
     let http = sentin8::middleware::mtls::build_mtls_client(&mtls)
         .map_err(|e| format!("transport: {e}"))?;
-    let url = format!("{}/v1/tenants/{}", cfg.sentin8_sys_url().trim_end_matches('/'), env_id);
+    let url = format!(
+        "{}/v1/tenants/{}",
+        cfg.sentin8_sys_url().trim_end_matches('/'),
+        env_id
+    );
     let resp = http
         .get(&url)
         .send()

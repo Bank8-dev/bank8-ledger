@@ -28,7 +28,11 @@ pub async fn call_hook(
     callback_auth_token: Option<&str>,
     callback_internal_path: Option<&str>,
 ) -> Result<serde_json::Value, String> {
-    let cb = if let (Some(url), Some(token), Some(path)) = (callback_base_url, callback_auth_token, callback_internal_path) {
+    let cb = if let (Some(url), Some(token), Some(path)) = (
+        callback_base_url,
+        callback_auth_token,
+        callback_internal_path,
+    ) {
         Some(CallbackConfig {
             base_url: url.to_string(),
             auth_token: token.to_string(),
@@ -43,7 +47,9 @@ pub async fn call_hook(
         context,
         callback_config: cb,
     };
-    let result = client.execute(module_id, &req).await
+    let result = client
+        .execute(module_id, &req)
+        .await
         .map_err(|e| format!("func execute {hook}: {e}"))?;
     Ok(result)
 }
@@ -60,7 +66,16 @@ pub async fn call_hook_raw(
     callback_auth_token: Option<&str>,
     callback_internal_path: Option<&str>,
 ) -> Result<serde_json::Value, String> {
-    call_hook(client, module_id, hook, context, callback_base_url, callback_auth_token, callback_internal_path).await
+    call_hook(
+        client,
+        module_id,
+        hook,
+        context,
+        callback_base_url,
+        callback_auth_token,
+        callback_internal_path,
+    )
+    .await
 }
 
 /// Re-run the post_posting hook for a previously committed batch (
@@ -75,7 +90,9 @@ pub async fn republish_post_posting(
     if config.sentin8_func_url.is_empty() || module_id.is_empty() {
         return false;
     }
-    let Ok(pid) = posting_id.parse::<uuid::Uuid>() else { return false; };
+    let Ok(pid) = posting_id.parse::<uuid::Uuid>() else {
+        return false;
+    };
     // Certificate-presenting client (CERTFREE-4F) — the `ledger`
     // workload certificate presents in the TLS handshake; the proxy-back
     // callback token is a separate contract (the token Func presents
@@ -87,7 +104,17 @@ pub async fn republish_post_posting(
     let base = callback_base_url(config);
     let token = config.func_token().await;
     let ctx = post_posting_context(pid, posting_id, 0);
-    match call_hook(&client, module_id, "post_posting", ctx, Some(&base), Some(&token), Some("/v1/internal/func-host")).await {
+    match call_hook(
+        &client,
+        module_id,
+        "post_posting",
+        ctx,
+        Some(&base),
+        Some(&token),
+        Some("/v1/internal/func-host"),
+    )
+    .await
+    {
         Ok(_) => {
             tracing::info!(posting_id, module_id, env_id = %env_id, "post_posting hook republished");
             true

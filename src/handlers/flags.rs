@@ -5,7 +5,11 @@
 
 //! Flag handlers — flag definitions and flags.
 
-use axum::{extract::{Query, State}, http::{HeaderMap, StatusCode}, Json};
+use axum::{
+    extract::{Query, State},
+    http::{HeaderMap, StatusCode},
+    Json,
+};
 use serde::Deserialize;
 use sqlx::Row;
 use uuid::Uuid;
@@ -32,8 +36,12 @@ pub struct CreateFlagDefinitionRequest {
     pub flag_visibility: String,
 }
 
-fn default_account() -> String { "ACCOUNT".into() }
-fn default_private() -> String { "PRIVATE".into() }
+fn default_account() -> String {
+    "ACCOUNT".into()
+}
+fn default_private() -> String {
+    "PRIVATE".into()
+}
 
 /// `POST /v1/flag-definitions` — create a flag definition.
 pub async fn create_flag_definition(
@@ -42,20 +50,37 @@ pub async fn create_flag_definition(
     Json(req): Json<CreateFlagDefinitionRequest>,
 ) -> Result<Json<FlagDefinitionResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"INSERT INTO flag_definitions (env_id, flag_name, required_flag_level, flag_visibility)
            VALUES ($1, $2, $3, $4)
            RETURNING id, flag_name, required_flag_level, flag_visibility, is_active, created_at"#,
     )
-    .bind(a.env_id()).bind(&req.flag_name).bind(&req.required_flag_level).bind(&req.flag_visibility)
-    .fetch_one(&mut *conn).await.map_err(err_db)?;
+    .bind(a.env_id())
+    .bind(&req.flag_name)
+    .bind(&req.required_flag_level)
+    .bind(&req.flag_visibility)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(err_db)?;
     let flag_def = row_to_flag_def(&row);
-    super::emit_event(&state.pool, a.env_id(), "bank8:ledger:flagdefinition:created",
+    super::emit_event(
+        &state.pool,
+        a.env_id(),
+        "bank8:ledger:flagdefinition:created",
         serde_json::json!({ "flag_definition_id": flag_def.id }),
-    ).await;
+    )
+    .await;
     conn.commit().await.map_err(err_db)?;
     Ok(Json(flag_def))
 }
@@ -66,14 +91,24 @@ pub async fn list_flag_definitions(
     headers: HeaderMap,
 ) -> Result<Json<Vec<FlagDefinitionResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let rows = sqlx::query(
         r#"SELECT id, flag_name, required_flag_level, flag_visibility, is_active, created_at
              FROM flag_definitions ORDER BY created_at DESC"#,
     )
-    .fetch_all(&mut *conn).await.map_err(err_db)?;
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(err_db)?;
     Ok(Json(rows.iter().map(row_to_flag_def).collect()))
 }
 
@@ -100,13 +135,18 @@ pub struct CreateFlagRequest {
     pub expiry_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-fn default_on() -> String { "ON".into() }
+fn default_on() -> String {
+    "ON".into()
+}
 
 #[derive(Debug, Deserialize)]
 pub struct ListFlagsQuery {
-    #[serde(default)] pub account_id: Option<Uuid>,
-    #[serde(default)] pub customer_id: Option<Uuid>,
-    #[serde(default)] pub flag_definition_id: Option<Uuid>,
+    #[serde(default)]
+    pub account_id: Option<Uuid>,
+    #[serde(default)]
+    pub customer_id: Option<Uuid>,
+    #[serde(default)]
+    pub flag_definition_id: Option<Uuid>,
 }
 
 /// `POST /v1/flags` — set a flag on an account or customer.
@@ -116,12 +156,23 @@ pub async fn create_flag(
     Json(req): Json<CreateFlagRequest>,
 ) -> Result<Json<FlagResponse>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:write"),
+    )
+    .await?;
     if req.account_id.is_none() && req.customer_id.is_none() {
-        return Err((StatusCode::BAD_REQUEST, "account_id or customer_id is required".into()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "account_id or customer_id is required".into(),
+        ));
     }
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         r#"INSERT INTO flags (env_id, flag_definition_id, account_id, customer_id, value, effective_timestamp, expiry_timestamp)
            VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -132,9 +183,13 @@ pub async fn create_flag(
     .bind(req.effective_timestamp.unwrap_or_else(chrono::Utc::now)).bind(req.expiry_timestamp)
     .fetch_one(&mut *conn).await.map_err(err_db)?;
     let flag = row_to_flag(&row);
-    super::emit_event(&state.pool, a.env_id(), "bank8:ledger:flag:created",
+    super::emit_event(
+        &state.pool,
+        a.env_id(),
+        "bank8:ledger:flag:created",
         serde_json::json!({ "flag_id": flag.id, "account_id": req.account_id }),
-    ).await;
+    )
+    .await;
 
     conn.commit().await.map_err(err_db)?;
     Ok(Json(flag))
@@ -147,9 +202,17 @@ pub async fn list_flags(
     Query(q): Query<ListFlagsQuery>,
 ) -> Result<Json<Vec<FlagResponse>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
-    crate::policy::require(&state.policy, &a, &headers, sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read")).await?;
+    crate::policy::require(
+        &state.policy,
+        &a,
+        &headers,
+        sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read"),
+    )
+    .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let rows = sqlx::query(
         r#"SELECT id, flag_definition_id, account_id, customer_id, value, effective_timestamp, expiry_timestamp, created_at
              FROM flags

@@ -268,11 +268,14 @@ pub async fn migrate_plan(
     };
     // Close the from-plan and record the migration.
     if let Some(from_id) = from {
-        sqlx::query("UPDATE plans SET status = 'closed', updated_at = now() WHERE id = $1 AND env_id = $2")
-            .bind(from_id).bind(a.env_id())
-            .execute(&mut *tx)
-            .await
-            .map_err(err_db)?;
+        sqlx::query(
+            "UPDATE plans SET status = 'closed', updated_at = now() WHERE id = $1 AND env_id = $2",
+        )
+        .bind(from_id)
+        .bind(a.env_id())
+        .execute(&mut *tx)
+        .await
+        .map_err(err_db)?;
     }
     let migration = sqlx::query(
         r#"INSERT INTO plan_migrations (env_id, plan_id, from_plan_id, status)

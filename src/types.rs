@@ -62,7 +62,9 @@ pub struct CreateAccountV2Request {
     pub status: Option<String>,
 }
 
-fn default_denom() -> String { "CAD".into() }
+fn default_denom() -> String {
+    "CAD".into()
+}
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateAccountV2Request {
@@ -209,7 +211,9 @@ pub struct CreateFlagRequest {
     pub expiry_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-fn default_on() -> String { "ON".into() }
+fn default_on() -> String {
+    "ON".into()
+}
 
 // ── Restriction ──────────────────────────────────────────────────────────
 
@@ -279,8 +283,12 @@ pub struct CreateParameterRequest {
     pub constraints: serde_json::Value,
 }
 
-fn default_true() -> bool { true }
-fn default_string() -> String { "string".into() }
+fn default_true() -> bool {
+    true
+}
+fn default_string() -> String {
+    "string".into()
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ParameterValueResponse {
@@ -431,4 +439,6 @@ pub struct CreateCalendarRequest {
     pub timezone: String,
 }
 
-fn default_utc() -> String { "UTC".into() }
+fn default_utc() -> String {
+    "UTC".into()
+}

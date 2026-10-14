@@ -13,12 +13,12 @@
 //! 2. Posting time — validate each transaction (pre_posting_hook)
 //! 3. On schedule — periodic processing (interest, fees, dormancy)
 
-use rust_decimal::Decimal;
-use rust_decimal::prelude::ToPrimitive;
-use serde::{Deserialize, Serialize};
 use chrono::Datelike;
+use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
 
-use crate::types::{PostingInstructionV2, AccountV2};
+use crate::types::{AccountV2, PostingInstructionV2};
 
 /// Error returned when a module validation fails.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,7 +59,8 @@ pub struct ModuleContext<'a> {
 
 impl<'a> ModuleContext<'a> {
     fn param(&self, key: &str) -> Option<&serde_json::Value> {
-        self.product_parameters.get(key)
+        self.product_parameters
+            .get(key)
             .or_else(|| self.instance_params.get(key))
     }
     fn param_str(&self, key: &str) -> Option<&str> {
@@ -82,7 +83,8 @@ pub fn validate_creation_denomination(
     if !ctx.has_module("denomination-validation") {
         return Ok(());
     }
-    let supported: Vec<&str> = ctx.param("supported_denominations")
+    let supported: Vec<&str> = ctx
+        .param("supported_denominations")
         .and_then(|v| v.as_array())
         .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
         .unwrap_or_default();
@@ -92,7 +94,10 @@ pub fn validate_creation_denomination(
     if !supported.contains(&account.denomination.as_str()) {
         return Err(ModuleError {
             module: "denomination-validation".into(),
-            message: format!("denomination {} not supported by product", account.denomination),
+            message: format!(
+                "denomination {} not supported by product",
+                account.denomination
+            ),
             code: "INVALID_DENOMINATION".into(),
         });
     }
@@ -256,7 +261,8 @@ pub fn validate_posting_overdraft_protection(
     if is_debit && current_balance - amount < Decimal::ZERO {
         let arranged: Option<Decimal> = ctx.param_dec("arranged_overdraft_limit");
         let unarranged: Option<Decimal> = ctx.param_dec("unarranged_overdraft_limit");
-        let total_overdraft = arranged.unwrap_or(Decimal::ZERO) + unarranged.unwrap_or(Decimal::ZERO);
+        let total_overdraft =
+            arranged.unwrap_or(Decimal::ZERO) + unarranged.unwrap_or(Decimal::ZERO);
         if current_balance - amount < -total_overdraft {
             return Err(ModuleError {
                 module: "overdraft-protection".into(),
@@ -283,8 +289,10 @@ pub fn on_schedule_interest_accrual(
     // Daily accrual = balance * rate / 365
     let days_in_year = Decimal::from(365);
     let accrued = current_balance * rate / days_in_year;
-    let precision = ctx.param_dec("accrual_precision").unwrap_or(Decimal::new(1, 2)); // default 0.01
-    // Round to precision
+    let precision = ctx
+        .param_dec("accrual_precision")
+        .unwrap_or(Decimal::new(1, 2)); // default 0.01
+                                        // Round to precision
     let rounded = (accrued / precision).round() * precision;
     Ok(rounded)
 }
@@ -295,8 +303,16 @@ fn compute_tiered_rate(ctx: &ModuleContext, balance: Decimal) -> Decimal {
         let mut best_rate = Decimal::ZERO;
         let mut best_min = Decimal::ZERO;
         for tier in tiers {
-            let min = tier.get("min_balance").and_then(|v| v.as_str()).and_then(|s| s.parse::<Decimal>().ok()).unwrap_or(Decimal::ZERO);
-            let rate = tier.get("rate").and_then(|v| v.as_str()).and_then(|s| s.parse::<Decimal>().ok()).unwrap_or(Decimal::ZERO);
+            let min = tier
+                .get("min_balance")
+                .and_then(|v| v.as_str())
+                .and_then(|s| s.parse::<Decimal>().ok())
+                .unwrap_or(Decimal::ZERO);
+            let rate = tier
+                .get("rate")
+                .and_then(|v| v.as_str())
+                .and_then(|s| s.parse::<Decimal>().ok())
+                .unwrap_or(Decimal::ZERO);
             if balance >= min && min >= best_min {
                 best_rate = rate;
                 best_min = min;
@@ -323,13 +339,13 @@ pub fn on_schedule_interest_application(
 
 // ── 9. maintenance-fees (scheduled) ──────────────────────────────────────
 
-pub fn on_schedule_maintenance_fee(
-    ctx: &ModuleContext,
-) -> Result<Decimal, ModuleError> {
+pub fn on_schedule_maintenance_fee(ctx: &ModuleContext) -> Result<Decimal, ModuleError> {
     if !ctx.has_module("maintenance-fees") {
         return Ok(Decimal::ZERO);
     }
-    Ok(ctx.param_dec("maintenance_fee_amount").unwrap_or(Decimal::ZERO))
+    Ok(ctx
+        .param_dec("maintenance_fee_amount")
+        .unwrap_or(Decimal::ZERO))
 }
 
 // ── 10. inactivity-fee (scheduled) ──────────────────────────────────────
@@ -341,12 +357,15 @@ pub fn on_schedule_inactivity_fee(
     if !ctx.has_module("inactivity-fee") {
         return Ok(Decimal::ZERO);
     }
-    let threshold_days = ctx.param_dec("inactivity_threshold_days")
+    let threshold_days = ctx
+        .param_dec("inactivity_threshold_days")
         .map(|d| d.to_i64())
         .unwrap_or(None)
         .unwrap_or(90);
     if last_activity_days > threshold_days {
-        Ok(ctx.param_dec("inactivity_fee_amount").unwrap_or(Decimal::ZERO))
+        Ok(ctx
+            .param_dec("inactivity_fee_amount")
+            .unwrap_or(Decimal::ZERO))
     } else {
         Ok(Decimal::ZERO)
     }
@@ -361,9 +380,13 @@ pub fn on_schedule_minimum_balance_fee(
     if !ctx.has_module("minimum-balance-fee") {
         return Ok(Decimal::ZERO);
     }
-    let threshold = ctx.param_dec("minimum_balance_threshold").unwrap_or(Decimal::ZERO);
+    let threshold = ctx
+        .param_dec("minimum_balance_threshold")
+        .unwrap_or(Decimal::ZERO);
     if avg_balance < threshold {
-        Ok(ctx.param_dec("minimum_balance_fee_amount").unwrap_or(Decimal::ZERO))
+        Ok(ctx
+            .param_dec("minimum_balance_fee_amount")
+            .unwrap_or(Decimal::ZERO))
     } else {
         Ok(Decimal::ZERO)
     }
@@ -393,7 +416,8 @@ pub fn on_schedule_dormancy(
     if !ctx.has_module("dormancy") {
         return Ok(false);
     }
-    let threshold = ctx.param_dec("dormancy_threshold_days")
+    let threshold = ctx
+        .param_dec("dormancy_threshold_days")
         .map(|d| d.to_i64())
         .unwrap_or(None)
         .unwrap_or(365);
@@ -467,15 +491,28 @@ pub fn compute_derived_parameters(
     let mut derived = serde_json::Map::new();
 
     // Loan/Mortgage products: compute remaining term
-    if matches!(account.product_type.as_deref(), Some("loan") | Some("mortgage") | Some("line_of_credit") | Some("bnpl") | Some("home_loan_redraw")) {
+    if matches!(
+        account.product_type.as_deref(),
+        Some("loan")
+            | Some("mortgage")
+            | Some("line_of_credit")
+            | Some("bnpl")
+            | Some("home_loan_redraw")
+    ) {
         if let Some(term_months) = ctx.param_dec("loan_term_months") {
             if let Some(opened_months_ago) = months_since(account.opened_at) {
                 let remaining = (term_months - opened_months_ago).max(Decimal::ZERO);
-                derived.insert("remaining_term".into(), serde_json::json!(remaining.to_string()));
+                derived.insert(
+                    "remaining_term".into(),
+                    serde_json::json!(remaining.to_string()),
+                );
             }
         }
         // Total outstanding debt = current balance (for asset-type accounts, balance is the debt)
-        derived.insert("total_outstanding_debt".into(), serde_json::json!(current_balance.to_string()));
+        derived.insert(
+            "total_outstanding_debt".into(),
+            serde_json::json!(current_balance.to_string()),
+        );
 
         // Next repayment date — if repayment_day is set, compute next occurrence
         let repayment_day = ctx.param("repayment_day").and_then(|v| match v {
@@ -485,7 +522,10 @@ pub fn compute_derived_parameters(
         });
         if let Some(repayment_day) = repayment_day {
             let next = next_day_of_month(repayment_day as u32);
-            derived.insert("next_repayment_date".into(), serde_json::json!(next.to_rfc3339()));
+            derived.insert(
+                "next_repayment_date".into(),
+                serde_json::json!(next.to_rfc3339()),
+            );
         }
     }
 
@@ -493,7 +533,10 @@ pub fn compute_derived_parameters(
     if account.product_type.as_deref() == Some("home_loan_redraw") {
         if let Some(redraw_limit_pct) = ctx.param_dec("redraw_limit_percentage") {
             let available = current_balance * redraw_limit_pct / Decimal::from(100);
-            derived.insert("available_redraw_funds".into(), serde_json::json!(available.to_string()));
+            derived.insert(
+                "available_redraw_funds".into(),
+                serde_json::json!(available.to_string()),
+            );
         }
     }
 
@@ -501,7 +544,10 @@ pub fn compute_derived_parameters(
     if account.product_type.as_deref() == Some("credit_card") {
         if let Some(credit_limit) = ctx.param_dec("credit_limit") {
             let available = (credit_limit - current_balance).max(Decimal::ZERO);
-            derived.insert("available_credit".into(), serde_json::json!(available.to_string()));
+            derived.insert(
+                "available_credit".into(),
+                serde_json::json!(available.to_string()),
+            );
         }
     }
 
@@ -509,8 +555,14 @@ pub fn compute_derived_parameters(
     if account.product_type.as_deref() == Some("time_deposit") {
         if let Some(term_months) = ctx.param_dec("term_months") {
             if let Some(opened) = account.opened_at {
-                let maturity = opened + chrono::Duration::days((term_months * Decimal::from(30)).to_i64().unwrap_or(0) as i64);
-                derived.insert("maturity_date".into(), serde_json::json!(maturity.to_rfc3339()));
+                let maturity = opened
+                    + chrono::Duration::days(
+                        (term_months * Decimal::from(30)).to_i64().unwrap_or(0),
+                    );
+                derived.insert(
+                    "maturity_date".into(),
+                    serde_json::json!(maturity.to_rfc3339()),
+                );
             }
         }
     }
@@ -522,7 +574,7 @@ fn months_since(opened_at: Option<chrono::DateTime<chrono::Utc>>) -> Option<Deci
     let opened = opened_at?;
     let now = chrono::Utc::now();
     let diff = now - opened;
-    let months = (diff.num_days() / 30) as i64;
+    let months = diff.num_days() / 30;
     Some(Decimal::from(months.max(0)))
 }
 
@@ -530,7 +582,10 @@ fn next_day_of_month(day: u32) -> chrono::DateTime<chrono::Utc> {
     let now = chrono::Utc::now();
     let day_clamped = day.min(28).max(1);
     // Find the next occurrence of the given day
-    let mut next = now.date_naive().with_day(day_clamped).unwrap_or(now.date_naive());
+    let mut next = now
+        .date_naive()
+        .with_day(day_clamped)
+        .unwrap_or(now.date_naive());
     if next <= now.date_naive() {
         next = next + chrono::Months::new(1);
     }
@@ -548,7 +603,11 @@ pub fn validate_product_type_parameters(
     match product_type {
         "current_account" => {
             // overdraft_limit must be >= 0 if present
-            if let Some(limit) = parameters.get("overdraft_limit").and_then(|v| v.as_str()).and_then(|s| s.parse::<Decimal>().ok()) {
+            if let Some(limit) = parameters
+                .get("overdraft_limit")
+                .and_then(|v| v.as_str())
+                .and_then(|s| s.parse::<Decimal>().ok())
+            {
                 if limit < Decimal::ZERO {
                     return Err(ModuleError {
                         module: "product-validation".into(),
@@ -560,8 +619,11 @@ pub fn validate_product_type_parameters(
         }
         "mortgage" => {
             // due_amount_calculation_day must be 1–28
-            if let Some(day) = parameters.get("due_amount_calculation_day").and_then(|v| v.as_i64()) {
-                if day < 1 || day > 28 {
+            if let Some(day) = parameters
+                .get("due_amount_calculation_day")
+                .and_then(|v| v.as_i64())
+            {
+                if !(1..=28).contains(&day) {
                     return Err(ModuleError {
                         module: "product-validation".into(),
                         message: format!("due_amount_calculation_day must be 1-28, got {day}"),
@@ -582,7 +644,11 @@ pub fn validate_product_type_parameters(
         }
         "credit_card" => {
             // credit_limit must be > 0
-            if let Some(limit) = parameters.get("credit_limit").and_then(|v| v.as_str()).and_then(|s| s.parse::<Decimal>().ok()) {
+            if let Some(limit) = parameters
+                .get("credit_limit")
+                .and_then(|v| v.as_str())
+                .and_then(|s| s.parse::<Decimal>().ok())
+            {
                 if limit <= Decimal::ZERO {
                     return Err(ModuleError {
                         module: "product-validation".into(),
@@ -606,7 +672,11 @@ pub fn validate_product_type_parameters(
         }
         "savings_account" | "us_savings" | "shariah_savings" => {
             // interest_rate must be >= 0
-            if let Some(rate) = parameters.get("interest_rate").and_then(|v| v.as_str()).and_then(|s| s.parse::<Decimal>().ok()) {
+            if let Some(rate) = parameters
+                .get("interest_rate")
+                .and_then(|v| v.as_str())
+                .and_then(|s| s.parse::<Decimal>().ok())
+            {
                 if rate < Decimal::ZERO {
                     return Err(ModuleError {
                         module: "product-validation".into(),
@@ -637,7 +707,9 @@ pub fn validate_module_composition(
         if let Some(reason) = disallowed.iter().find(|(m, _)| m == module).map(|(_, r)| r) {
             return Err(ModuleError {
                 module: "module-composition".into(),
-                message: format!("module `{module}` is not valid for product type `{product_type}`: {reason}"),
+                message: format!(
+                    "module `{module}` is not valid for product type `{product_type}`: {reason}"
+                ),
                 code: "INVALID_MODULE_FOR_PRODUCT".into(),
             });
         }
@@ -649,73 +721,122 @@ pub fn validate_module_composition(
     Ok(())
 }
 
-fn module_rules_for_product(product_type: &str) -> (Vec<&'static str>, Vec<(&'static str, &'static str)>) {
+fn module_rules_for_product(
+    product_type: &str,
+) -> (Vec<&'static str>, Vec<(&'static str, &'static str)>) {
     match product_type {
         "current_account" | "us_checking" => (
             vec![
-                "denomination-validation", "deposit-limits", "withdrawal-limits",
-                "transaction-type-limits", "maximum-balance", "overdraft-protection",
-                "overdraft-protection-sweep", "deposit-interest-accrual",
-                "deposit-interest-application", "maintenance-fees", "inactivity-fee",
-                "minimum-balance-fee", "closure-interest-application", "dormancy",
+                "denomination-validation",
+                "deposit-limits",
+                "withdrawal-limits",
+                "transaction-type-limits",
+                "maximum-balance",
+                "overdraft-protection",
+                "overdraft-protection-sweep",
+                "deposit-interest-accrual",
+                "deposit-interest-application",
+                "maintenance-fees",
+                "inactivity-fee",
+                "minimum-balance-fee",
+                "closure-interest-application",
+                "dormancy",
             ],
             vec![],
         ),
         "savings_account" | "us_savings" | "shariah_savings" => (
             vec![
-                "denomination-validation", "deposit-limits", "withdrawal-limits",
-                "maximum-balance", "deposit-interest-accrual",
-                "deposit-interest-application", "maintenance-fees", "inactivity-fee",
-                "minimum-balance-fee", "closure-interest-application", "dormancy",
+                "denomination-validation",
+                "deposit-limits",
+                "withdrawal-limits",
+                "maximum-balance",
+                "deposit-interest-accrual",
+                "deposit-interest-application",
+                "maintenance-fees",
+                "inactivity-fee",
+                "minimum-balance-fee",
+                "closure-interest-application",
+                "dormancy",
             ],
             vec![
-                ("overdraft-protection", "savings accounts cannot have overdraft"),
-                ("overdraft-protection-sweep", "savings accounts cannot have overdraft sweep"),
+                (
+                    "overdraft-protection",
+                    "savings accounts cannot have overdraft",
+                ),
+                (
+                    "overdraft-protection-sweep",
+                    "savings accounts cannot have overdraft sweep",
+                ),
             ],
         ),
         "time_deposit" => (
             vec![
-                "denomination-validation", "deposit-limits", "maximum-balance",
-                "deposit-interest-accrual", "deposit-interest-application",
+                "denomination-validation",
+                "deposit-limits",
+                "maximum-balance",
+                "deposit-interest-accrual",
+                "deposit-interest-application",
                 "closure-interest-application",
             ],
             vec![
-                ("overdraft-protection", "time deposits cannot have overdraft"),
-                ("withdrawal-limits", "time deposits do not support withdrawals before maturity"),
-                ("maintenance-fees", "time deposits do not have maintenance fees"),
+                (
+                    "overdraft-protection",
+                    "time deposits cannot have overdraft",
+                ),
+                (
+                    "withdrawal-limits",
+                    "time deposits do not support withdrawals before maturity",
+                ),
+                (
+                    "maintenance-fees",
+                    "time deposits do not have maintenance fees",
+                ),
             ],
         ),
         "loan" | "mortgage" | "home_loan_redraw" | "bnpl" => (
             vec![
-                "denomination-validation", "deposit-limits", "withdrawal-limits",
+                "denomination-validation",
+                "deposit-limits",
+                "withdrawal-limits",
                 "transaction-type-limits",
             ],
             vec![
-                ("deposit-interest-accrual", "loans do not accrue deposit interest"),
-                ("deposit-interest-application", "loans do not apply deposit interest"),
+                (
+                    "deposit-interest-accrual",
+                    "loans do not accrue deposit interest",
+                ),
+                (
+                    "deposit-interest-application",
+                    "loans do not apply deposit interest",
+                ),
                 ("maintenance-fees", "loans do not have maintenance fees"),
                 ("inactivity-fee", "loans do not have inactivity fees"),
                 ("dormancy", "loans do not have dormancy"),
             ],
         ),
         "credit_card" => (
-            vec![
-                "denomination-validation", "transaction-type-limits",
-            ],
+            vec!["denomination-validation", "transaction-type-limits"],
             vec![
                 ("deposit-limits", "credit cards do not use deposit limits"),
-                ("withdrawal-limits", "credit cards do not use withdrawal limits"),
+                (
+                    "withdrawal-limits",
+                    "credit cards do not use withdrawal limits",
+                ),
                 ("maximum-balance", "credit cards do not use maximum balance"),
-                ("deposit-interest-accrual", "credit cards do not accrue deposit interest"),
+                (
+                    "deposit-interest-accrual",
+                    "credit cards do not accrue deposit interest",
+                ),
                 ("dormancy", "credit cards do not have dormancy"),
             ],
         ),
         "line_of_credit" | "wallet" => (
+            vec!["denomination-validation", "transaction-type-limits"],
             vec![
-                "denomination-validation", "transaction-type-limits",
-            ],
-            vec![
-                ("deposit-interest-accrual", "this product type does not accrue deposit interest"),
+                (
+                    "deposit-interest-accrual",
+                    "this product type does not accrue deposit interest",
+                ),
                 ("dormancy", "this product type does not have dormancy"),
             ],
         ),
@@ -813,7 +934,10 @@ mod tests {
 
     #[test]
     fn denomination_empty_supported_list_is_noop() {
-        let o = OwnedCtx::new(&["denomination-validation"], serde_json::json!({"supported_denominations": []}));
+        let o = OwnedCtx::new(
+            &["denomination-validation"],
+            serde_json::json!({"supported_denominations": []}),
+        );
         let c = o.ctx();
         validate_creation_denomination(&c, &account(None, "USD")).unwrap();
     }
@@ -851,7 +975,10 @@ mod tests {
 
     #[test]
     fn creation_deposit_below_minimum_rejected() {
-        let o = OwnedCtx::new(&["deposit-limits"], serde_json::json!({"min_deposit_amount": "100"}));
+        let o = OwnedCtx::new(
+            &["deposit-limits"],
+            serde_json::json!({"min_deposit_amount": "100"}),
+        );
         let c = o.ctx();
         let e = err_of(validate_creation_deposit_limits(&c, Some(dec("50"))));
         assert_eq!(e.code, "BELOW_MIN_DEPOSIT");
@@ -859,14 +986,20 @@ mod tests {
 
     #[test]
     fn creation_deposit_at_minimum_accepted() {
-        let o = OwnedCtx::new(&["deposit-limits"], serde_json::json!({"min_deposit_amount": "100"}));
+        let o = OwnedCtx::new(
+            &["deposit-limits"],
+            serde_json::json!({"min_deposit_amount": "100"}),
+        );
         let c = o.ctx();
         validate_creation_deposit_limits(&c, Some(dec("100"))).unwrap();
     }
 
     #[test]
     fn creation_deposit_none_accepted_when_min_set() {
-        let o = OwnedCtx::new(&["deposit-limits"], serde_json::json!({"min_deposit_amount": "100"}));
+        let o = OwnedCtx::new(
+            &["deposit-limits"],
+            serde_json::json!({"min_deposit_amount": "100"}),
+        );
         let c = o.ctx();
         validate_creation_deposit_limits(&c, None).unwrap();
     }
@@ -875,25 +1008,42 @@ mod tests {
 
     #[test]
     fn posting_deposit_below_min_rejected() {
-        let o = OwnedCtx::new(&["deposit-limits"], serde_json::json!({"min_deposit_amount": "10"}));
+        let o = OwnedCtx::new(
+            &["deposit-limits"],
+            serde_json::json!({"min_deposit_amount": "10"}),
+        );
         let c = o.ctx();
-        let e = err_of(validate_posting_deposit_limits(&c, &instruction("DEPOSIT", "5"), DEC_ZERO));
+        let e = err_of(validate_posting_deposit_limits(
+            &c,
+            &instruction("DEPOSIT", "5"),
+            DEC_ZERO,
+        ));
         assert_eq!(e.code, "BELOW_MIN_DEPOSIT");
     }
 
     #[test]
     fn posting_deposit_daily_limit_inclusive_at_max() {
         // daily_total + amount == max_daily_deposit_limit is allowed (>) check.
-        let o = OwnedCtx::new(&["deposit-limits"], serde_json::json!({"max_daily_deposit_limit": "500"}));
+        let o = OwnedCtx::new(
+            &["deposit-limits"],
+            serde_json::json!({"max_daily_deposit_limit": "500"}),
+        );
         let c = o.ctx();
         validate_posting_deposit_limits(&c, &instruction("DEPOSIT", "200"), dec("300")).unwrap();
     }
 
     #[test]
     fn posting_deposit_daily_limit_exceeded_rejected() {
-        let o = OwnedCtx::new(&["deposit-limits"], serde_json::json!({"max_daily_deposit_limit": "500"}));
+        let o = OwnedCtx::new(
+            &["deposit-limits"],
+            serde_json::json!({"max_daily_deposit_limit": "500"}),
+        );
         let c = o.ctx();
-        let e = err_of(validate_posting_deposit_limits(&c, &instruction("DEPOSIT", "200"), dec("301")));
+        let e = err_of(validate_posting_deposit_limits(
+            &c,
+            &instruction("DEPOSIT", "200"),
+            dec("301"),
+        ));
         assert_eq!(e.code, "ABOVE_MAX_DAILY_DEPOSIT");
     }
 
@@ -908,17 +1058,31 @@ mod tests {
 
     #[test]
     fn posting_withdrawal_below_min_rejected() {
-        let o = OwnedCtx::new(&["withdrawal-limits"], serde_json::json!({"min_withdrawal_amount": "20"}));
+        let o = OwnedCtx::new(
+            &["withdrawal-limits"],
+            serde_json::json!({"min_withdrawal_amount": "20"}),
+        );
         let c = o.ctx();
-        let e = err_of(validate_posting_withdrawal_limits(&c, &instruction("WITHDRAWAL", "5"), DEC_ZERO));
+        let e = err_of(validate_posting_withdrawal_limits(
+            &c,
+            &instruction("WITHDRAWAL", "5"),
+            DEC_ZERO,
+        ));
         assert_eq!(e.code, "BELOW_MIN_WITHDRAWAL");
     }
 
     #[test]
     fn posting_withdrawal_daily_limit_exceeded_rejected() {
-        let o = OwnedCtx::new(&["withdrawal-limits"], serde_json::json!({"max_daily_withdrawal_limit": "1000"}));
+        let o = OwnedCtx::new(
+            &["withdrawal-limits"],
+            serde_json::json!({"max_daily_withdrawal_limit": "1000"}),
+        );
         let c = o.ctx();
-        let e = err_of(validate_posting_withdrawal_limits(&c, &instruction("WITHDRAWAL", "100"), dec("901")));
+        let e = err_of(validate_posting_withdrawal_limits(
+            &c,
+            &instruction("WITHDRAWAL", "100"),
+            dec("901"),
+        ));
         assert_eq!(e.code, "ABOVE_MAX_DAILY_WITHDRAWAL");
     }
 
@@ -929,7 +1093,8 @@ mod tests {
             serde_json::json!({"min_withdrawal_amount": "20", "max_daily_withdrawal_limit": "1000"}),
         );
         let c = o.ctx();
-        validate_posting_withdrawal_limits(&c, &instruction("WITHDRAWAL", "100"), dec("900")).unwrap();
+        validate_posting_withdrawal_limits(&c, &instruction("WITHDRAWAL", "100"), dec("900"))
+            .unwrap();
     }
 
     // ── 5. validate_posting_transaction_type_limits ──────────────────────
@@ -942,7 +1107,11 @@ mod tests {
             serde_json::json!({"max_daily_payment_limit": "250"}),
         );
         let c = o.ctx();
-        let e = err_of(validate_posting_transaction_type_limits(&c, &instruction("PAYMENT", "300"), DEC_ZERO));
+        let e = err_of(validate_posting_transaction_type_limits(
+            &c,
+            &instruction("PAYMENT", "300"),
+            DEC_ZERO,
+        ));
         assert_eq!(e.code, "ABOVE_MAX_DAILY_TXN_TYPE");
     }
 
@@ -953,30 +1122,42 @@ mod tests {
             serde_json::json!({"max_daily_payment_limit": "250"}),
         );
         let c = o.ctx();
-        validate_posting_transaction_type_limits(&c, &instruction("TRANSFER", "999999"), DEC_ZERO).unwrap();
+        validate_posting_transaction_type_limits(&c, &instruction("TRANSFER", "999999"), DEC_ZERO)
+            .unwrap();
     }
 
     #[test]
     fn posting_txn_type_absent_module_is_noop() {
         let o = OwnedCtx::new(&[], serde_json::json!({}));
         let c = o.ctx();
-        validate_posting_transaction_type_limits(&c, &instruction("PAYMENT", "999"), DEC_ZERO).unwrap();
+        validate_posting_transaction_type_limits(&c, &instruction("PAYMENT", "999"), DEC_ZERO)
+            .unwrap();
     }
 
     // ── 6. validate_posting_maximum_balance ──────────────────────────────
 
     #[test]
     fn posting_max_balance_at_max_accepted() {
-        let o = OwnedCtx::new(&["maximum-balance"], serde_json::json!({"maximum_balance": "10000"}));
+        let o = OwnedCtx::new(
+            &["maximum-balance"],
+            serde_json::json!({"maximum_balance": "10000"}),
+        );
         let c = o.ctx();
         validate_posting_maximum_balance(&c, &instruction("DEPOSIT", "300"), dec("9700")).unwrap();
     }
 
     #[test]
     fn posting_max_balance_exceeded_rejected() {
-        let o = OwnedCtx::new(&["maximum-balance"], serde_json::json!({"maximum_balance": "10000"}));
+        let o = OwnedCtx::new(
+            &["maximum-balance"],
+            serde_json::json!({"maximum_balance": "10000"}),
+        );
         let c = o.ctx();
-        let e = err_of(validate_posting_maximum_balance(&c, &instruction("DEPOSIT", "300"), dec("9700.01")));
+        let e = err_of(validate_posting_maximum_balance(
+            &c,
+            &instruction("DEPOSIT", "300"),
+            dec("9700.01"),
+        ));
         assert_eq!(e.code, "ABOVE_MAX_BALANCE");
     }
 
@@ -984,7 +1165,8 @@ mod tests {
     fn posting_max_balance_absent_module_is_noop() {
         let o = OwnedCtx::new(&[], serde_json::json!({}));
         let c = o.ctx();
-        validate_posting_maximum_balance(&c, &instruction("DEPOSIT", "1"), dec("999999999")).unwrap();
+        validate_posting_maximum_balance(&c, &instruction("DEPOSIT", "1"), dec("999999999"))
+            .unwrap();
     }
 
     // ── 7. validate_posting_overdraft_protection ─────────────────────────
@@ -997,7 +1179,8 @@ mod tests {
             serde_json::json!({"arranged_overdraft_limit": "200"}),
         );
         let c = o.ctx();
-        validate_posting_overdraft_protection(&c, &instruction("WITHDRAWAL", "250"), dec("100")).unwrap();
+        validate_posting_overdraft_protection(&c, &instruction("WITHDRAWAL", "250"), dec("100"))
+            .unwrap();
     }
 
     #[test]
@@ -1008,7 +1191,11 @@ mod tests {
             serde_json::json!({"arranged_overdraft_limit": "200", "unarranged_overdraft_limit": "50"}),
         );
         let c = o.ctx();
-        let e = err_of(validate_posting_overdraft_protection(&c, &instruction("WITHDRAWAL", "400"), dec("100")));
+        let e = err_of(validate_posting_overdraft_protection(
+            &c,
+            &instruction("WITHDRAWAL", "400"),
+            dec("100"),
+        ));
         assert_eq!(e.code, "OVERDRAFT_EXCEEDED");
     }
 
@@ -1017,7 +1204,11 @@ mod tests {
         // balance 50, withdrawal 60 → -10; no limits configured → rejected.
         let o = OwnedCtx::new(&["overdraft-protection"], serde_json::json!({}));
         let c = o.ctx();
-        let e = err_of(validate_posting_overdraft_protection(&c, &instruction("WITHDRAWAL", "60"), dec("50")));
+        let e = err_of(validate_posting_overdraft_protection(
+            &c,
+            &instruction("WITHDRAWAL", "60"),
+            dec("50"),
+        ));
         assert_eq!(e.code, "OVERDRAFT_EXCEEDED");
     }
 
@@ -1025,7 +1216,8 @@ mod tests {
     fn overdraft_positive_balance_never_rejected() {
         let o = OwnedCtx::new(&["overdraft-protection"], serde_json::json!({}));
         let c = o.ctx();
-        validate_posting_overdraft_protection(&c, &instruction("DEPOSIT", "100"), dec("500")).unwrap();
+        validate_posting_overdraft_protection(&c, &instruction("DEPOSIT", "100"), dec("500"))
+            .unwrap();
     }
 
     // ── 8. compute_tiered_rate via on_schedule_interest_accrual ──────────
@@ -1040,7 +1232,10 @@ mod tests {
 
     #[test]
     fn accrual_flat_rate_daily() {
-        let o = OwnedCtx::new(&["deposit-interest-accrual"], serde_json::json!({"interest_rate": "0.0365"}));
+        let o = OwnedCtx::new(
+            &["deposit-interest-accrual"],
+            serde_json::json!({"interest_rate": "0.0365"}),
+        );
         let c = o.ctx();
         let a = on_schedule_interest_accrual(&c, &account(None, "CAD"), dec("10000")).unwrap();
         assert_eq!(a.to_string(), "1.00");
@@ -1113,7 +1308,10 @@ mod tests {
 
     #[test]
     fn maintenance_fee_configured() {
-        let o = OwnedCtx::new(&["maintenance-fees"], serde_json::json!({"maintenance_fee_amount": "4.95"}));
+        let o = OwnedCtx::new(
+            &["maintenance-fees"],
+            serde_json::json!({"maintenance_fee_amount": "4.95"}),
+        );
         let c = o.ctx();
         let f = on_schedule_maintenance_fee(&c).unwrap();
         assert_eq!(f, dec("4.95"));
@@ -1167,7 +1365,10 @@ mod tests {
 
     #[test]
     fn inactivity_fee_default_threshold_90_days() {
-        let o = OwnedCtx::new(&["inactivity-fee"], serde_json::json!({"inactivity_fee_amount": "2.50"}));
+        let o = OwnedCtx::new(
+            &["inactivity-fee"],
+            serde_json::json!({"inactivity_fee_amount": "2.50"}),
+        );
         let c = o.ctx();
         assert_eq!(on_schedule_inactivity_fee(&c, 91).unwrap(), dec("2.50"));
         assert_eq!(on_schedule_inactivity_fee(&c, 90).unwrap(), Decimal::ZERO);
@@ -1208,7 +1409,10 @@ mod tests {
     #[test]
     fn closure_interest_forfeited_by_rate() {
         // forfeiture_rate 0.25 → 50 - 12.5 = 37.5
-        let o = OwnedCtx::new(&["closure-interest-application"], serde_json::json!({"forfeiture_rate": "0.25"}));
+        let o = OwnedCtx::new(
+            &["closure-interest-application"],
+            serde_json::json!({"forfeiture_rate": "0.25"}),
+        );
         let c = o.ctx();
         let p = on_closure_interest_application(&c, dec("50.00")).unwrap();
         assert_eq!(p, dec("37.50"));
@@ -1234,7 +1438,10 @@ mod tests {
 
     #[test]
     fn dormancy_explicit_threshold_honored() {
-        let o = OwnedCtx::new(&["dormancy"], serde_json::json!({"dormancy_threshold_days": "180"}));
+        let o = OwnedCtx::new(
+            &["dormancy"],
+            serde_json::json!({"dormancy_threshold_days": "180"}),
+        );
         let c = o.ctx();
         assert!(on_schedule_dormancy(&c, 181).unwrap());
         assert!(!on_schedule_dormancy(&c, 180).unwrap());
@@ -1252,35 +1459,51 @@ mod tests {
     #[test]
     fn overdraft_sweep_triggers_below_threshold() {
         // balance -120, threshold 0 → sweep 120.
-        let o = OwnedCtx::new(&["overdraft-protection-sweep"], serde_json::json!({"sweep_threshold": "0"}));
+        let o = OwnedCtx::new(
+            &["overdraft-protection-sweep"],
+            serde_json::json!({"sweep_threshold": "0"}),
+        );
         let c = o.ctx();
-        let s = validate_posting_overdraft_sweep(&c, &instruction("WITHDRAWAL", "1"), dec("-120")).unwrap();
+        let s = validate_posting_overdraft_sweep(&c, &instruction("WITHDRAWAL", "1"), dec("-120"))
+            .unwrap();
         assert_eq!(s, Some(dec("120")));
     }
 
     #[test]
     fn overdraft_sweep_amount_is_gap_to_threshold() {
         // balance -60, threshold -25 → sweep 35.
-        let o = OwnedCtx::new(&["overdraft-protection-sweep"], serde_json::json!({"sweep_threshold": "-25"}));
+        let o = OwnedCtx::new(
+            &["overdraft-protection-sweep"],
+            serde_json::json!({"sweep_threshold": "-25"}),
+        );
         let c = o.ctx();
-        let s = validate_posting_overdraft_sweep(&c, &instruction("WITHDRAWAL", "1"), dec("-60")).unwrap();
+        let s = validate_posting_overdraft_sweep(&c, &instruction("WITHDRAWAL", "1"), dec("-60"))
+            .unwrap();
         assert_eq!(s, Some(dec("35")));
     }
 
     #[test]
     fn overdraft_sweep_noop_when_positive_balance() {
-        let o = OwnedCtx::new(&["overdraft-protection-sweep"], serde_json::json!({"sweep_threshold": "0"}));
+        let o = OwnedCtx::new(
+            &["overdraft-protection-sweep"],
+            serde_json::json!({"sweep_threshold": "0"}),
+        );
         let c = o.ctx();
-        let s = validate_posting_overdraft_sweep(&c, &instruction("WITHDRAWAL", "1"), dec("10")).unwrap();
+        let s = validate_posting_overdraft_sweep(&c, &instruction("WITHDRAWAL", "1"), dec("10"))
+            .unwrap();
         assert_eq!(s, None);
     }
 
     #[test]
     fn overdraft_sweep_noop_when_balance_at_threshold() {
         // balance -25 == threshold → not below → no sweep.
-        let o = OwnedCtx::new(&["overdraft-protection-sweep"], serde_json::json!({"sweep_threshold": "-25"}));
+        let o = OwnedCtx::new(
+            &["overdraft-protection-sweep"],
+            serde_json::json!({"sweep_threshold": "-25"}),
+        );
         let c = o.ctx();
-        let s = validate_posting_overdraft_sweep(&c, &instruction("WITHDRAWAL", "1"), dec("-25")).unwrap();
+        let s = validate_posting_overdraft_sweep(&c, &instruction("WITHDRAWAL", "1"), dec("-25"))
+            .unwrap();
         assert_eq!(s, None);
     }
 
@@ -1294,10 +1517,18 @@ mod tests {
         );
         let c = o.ctx();
         // Denomination fails first.
-        let e = err_of(validate_creation(&c, &account(None, "EUR"), Some(dec("500"))));
+        let e = err_of(validate_creation(
+            &c,
+            &account(None, "EUR"),
+            Some(dec("500")),
+        ));
         assert_eq!(e.code, "INVALID_DENOMINATION");
         // Denomination ok → deposit limit fails.
-        let e2 = err_of(validate_creation(&c, &account(None, "CAD"), Some(dec("50"))));
+        let e2 = err_of(validate_creation(
+            &c,
+            &account(None, "CAD"),
+            Some(dec("50")),
+        ));
         assert_eq!(e2.code, "BELOW_MIN_DEPOSIT");
         // Both ok.
         validate_creation(&c, &account(None, "CAD"), Some(dec("100"))).unwrap();
@@ -1325,7 +1556,12 @@ mod tests {
     #[test]
     fn validate_posting_all_pass() {
         let o = OwnedCtx::new(
-            &["deposit-limits", "withdrawal-limits", "maximum-balance", "overdraft-protection"],
+            &[
+                "deposit-limits",
+                "withdrawal-limits",
+                "maximum-balance",
+                "overdraft-protection",
+            ],
             serde_json::json!({"min_deposit_amount": "1", "min_withdrawal_amount": "1", "maximum_balance": "100000"}),
         );
         let c = o.ctx();
@@ -1355,7 +1591,8 @@ mod tests {
     fn derived_credit_card_available_credit_positive() {
         let o = OwnedCtx::new(&[""], serde_json::json!({"credit_limit": "5000"}));
         let c = o.ctx();
-        let d = compute_derived_parameters(&c, &account(Some("credit_card"), "CAD"), dec("1234.50"));
+        let d =
+            compute_derived_parameters(&c, &account(Some("credit_card"), "CAD"), dec("1234.50"));
         assert_eq!(d["available_credit"], serde_json::json!("3765.50"));
     }
 
@@ -1368,15 +1605,23 @@ mod tests {
         acc.opened_at = Some(chrono::Utc::now() - chrono::Duration::days(75));
         let d = compute_derived_parameters(&c, &acc, dec("250000"));
         assert_eq!(d["total_outstanding_debt"], serde_json::json!("250000"));
-        let rem = d["remaining_term"].as_str().unwrap().parse::<Decimal>().unwrap();
-        assert!(rem >= Decimal::from(56) && rem <= Decimal::from(58), "remaining_term={rem}");
+        let rem = d["remaining_term"]
+            .as_str()
+            .unwrap()
+            .parse::<Decimal>()
+            .unwrap();
+        assert!(
+            rem >= Decimal::from(56) && rem <= Decimal::from(58),
+            "remaining_term={rem}"
+        );
     }
 
     #[test]
     fn derived_redraw_funds_percentage() {
         let o = OwnedCtx::new(&[""], serde_json::json!({"redraw_limit_percentage": "80"}));
         let c = o.ctx();
-        let d = compute_derived_parameters(&c, &account(Some("home_loan_redraw"), "CAD"), dec("10000"));
+        let d =
+            compute_derived_parameters(&c, &account(Some("home_loan_redraw"), "CAD"), dec("10000"));
         assert_eq!(d["available_redraw_funds"], serde_json::json!("8000"));
     }
 
@@ -1384,7 +1629,8 @@ mod tests {
     fn derived_non_loan_product_has_no_loan_fields() {
         let o = OwnedCtx::new(&[""], serde_json::json!({"credit_limit": "5000"}));
         let c = o.ctx();
-        let d = compute_derived_parameters(&c, &account(Some("current_account"), "CAD"), dec("100"));
+        let d =
+            compute_derived_parameters(&c, &account(Some("current_account"), "CAD"), dec("100"));
         assert!(d.get("available_credit").is_none());
         assert!(d.get("remaining_term").is_none());
     }
@@ -1399,7 +1645,11 @@ mod tests {
         ));
         assert_eq!(e.code, "INVALID_VALUE");
         // Non-negative accepted.
-        validate_product_type_parameters("current_account", &serde_json::json!({"overdraft_limit": "0"})).unwrap();
+        validate_product_type_parameters(
+            "current_account",
+            &serde_json::json!({"overdraft_limit": "0"}),
+        )
+        .unwrap();
     }
 
     #[test]
@@ -1412,11 +1662,23 @@ mod tests {
             "mortgage",
             &serde_json::json!({"due_amount_calculation_day": 29}),
         ));
-        validate_product_type_parameters("mortgage", &serde_json::json!({"due_amount_calculation_day": 28})).unwrap();
-        validate_product_type_parameters("mortgage", &serde_json::json!({"due_amount_calculation_day": 1})).unwrap();
+        validate_product_type_parameters(
+            "mortgage",
+            &serde_json::json!({"due_amount_calculation_day": 28}),
+        )
+        .unwrap();
+        validate_product_type_parameters(
+            "mortgage",
+            &serde_json::json!({"due_amount_calculation_day": 1}),
+        )
+        .unwrap();
         // Non-mortgage rule: loan_term_months must be > 0.
-        err_of(validate_product_type_parameters("mortgage", &serde_json::json!({"loan_term_months": 0})));
-        validate_product_type_parameters("mortgage", &serde_json::json!({"loan_term_months": 360})).unwrap();
+        err_of(validate_product_type_parameters(
+            "mortgage",
+            &serde_json::json!({"loan_term_months": 0}),
+        ));
+        validate_product_type_parameters("mortgage", &serde_json::json!({"loan_term_months": 360}))
+            .unwrap();
     }
 
     #[test]
@@ -1425,7 +1687,11 @@ mod tests {
             "credit_card",
             &serde_json::json!({"credit_limit": "0"}),
         ));
-        validate_product_type_parameters("credit_card", &serde_json::json!({"credit_limit": "500"})).unwrap();
+        validate_product_type_parameters(
+            "credit_card",
+            &serde_json::json!({"credit_limit": "500"}),
+        )
+        .unwrap();
     }
 
     #[test]
@@ -1434,7 +1700,8 @@ mod tests {
             "time_deposit",
             &serde_json::json!({"term_months": -3}),
         ));
-        validate_product_type_parameters("time_deposit", &serde_json::json!({"term_months": 12})).unwrap();
+        validate_product_type_parameters("time_deposit", &serde_json::json!({"term_months": 12}))
+            .unwrap();
     }
 
     #[test]
@@ -1444,13 +1711,21 @@ mod tests {
             &serde_json::json!({"interest_rate": "-0.01"}),
         ));
         assert_eq!(e.code, "INVALID_VALUE");
-        validate_product_type_parameters("us_savings", &serde_json::json!({"interest_rate": "0.05"})).unwrap();
+        validate_product_type_parameters(
+            "us_savings",
+            &serde_json::json!({"interest_rate": "0.05"}),
+        )
+        .unwrap();
         validate_product_type_parameters("shariah_savings", &serde_json::json!({})).unwrap();
     }
 
     #[test]
     fn product_params_unknown_product_type_accepted() {
-        validate_product_type_parameters("mystery_product", &serde_json::json!({"anything": "goes"})).unwrap();
+        validate_product_type_parameters(
+            "mystery_product",
+            &serde_json::json!({"anything": "goes"}),
+        )
+        .unwrap();
     }
 }
 // ── Unit tests — core module engine (pure logic; no DB) ──────────────────
@@ -1516,13 +1791,24 @@ mod module_tests {
 
     #[test]
     fn absent_module_is_noop() {
-        let c = ctx(&["deposit-limits"], serde_json::json!({"min_deposit_amount": "10"}));
+        let c = ctx(
+            &["deposit-limits"],
+            serde_json::json!({"min_deposit_amount": "10"}),
+        );
         // denomination-validation is NOT in the module list → unsupported denom passes.
         assert!(validate_creation_denomination(&c, &account("XXX")).is_ok());
         // overdraft-protection absent → any negative balance passes.
-        assert!(validate_posting_overdraft_protection(&c, &posting("WITHDRAWAL", "999999"), Decimal::ZERO).is_ok());
+        assert!(validate_posting_overdraft_protection(
+            &c,
+            &posting("WITHDRAWAL", "999999"),
+            Decimal::ZERO
+        )
+        .is_ok());
         // maximum-balance absent → huge deposit passes.
-        assert!(validate_posting_maximum_balance(&c, &posting("DEPOSIT", "999999"), Decimal::ZERO).is_ok());
+        assert!(
+            validate_posting_maximum_balance(&c, &posting("DEPOSIT", "999999"), Decimal::ZERO)
+                .is_ok()
+        );
     }
 
     #[test]
@@ -1532,14 +1818,19 @@ mod module_tests {
         assert!(validate_creation_denomination(&c, &account("XYZ")).is_ok());
         let c2 = ctx(&["deposit-limits"], serde_json::json!({}));
         // min/max unset → everything passes.
-        assert!(validate_posting_deposit_limits(&c2, &posting("DEPOSIT", "1"), Decimal::ZERO).is_ok());
+        assert!(
+            validate_posting_deposit_limits(&c2, &posting("DEPOSIT", "1"), Decimal::ZERO).is_ok()
+        );
     }
 
     // ── 1. denomination-validation ────────────────────────────────────────
 
     #[test]
     fn denomination_rejects_unsupported() {
-        let c = ctx(&["denomination-validation"], serde_json::json!({"supported_denominations": ["CAD", "USD"]}));
+        let c = ctx(
+            &["denomination-validation"],
+            serde_json::json!({"supported_denominations": ["CAD", "USD"]}),
+        );
         assert!(validate_creation_denomination(&c, &account("CAD")).is_ok());
         let err = validate_creation_denomination(&c, &account("GBP")).unwrap_err();
         assert_eq!(err.code, "INVALID_DENOMINATION");
@@ -1550,19 +1841,44 @@ mod module_tests {
 
     #[test]
     fn deposit_limits_min_and_daily() {
-        let c = ctx(&["deposit-limits"], serde_json::json!({
-            "min_deposit_amount": "10", "max_daily_deposit_limit": "1000"
-        }));
+        let c = ctx(
+            &["deposit-limits"],
+            serde_json::json!({
+                "min_deposit_amount": "10", "max_daily_deposit_limit": "1000"
+            }),
+        );
         // Below minimum.
-        assert_eq!(validate_posting_deposit_limits(&c, &posting("DEPOSIT", "5"), Decimal::ZERO).unwrap_err().code, "BELOW_MIN_DEPOSIT");
+        assert_eq!(
+            validate_posting_deposit_limits(&c, &posting("DEPOSIT", "5"), Decimal::ZERO)
+                .unwrap_err()
+                .code,
+            "BELOW_MIN_DEPOSIT"
+        );
         // OK within limits.
-        assert!(validate_posting_deposit_limits(&c, &posting("DEPOSIT", "500"), Decimal::ZERO).is_ok());
+        assert!(
+            validate_posting_deposit_limits(&c, &posting("DEPOSIT", "500"), Decimal::ZERO).is_ok()
+        );
         // Daily cap: 500 already deposited + 600 new > 1000.
-        assert_eq!(validate_posting_deposit_limits(&c, &posting("DEPOSIT", "600"), Decimal::new(500, 0)).unwrap_err().code, "ABOVE_MAX_DAILY_DEPOSIT");
+        assert_eq!(
+            validate_posting_deposit_limits(&c, &posting("DEPOSIT", "600"), Decimal::new(500, 0))
+                .unwrap_err()
+                .code,
+            "ABOVE_MAX_DAILY_DEPOSIT"
+        );
         // Exactly at cap passes (boundary).
-        assert!(validate_posting_deposit_limits(&c, &posting("DEPOSIT", "500"), Decimal::new(500, 0)).is_ok());
+        assert!(validate_posting_deposit_limits(
+            &c,
+            &posting("DEPOSIT", "500"),
+            Decimal::new(500, 0)
+        )
+        .is_ok());
         // Creation-time: initial deposit below minimum.
-        assert_eq!(validate_creation_deposit_limits(&c, Some(Decimal::new(5, 0))).unwrap_err().code, "BELOW_MIN_DEPOSIT");
+        assert_eq!(
+            validate_creation_deposit_limits(&c, Some(Decimal::new(5, 0)))
+                .unwrap_err()
+                .code,
+            "BELOW_MIN_DEPOSIT"
+        );
         // No initial deposit → no check.
         assert!(validate_creation_deposit_limits(&c, None).is_ok());
     }
@@ -1571,35 +1887,92 @@ mod module_tests {
 
     #[test]
     fn withdrawal_limits_min_and_daily() {
-        let c = ctx(&["withdrawal-limits"], serde_json::json!({
-            "min_withdrawal_amount": "20", "max_daily_withdrawal_limit": "500"
-        }));
-        assert_eq!(validate_posting_withdrawal_limits(&c, &posting("WITHDRAWAL", "10"), Decimal::ZERO).unwrap_err().code, "BELOW_MIN_WITHDRAWAL");
-        assert!(validate_posting_withdrawal_limits(&c, &posting("WITHDRAWAL", "100"), Decimal::ZERO).is_ok());
-        assert_eq!(validate_posting_withdrawal_limits(&c, &posting("WITHDRAWAL", "300"), Decimal::new(300, 0)).unwrap_err().code, "ABOVE_MAX_DAILY_WITHDRAWAL");
+        let c = ctx(
+            &["withdrawal-limits"],
+            serde_json::json!({
+                "min_withdrawal_amount": "20", "max_daily_withdrawal_limit": "500"
+            }),
+        );
+        assert_eq!(
+            validate_posting_withdrawal_limits(&c, &posting("WITHDRAWAL", "10"), Decimal::ZERO)
+                .unwrap_err()
+                .code,
+            "BELOW_MIN_WITHDRAWAL"
+        );
+        assert!(validate_posting_withdrawal_limits(
+            &c,
+            &posting("WITHDRAWAL", "100"),
+            Decimal::ZERO
+        )
+        .is_ok());
+        assert_eq!(
+            validate_posting_withdrawal_limits(
+                &c,
+                &posting("WITHDRAWAL", "300"),
+                Decimal::new(300, 0)
+            )
+            .unwrap_err()
+            .code,
+            "ABOVE_MAX_DAILY_WITHDRAWAL"
+        );
     }
 
     // ── 4. transaction-type-limits ─────────────────────────────────────────
 
     #[test]
     fn transaction_type_limits_keyed_by_type() {
-        let c = ctx(&["transaction-type-limits"], serde_json::json!({"max_daily_atm_withdrawal_limit": "200"}));
+        let c = ctx(
+            &["transaction-type-limits"],
+            serde_json::json!({"max_daily_atm_withdrawal_limit": "200"}),
+        );
         // instruction_type ATM_WITHDRAWAL → param key max_daily_atm_withdrawal_limit.
-        assert_eq!(validate_posting_transaction_type_limits(&c, &posting("ATM_WITHDRAWAL", "250"), Decimal::ZERO).unwrap_err().code, "ABOVE_MAX_DAILY_TXN_TYPE");
+        assert_eq!(
+            validate_posting_transaction_type_limits(
+                &c,
+                &posting("ATM_WITHDRAWAL", "250"),
+                Decimal::ZERO
+            )
+            .unwrap_err()
+            .code,
+            "ABOVE_MAX_DAILY_TXN_TYPE"
+        );
         // Under limit passes.
-        assert!(validate_posting_transaction_type_limits(&c, &posting("ATM_WITHDRAWAL", "100"), Decimal::ZERO).is_ok());
+        assert!(validate_posting_transaction_type_limits(
+            &c,
+            &posting("ATM_WITHDRAWAL", "100"),
+            Decimal::ZERO
+        )
+        .is_ok());
         // Other types have no configured limit → pass even for huge amounts.
-        assert!(validate_posting_transaction_type_limits(&c, &posting("WIRE_OUT", "999999"), Decimal::ZERO).is_ok());
+        assert!(validate_posting_transaction_type_limits(
+            &c,
+            &posting("WIRE_OUT", "999999"),
+            Decimal::ZERO
+        )
+        .is_ok());
     }
 
     // ── 5. maximum-balance ─────────────────────────────────────────────────
 
     #[test]
     fn maximum_balance_cap() {
-        let c = ctx(&["maximum-balance"], serde_json::json!({"maximum_balance": "10000"}));
-        assert_eq!(validate_posting_maximum_balance(&c, &posting("DEPOSIT", "500"), Decimal::new(9800, 0)).unwrap_err().code, "ABOVE_MAX_BALANCE");
+        let c = ctx(
+            &["maximum-balance"],
+            serde_json::json!({"maximum_balance": "10000"}),
+        );
+        assert_eq!(
+            validate_posting_maximum_balance(&c, &posting("DEPOSIT", "500"), Decimal::new(9800, 0))
+                .unwrap_err()
+                .code,
+            "ABOVE_MAX_BALANCE"
+        );
         // Exactly at cap passes.
-        assert!(validate_posting_maximum_balance(&c, &posting("DEPOSIT", "200"), Decimal::new(9800, 0)).is_ok());
+        assert!(validate_posting_maximum_balance(
+            &c,
+            &posting("DEPOSIT", "200"),
+            Decimal::new(9800, 0)
+        )
+        .is_ok());
     }
 
     // ── 6. overdraft-protection ────────────────────────────────────────────
@@ -1607,60 +1980,102 @@ mod module_tests {
     #[test]
     fn overdraft_protection_arranged_and_unarranged() {
         // Balance 100; withdraw 150 with arranged 100 + unarranged 50 → exactly -100 allowed.
-        let c = ctx(&["overdraft-protection"], serde_json::json!({
-            "arranged_overdraft_limit": "100", "unarranged_overdraft_limit": "50"
-        }));
-        assert!(validate_posting_overdraft_protection(&c, &posting("WITHDRAWAL", "150"), Decimal::new(100, 0)).is_ok());
+        let c = ctx(
+            &["overdraft-protection"],
+            serde_json::json!({
+                "arranged_overdraft_limit": "100", "unarranged_overdraft_limit": "50"
+            }),
+        );
+        assert!(validate_posting_overdraft_protection(
+            &c,
+            &posting("WITHDRAWAL", "150"),
+            Decimal::new(100, 0)
+        )
+        .is_ok());
         // Withdraw 251 → -151 < -100 → rejected.
-        assert_eq!(validate_posting_overdraft_protection(&c, &posting("WITHDRAWAL", "251"), Decimal::new(100, 0)).unwrap_err().code, "OVERDRAFT_EXCEEDED");
+        assert_eq!(
+            validate_posting_overdraft_protection(
+                &c,
+                &posting("WITHDRAWAL", "251"),
+                Decimal::new(100, 0)
+            )
+            .unwrap_err()
+            .code,
+            "OVERDRAFT_EXCEEDED"
+        );
         // No overdraft configured → any negative balance rejected.
         let c2 = ctx(&["overdraft-protection"], serde_json::json!({}));
-        assert!(validate_posting_overdraft_protection(&c2, &posting("WITHDRAWAL", "1"), Decimal::ZERO).is_err());
+        assert!(validate_posting_overdraft_protection(
+            &c2,
+            &posting("WITHDRAWAL", "1"),
+            Decimal::ZERO
+        )
+        .is_err());
         // Deposit path never trips overdraft.
-        assert!(validate_posting_overdraft_protection(&c, &posting("DEPOSIT", "1000"), Decimal::new(100, 0)).is_ok());
+        assert!(validate_posting_overdraft_protection(
+            &c,
+            &posting("DEPOSIT", "1000"),
+            Decimal::new(100, 0)
+        )
+        .is_ok());
     }
 
     // ── 7. deposit-interest-accrual (tiered) ───────────────────────────────
 
     #[test]
     fn interest_accrual_tiered_and_precision() {
-        let c = ctx(&["deposit-interest-accrual"], serde_json::json!({
-            "rate_tiers": [
-                {"min_balance": "0", "rate": "0.01"},
-                {"min_balance": "10000", "rate": "0.02"}
-            ],
-            "accrual_precision": "0.01"
-        }));
+        let c = ctx(
+            &["deposit-interest-accrual"],
+            serde_json::json!({
+                "rate_tiers": [
+                    {"min_balance": "0", "rate": "0.01"},
+                    {"min_balance": "10000", "rate": "0.02"}
+                ],
+                "accrual_precision": "0.01"
+            }),
+        );
         // Low tier: 1000 * 0.01 / 365 = 0.0274 → rounds to 0.03.
         let low = on_schedule_interest_accrual(&c, &account("CAD"), Decimal::new(1000, 0)).unwrap();
         assert_eq!(low, Decimal::new(3, 2), "1000@1%: got {low}");
         // High tier: 20000 * 0.02 / 365 = 1.0959 → rounds to 1.10.
-        let high = on_schedule_interest_accrual(&c, &account("CAD"), Decimal::new(20000, 0)).unwrap();
+        let high =
+            on_schedule_interest_accrual(&c, &account("CAD"), Decimal::new(20000, 0)).unwrap();
         assert_eq!(high, Decimal::new(110, 2), "20000@2%: got {high}");
         // Module absent → zero accrual.
         let none = ctx(&[], serde_json::json!({}));
-        assert_eq!(on_schedule_interest_accrual(&none, &account("CAD"), Decimal::new(1000, 0)).unwrap(), Decimal::ZERO);
+        assert_eq!(
+            on_schedule_interest_accrual(&none, &account("CAD"), Decimal::new(1000, 0)).unwrap(),
+            Decimal::ZERO
+        );
     }
 
     #[test]
     fn interest_accrual_flat_rate_fallback() {
         // No rate_tiers → flat interest_rate.
-        let c = ctx(&["deposit-interest-accrual"], serde_json::json!({"interest_rate": "0.0365"}));
-        let accrued = on_schedule_interest_accrual(&c, &account("CAD"), Decimal::new(10000, 0)).unwrap();
+        let c = ctx(
+            &["deposit-interest-accrual"],
+            serde_json::json!({"interest_rate": "0.0365"}),
+        );
+        let accrued =
+            on_schedule_interest_accrual(&c, &account("CAD"), Decimal::new(10000, 0)).unwrap();
         // 10000 * 0.0365 / 365 = 1.00 exactly.
         assert_eq!(accrued, Decimal::new(100, 2));
     }
 
     #[test]
     fn interest_accrual_tier_boundary_selects_higher_tier() {
-        let c = ctx(&["deposit-interest-accrual"], serde_json::json!({
-            "rate_tiers": [
-                {"min_balance": "0", "rate": "0.01"},
-                {"min_balance": "10000", "rate": "0.02"}
-            ]
-        }));
+        let c = ctx(
+            &["deposit-interest-accrual"],
+            serde_json::json!({
+                "rate_tiers": [
+                    {"min_balance": "0", "rate": "0.01"},
+                    {"min_balance": "10000", "rate": "0.02"}
+                ]
+            }),
+        );
         // Balance exactly at the tier boundary picks the higher rate.
-        let rate_accrued = on_schedule_interest_accrual(&c, &account("CAD"), Decimal::new(10000, 0)).unwrap();
+        let rate_accrued =
+            on_schedule_interest_accrual(&c, &account("CAD"), Decimal::new(10000, 0)).unwrap();
         // 10000 * 0.02 / 365 = 0.5479 → 0.55 (not 10000*0.01/365=0.27).
         assert_eq!(rate_accrued, Decimal::new(55, 2));
     }
@@ -1669,8 +2084,14 @@ mod module_tests {
 
     #[test]
     fn maintenance_fee_amount_or_zero() {
-        let c = ctx(&["maintenance-fees"], serde_json::json!({"maintenance_fee_amount": "4.95"}));
-        assert_eq!(on_schedule_maintenance_fee(&c).unwrap(), Decimal::new(495, 2));
+        let c = ctx(
+            &["maintenance-fees"],
+            serde_json::json!({"maintenance_fee_amount": "4.95"}),
+        );
+        assert_eq!(
+            on_schedule_maintenance_fee(&c).unwrap(),
+            Decimal::new(495, 2)
+        );
         // Unset amount → zero.
         let c2 = ctx(&["maintenance-fees"], serde_json::json!({}));
         assert_eq!(on_schedule_maintenance_fee(&c2).unwrap(), Decimal::ZERO);
@@ -1682,17 +2103,29 @@ mod module_tests {
 
     #[test]
     fn inactivity_fee_threshold_boundary() {
-        let c = ctx(&["inactivity-fee"], serde_json::json!({
-            "inactivity_threshold_days": "90", "inactivity_fee_amount": "2.00"
-        }));
+        let c = ctx(
+            &["inactivity-fee"],
+            serde_json::json!({
+                "inactivity_threshold_days": "90", "inactivity_fee_amount": "2.00"
+            }),
+        );
         // Strictly greater than threshold triggers.
-        assert_eq!(on_schedule_inactivity_fee(&c, 91).unwrap(), Decimal::new(200, 2));
+        assert_eq!(
+            on_schedule_inactivity_fee(&c, 91).unwrap(),
+            Decimal::new(200, 2)
+        );
         // At threshold: not yet inactive.
         assert_eq!(on_schedule_inactivity_fee(&c, 90).unwrap(), Decimal::ZERO);
         assert_eq!(on_schedule_inactivity_fee(&c, 1).unwrap(), Decimal::ZERO);
         // Default threshold 90 when unset.
-        let c2 = ctx(&["inactivity-fee"], serde_json::json!({"inactivity_fee_amount": "5"}));
-        assert_eq!(on_schedule_inactivity_fee(&c2, 91).unwrap(), Decimal::new(5, 0));
+        let c2 = ctx(
+            &["inactivity-fee"],
+            serde_json::json!({"inactivity_fee_amount": "5"}),
+        );
+        assert_eq!(
+            on_schedule_inactivity_fee(&c2, 91).unwrap(),
+            Decimal::new(5, 0)
+        );
         assert_eq!(on_schedule_inactivity_fee(&c2, 89).unwrap(), Decimal::ZERO);
     }
 
@@ -1700,34 +2133,58 @@ mod module_tests {
 
     #[test]
     fn minimum_balance_fee_strictly_below() {
-        let c = ctx(&["minimum-balance-fee"], serde_json::json!({
-            "minimum_balance_threshold": "1000", "minimum_balance_fee_amount": "10"
-        }));
-        assert_eq!(on_schedule_minimum_balance_fee(&c, Decimal::new(999, 0)).unwrap(), Decimal::new(10, 0));
+        let c = ctx(
+            &["minimum-balance-fee"],
+            serde_json::json!({
+                "minimum_balance_threshold": "1000", "minimum_balance_fee_amount": "10"
+            }),
+        );
+        assert_eq!(
+            on_schedule_minimum_balance_fee(&c, Decimal::new(999, 0)).unwrap(),
+            Decimal::new(10, 0)
+        );
         // At threshold: no fee.
-        assert_eq!(on_schedule_minimum_balance_fee(&c, Decimal::new(1000, 0)).unwrap(), Decimal::ZERO);
+        assert_eq!(
+            on_schedule_minimum_balance_fee(&c, Decimal::new(1000, 0)).unwrap(),
+            Decimal::ZERO
+        );
     }
 
     // ── 12. closure-interest-application (forfeiture) ──────────────────────
 
     #[test]
     fn closure_interest_forfeiture() {
-        let c = ctx(&["closure-interest-application"], serde_json::json!({"forfeiture_rate": "0.25"}));
+        let c = ctx(
+            &["closure-interest-application"],
+            serde_json::json!({"forfeiture_rate": "0.25"}),
+        );
         // 40 accrued * 0.25 forfeited = 30 paid out.
-        assert_eq!(on_closure_interest_application(&c, Decimal::new(40, 0)).unwrap(), Decimal::new(30, 0));
+        assert_eq!(
+            on_closure_interest_application(&c, Decimal::new(40, 0)).unwrap(),
+            Decimal::new(30, 0)
+        );
         // No forfeiture → full payout.
         let c2 = ctx(&["closure-interest-application"], serde_json::json!({}));
-        assert_eq!(on_closure_interest_application(&c2, Decimal::new(40, 0)).unwrap(), Decimal::new(40, 0));
+        assert_eq!(
+            on_closure_interest_application(&c2, Decimal::new(40, 0)).unwrap(),
+            Decimal::new(40, 0)
+        );
         // Module absent → zero.
         let c3 = ctx(&[], serde_json::json!({}));
-        assert_eq!(on_closure_interest_application(&c3, Decimal::new(40, 0)).unwrap(), Decimal::ZERO);
+        assert_eq!(
+            on_closure_interest_application(&c3, Decimal::new(40, 0)).unwrap(),
+            Decimal::ZERO
+        );
     }
 
     // ── 13. dormancy ───────────────────────────────────────────────────────
 
     #[test]
     fn dormancy_threshold_default_365() {
-        let c = ctx(&["dormancy"], serde_json::json!({"dormancy_threshold_days": "180"}));
+        let c = ctx(
+            &["dormancy"],
+            serde_json::json!({"dormancy_threshold_days": "180"}),
+        );
         assert!(on_schedule_dormancy(&c, 181).unwrap());
         assert!(!on_schedule_dormancy(&c, 180).unwrap());
         // Default 365 when unset.
@@ -1743,16 +2200,47 @@ mod module_tests {
 
     #[test]
     fn overdraft_sweep_amounts() {
-        let c = ctx(&["overdraft-protection-sweep"], serde_json::json!({"sweep_threshold": "-500"}));
+        let c = ctx(
+            &["overdraft-protection-sweep"],
+            serde_json::json!({"sweep_threshold": "-500"}),
+        );
         // Balance -600 < -500 → sweep 100 (bring back to threshold).
-        assert_eq!(validate_posting_overdraft_sweep(&c, &posting("WITHDRAWAL", "1"), Decimal::new(-600, 0)).unwrap(), Some(Decimal::new(100, 0)));
+        assert_eq!(
+            validate_posting_overdraft_sweep(
+                &c,
+                &posting("WITHDRAWAL", "1"),
+                Decimal::new(-600, 0)
+            )
+            .unwrap(),
+            Some(Decimal::new(100, 0))
+        );
         // Above threshold → no sweep.
-        assert_eq!(validate_posting_overdraft_sweep(&c, &posting("WITHDRAWAL", "1"), Decimal::new(-400, 0)).unwrap(), None);
+        assert_eq!(
+            validate_posting_overdraft_sweep(
+                &c,
+                &posting("WITHDRAWAL", "1"),
+                Decimal::new(-400, 0)
+            )
+            .unwrap(),
+            None
+        );
         // Positive balance → no sweep.
-        assert_eq!(validate_posting_overdraft_sweep(&c, &posting("DEPOSIT", "1"), Decimal::new(100, 0)).unwrap(), None);
+        assert_eq!(
+            validate_posting_overdraft_sweep(&c, &posting("DEPOSIT", "1"), Decimal::new(100, 0))
+                .unwrap(),
+            None
+        );
         // Module absent → None even deep negative.
         let c2 = ctx(&[], serde_json::json!({}));
-        assert_eq!(validate_posting_overdraft_sweep(&c2, &posting("WITHDRAWAL", "1"), Decimal::new(-9999, 0)).unwrap(), None);
+        assert_eq!(
+            validate_posting_overdraft_sweep(
+                &c2,
+                &posting("WITHDRAWAL", "1"),
+                Decimal::new(-9999, 0)
+            )
+            .unwrap(),
+            None
+        );
     }
 
     // ── 8/12 passthrough + application ─────────────────────────────────────
@@ -1760,9 +2248,15 @@ mod module_tests {
     #[test]
     fn interest_application_passthrough_and_gate() {
         let c = ctx(&["deposit-interest-application"], serde_json::json!({}));
-        assert_eq!(on_schedule_interest_application(&c, &account("CAD"), Decimal::new(1234, 2)).unwrap(), Decimal::new(1234, 2));
+        assert_eq!(
+            on_schedule_interest_application(&c, &account("CAD"), Decimal::new(1234, 2)).unwrap(),
+            Decimal::new(1234, 2)
+        );
         let c2 = ctx(&[], serde_json::json!({}));
-        assert_eq!(on_schedule_interest_application(&c2, &account("CAD"), Decimal::new(1234, 2)).unwrap(), Decimal::ZERO);
+        assert_eq!(
+            on_schedule_interest_application(&c2, &account("CAD"), Decimal::new(1234, 2)).unwrap(),
+            Decimal::ZERO
+        );
     }
 
     // ── Dispatchers ─────────────────────────────────────────────────────────
@@ -1775,10 +2269,20 @@ mod module_tests {
             serde_json::json!({"supported_denominations": ["CAD"], "min_deposit_amount": "100"}),
         );
         let acct = account("EUR");
-        assert_eq!(validate_creation(&c, &acct, Some(Decimal::new(5, 0))).unwrap_err().code, "INVALID_DENOMINATION");
+        assert_eq!(
+            validate_creation(&c, &acct, Some(Decimal::new(5, 0)))
+                .unwrap_err()
+                .code,
+            "INVALID_DENOMINATION"
+        );
         // Denomination fixed → deposit limit error surfaces.
         let acct2 = account("CAD");
-        assert_eq!(validate_creation(&c, &acct2, Some(Decimal::new(5, 0))).unwrap_err().code, "BELOW_MIN_DEPOSIT");
+        assert_eq!(
+            validate_creation(&c, &acct2, Some(Decimal::new(5, 0)))
+                .unwrap_err()
+                .code,
+            "BELOW_MIN_DEPOSIT"
+        );
         // All good passes.
         assert!(validate_creation(&c, &acct2, Some(Decimal::new(100, 0))).is_ok());
     }
@@ -1786,7 +2290,13 @@ mod module_tests {
     #[test]
     fn validate_posting_dispatches_in_order() {
         let c = ctx(
-            &["deposit-limits", "withdrawal-limits", "transaction-type-limits", "maximum-balance", "overdraft-protection"],
+            &[
+                "deposit-limits",
+                "withdrawal-limits",
+                "transaction-type-limits",
+                "maximum-balance",
+                "overdraft-protection",
+            ],
             serde_json::json!({
                 "min_deposit_amount": "10",
                 "max_daily_deposit_limit": "1000",
@@ -1797,29 +2307,72 @@ mod module_tests {
             }),
         );
         // Deposit above the daily cap trips deposit-limits (it runs first).
-        let err = validate_posting(&c, &posting("DEPOSIT", "60000"), Decimal::new(0, 0), Decimal::ZERO, Decimal::ZERO, Decimal::ZERO).unwrap_err();
+        let err = validate_posting(
+            &c,
+            &posting("DEPOSIT", "60000"),
+            Decimal::new(0, 0),
+            Decimal::ZERO,
+            Decimal::ZERO,
+            Decimal::ZERO,
+        )
+        .unwrap_err();
         assert_eq!(err.code, "ABOVE_MAX_DAILY_DEPOSIT");
         // With headroom under the daily cap, the same oversized deposit trips
         // maximum-balance instead (later in the dispatch chain).
-        let err2 = validate_posting(&c, &posting("DEPOSIT", "600"), Decimal::new(50000, 0), Decimal::ZERO, Decimal::ZERO, Decimal::ZERO).unwrap_err();
+        let err2 = validate_posting(
+            &c,
+            &posting("DEPOSIT", "600"),
+            Decimal::new(50000, 0),
+            Decimal::ZERO,
+            Decimal::ZERO,
+            Decimal::ZERO,
+        )
+        .unwrap_err();
         assert_eq!(err2.code, "ABOVE_MAX_BALANCE");
         // A withdrawal below the deposit minimum is caught by deposit-limits
         // first (the min-deposit check is amount-based, not type-based).
         assert_eq!(
-            validate_posting(&c, &posting("WITHDRAWAL", "5"), Decimal::new(1000, 0), Decimal::ZERO, Decimal::ZERO, Decimal::ZERO).unwrap_err().code,
+            validate_posting(
+                &c,
+                &posting("WITHDRAWAL", "5"),
+                Decimal::new(1000, 0),
+                Decimal::ZERO,
+                Decimal::ZERO,
+                Decimal::ZERO
+            )
+            .unwrap_err()
+            .code,
             "BELOW_MIN_DEPOSIT"
         );
         // A withdrawal at/above the deposit minimum but below its own minimum
         // is caught by withdrawal-limits (deposit-limits passes at 100 >= 10,
         // withdrawal-limits rejects 5 < 10 — same amount, different caps).
         assert_eq!(
-            validate_posting_withdrawal_limits(&c, &posting("WITHDRAWAL", "5"), Decimal::ZERO).unwrap_err().code,
+            validate_posting_withdrawal_limits(&c, &posting("WITHDRAWAL", "5"), Decimal::ZERO)
+                .unwrap_err()
+                .code,
             "BELOW_MIN_WITHDRAWAL"
         );
         // Clean withdrawal passes the whole chain.
-        assert!(validate_posting(&c, &posting("WITHDRAWAL", "100"), Decimal::new(1000, 0), Decimal::ZERO, Decimal::ZERO, Decimal::ZERO).is_ok());
+        assert!(validate_posting(
+            &c,
+            &posting("WITHDRAWAL", "100"),
+            Decimal::new(1000, 0),
+            Decimal::ZERO,
+            Decimal::ZERO,
+            Decimal::ZERO
+        )
+        .is_ok());
         // A clean deposit passes all five.
-        assert!(validate_posting(&c, &posting("DEPOSIT", "100"), Decimal::new(1000, 0), Decimal::ZERO, Decimal::ZERO, Decimal::ZERO).is_ok());
+        assert!(validate_posting(
+            &c,
+            &posting("DEPOSIT", "100"),
+            Decimal::new(1000, 0),
+            Decimal::ZERO,
+            Decimal::ZERO,
+            Decimal::ZERO
+        )
+        .is_ok());
     }
 
     /// ModuleError Display: "[module] code: message".
@@ -1830,14 +2383,20 @@ mod module_tests {
             message: "too small".into(),
             code: "BELOW_MIN_DEPOSIT".into(),
         };
-        assert_eq!(e.to_string(), "[deposit-limits] BELOW_MIN_DEPOSIT: too small");
+        assert_eq!(
+            e.to_string(),
+            "[deposit-limits] BELOW_MIN_DEPOSIT: too small"
+        );
     }
 
     // ── Derived parameters (§11.1b.20) ──────────────────────────────────────
 
     #[test]
     fn derived_loan_remaining_term_and_debt() {
-        let c = ctx(&[], serde_json::json!({"loan_term_months": "60", "repayment_day": "15"}));
+        let c = ctx(
+            &[],
+            serde_json::json!({"loan_term_months": "60", "repayment_day": "15"}),
+        );
         // Opened 60 months ago → remaining term 0 (clamped).
         let mut acct = account("CAD");
         acct.product_type = Some("loan".into());
@@ -1847,7 +2406,9 @@ mod module_tests {
         // Debt equals the current balance for asset-typed loans.
         assert_eq!(derived["total_outstanding_debt"], serde_json::json!("5000"));
         // Next repayment computed and RFC3339-parseable.
-        let next = derived["next_repayment_date"].as_str().expect("repayment date");
+        let next = derived["next_repayment_date"]
+            .as_str()
+            .expect("repayment date");
         assert!(chrono::DateTime::parse_from_rfc3339(next).is_ok());
     }
 
@@ -1860,7 +2421,10 @@ mod module_tests {
         acct.opened_at = Some(chrono::Utc::now() - chrono::Duration::days(10 * 30));
         let derived = compute_derived_parameters(&c, &acct, Decimal::new(1, 0));
         let remaining: i64 = derived["remaining_term"].as_str().unwrap().parse().unwrap();
-        assert!((10..=16).contains(&remaining), "expected ~14, got {remaining}");
+        assert!(
+            (10..=16).contains(&remaining),
+            "expected ~14, got {remaining}"
+        );
     }
 
     #[test]
@@ -1883,7 +2447,10 @@ mod module_tests {
         acct.product_type = Some("home_loan_redraw".into());
         let derived = compute_derived_parameters(&c, &acct, Decimal::new(10000, 0));
         assert_eq!(derived["available_redraw_funds"], serde_json::json!("8000"));
-        assert_eq!(derived["total_outstanding_debt"], serde_json::json!("10000"));
+        assert_eq!(
+            derived["total_outstanding_debt"],
+            serde_json::json!("10000")
+        );
     }
 
     #[test]
@@ -1894,7 +2461,9 @@ mod module_tests {
         let opened = chrono::Utc::now() - chrono::Duration::days(30);
         acct.opened_at = Some(opened);
         let derived = compute_derived_parameters(&c, &acct, Decimal::new(1, 0));
-        let maturity = chrono::DateTime::parse_from_rfc3339(derived["maturity_date"].as_str().unwrap()).unwrap();
+        let maturity =
+            chrono::DateTime::parse_from_rfc3339(derived["maturity_date"].as_str().unwrap())
+                .unwrap();
         // ~5 months (150 days) remain from opening: maturity ≈ opened + 180d.
         let expected = opened + chrono::Duration::days(6 * 30);
         assert_eq!(maturity.timestamp(), expected.timestamp());
@@ -1906,6 +2475,9 @@ mod module_tests {
         let mut acct = account("CAD");
         acct.product_type = Some("current_account".into()); // not loan-like
         let derived = compute_derived_parameters(&c, &acct, Decimal::new(1, 0));
-        assert!(derived.as_object().unwrap().is_empty(), "no derived params for plain products");
+        assert!(
+            derived.as_object().unwrap().is_empty(),
+            "no derived params for plain products"
+        );
     }
 }

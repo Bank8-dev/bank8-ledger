@@ -74,31 +74,51 @@ impl LedgerConfig {
     pub fn from_env() -> Self {
         let cfg = sentin8::config::Sentin8Config::from_env();
         Self {
-            port: env::var("BANK8_LEDGER_PORT").expect("BANK8_LEDGER_PORT must be set by captain").parse().expect("BANK8_LEDGER_PORT must be a valid u16"),
-            database_url: env::var("BANK8_LEDGER_DATABASE_URL")
-                .unwrap_or_else(|_| env::var("DATABASE_URL").unwrap_or_else(|_| sentin8::config::Sentin8Config::default_database_url().to_string())),
-            sentin8_auth_issuer: env::var("SENTIN8_AUTH_ISSUER").unwrap_or_else(|_| cfg.sentin8_auth_issuer()),
-            sentin8_auth_jwks_url: env::var("SENTIN8_AUTH_JWKS_URL").unwrap_or_else(|_| cfg.sentin8_auth_jwks_url()),
+            port: env::var("BANK8_LEDGER_PORT")
+                .expect("BANK8_LEDGER_PORT must be set by captain")
+                .parse()
+                .expect("BANK8_LEDGER_PORT must be a valid u16"),
+            database_url: env::var("BANK8_LEDGER_DATABASE_URL").unwrap_or_else(|_| {
+                env::var("DATABASE_URL").unwrap_or_else(|_| {
+                    sentin8::config::Sentin8Config::default_database_url().to_string()
+                })
+            }),
+            sentin8_auth_issuer: env::var("SENTIN8_AUTH_ISSUER")
+                .unwrap_or_else(|_| cfg.sentin8_auth_issuer()),
+            sentin8_auth_jwks_url: env::var("SENTIN8_AUTH_JWKS_URL")
+                .unwrap_or_else(|_| cfg.sentin8_auth_jwks_url()),
             sentin8_bus_url: env::var("SENTIN8_BUS_URL").unwrap_or_else(|_| cfg.sentin8_bus_url()),
-            sentin8_func_url: env::var("SENTIN8_FUNC_URL").unwrap_or_else(|_| cfg.sentin8_func_url()),
+            sentin8_func_url: env::var("SENTIN8_FUNC_URL")
+                .unwrap_or_else(|_| cfg.sentin8_func_url()),
             func_client: None,
-            sentin8_func_token: env::var("SENTIN8_FUNC_TOKEN").unwrap_or_else(|_| "ledger-dev".into()),
-            sentin8_cron_url: env::var("SENTIN8_CRON_URL").unwrap_or_else(|_| cfg.sentin8_cron_url()),
-            sentin8_cron_token: env::var("SENTIN8_CRON_TOKEN").unwrap_or_else(|_| "ledger-dev".into()),
-            sentin8_flow_url: env::var("SENTIN8_FLOW_URL").unwrap_or_else(|_| cfg.sentin8_flow_url()),
-            sentin8_flow_token: env::var("SENTIN8_FLOW_TOKEN").unwrap_or_else(|_| "ledger-dev".into()),
-            sentin8_storage_url: env::var("SENTIN8_STORAGE_URL").unwrap_or_else(|_| cfg.sentin8_storage_url()),
+            sentin8_func_token: env::var("SENTIN8_FUNC_TOKEN")
+                .unwrap_or_else(|_| "ledger-dev".into()),
+            sentin8_cron_url: env::var("SENTIN8_CRON_URL")
+                .unwrap_or_else(|_| cfg.sentin8_cron_url()),
+            sentin8_cron_token: env::var("SENTIN8_CRON_TOKEN")
+                .unwrap_or_else(|_| "ledger-dev".into()),
+            sentin8_flow_url: env::var("SENTIN8_FLOW_URL")
+                .unwrap_or_else(|_| cfg.sentin8_flow_url()),
+            sentin8_flow_token: env::var("SENTIN8_FLOW_TOKEN")
+                .unwrap_or_else(|_| "ledger-dev".into()),
+            sentin8_storage_url: env::var("SENTIN8_STORAGE_URL")
+                .unwrap_or_else(|_| cfg.sentin8_storage_url()),
             // Design §11: the ledger stream family is `ledger`
             // (`bus:{envId}:ledger`) — one family for the outbox relay,
             // the REST-produce paths, and every consumer.
-            stream_family: env::var("BANK8_LEDGER_STREAM_FAMILY").unwrap_or_else(|_| "ledger".into()),
-            sentin8_stat_url: env::var("SENTIN8_STAT_URL").unwrap_or_else(|_| cfg.sentin8_stat_url()),
+            stream_family: env::var("BANK8_LEDGER_STREAM_FAMILY")
+                .unwrap_or_else(|_| "ledger".into()),
+            sentin8_stat_url: env::var("SENTIN8_STAT_URL")
+                .unwrap_or_else(|_| cfg.sentin8_stat_url()),
             sentin8_stat_property_id: env::var("BANK8_LEDGER_STAT_PROPERTY_ID")
                 .ok()
                 .and_then(|s| uuid::Uuid::parse_str(&s).ok())
-                .unwrap_or_else(|| uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap()),
+                .unwrap_or_else(|| {
+                    uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap()
+                }),
             sentin8_auth_client: AuthClient::new(ClientOptions {
-                base_url: env::var("SENTIN8_AUTH_ISSUER").unwrap_or_else(|_| cfg.sentin8_auth_issuer()),
+                base_url: env::var("SENTIN8_AUTH_ISSUER")
+                    .unwrap_or_else(|_| cfg.sentin8_auth_issuer()),
                 ..Default::default()
             }),
             m2m_http: None,
