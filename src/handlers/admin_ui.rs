@@ -228,10 +228,7 @@ pub async fn submit_product_form(
     tracing::info!(product_id = %product_id, %name, %product_type, "admin_ui: product created via form");
     // Redirect to the product detail page.
     Ok(Json(
-        serde_json::to_value(AdminUiResponse::redirect(format!(
-            "products/{product_id}"
-        )))
-        .unwrap(),
+        serde_json::to_value(AdminUiResponse::redirect(format!("products/{product_id}"))).unwrap(),
     ))
 }
 
