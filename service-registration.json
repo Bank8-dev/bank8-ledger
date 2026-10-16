@@ -14,7 +14,11 @@
           "consumer_group": "bank8:ledger:envinit",
           "action": "seed_internal_accounts"
         }
-      ]
+      ],
+      "telemetry_property": {
+        "slug": "ledger",
+        "name": "Bank8:Ledger Telemetry"
+      }
     }
   ]
 }
