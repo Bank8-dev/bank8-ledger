@@ -1,0 +1,5651 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "bank8-ledger",
+    "description": "Sentin8 Bank8:Ledger — core ledger, posting engine, product library.",
+    "license": {
+      "name": "MIT OR Apache-2.0",
+      "identifier": "MIT OR Apache-2.0"
+    },
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/account-migrations": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/account-migrations` — submit a bulk account migration batch\n(Data-Loader-style staging; idempotent re-run via `:bulkRetry`).",
+        "operationId": "create_bulk_batch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBulkBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Migration batch created and staged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkBatchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "kind must be 'migration' or 'account_update'"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:write": []
+          }
+        ]
+      }
+    },
+    "/v1/account-plan-assocs": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/account-plan-assocs` — list account↔plan associations.",
+        "operationId": "list_plan_assocs",
+        "responses": {
+          "200": {
+            "description": "Plan associations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlanAssocResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/account-plan-assocs` — associate an account with a plan.",
+        "operationId": "create_plan_assoc",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanAssocRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Associated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanAssocResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:write": []
+          }
+        ]
+      }
+    },
+    "/v1/account-schedule-tags": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/account-schedule-tags?account_id=` — list account schedule tags.",
+        "operationId": "list_account_schedule_tags",
+        "responses": {
+          "200": {
+            "description": "Account schedule tags",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountScheduleTagResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/account-schedule-tags` — create/override an account schedule tag.",
+        "operationId": "upsert_account_schedule_tag",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "Account id (path variant: /v1/accounts/{id}/schedule-tags)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertAccountScheduleTagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Account schedule tag upserted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountScheduleTagResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:write": []
+          }
+        ]
+      }
+    },
+    "/v1/account-update-batches": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/account-update-batches` — list bulk batches (either kind).",
+        "operationId": "list_bulk_batches",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "'migration' or 'account_update'",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bulk batches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BulkBatchResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:read": []
+          }
+        ]
+      }
+    },
+    "/v1/account-update-batches/{id}/bulk-retry": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/account-update-batches/{id}/bulk-retry` — retry failed rows in a\nbulk batch (Sentin8 Jobs bulk-operations pattern). Staged rows are applied\naccount-by-account; already-applied rows are skipped (idempotent).",
+        "operationId": "bulk_retry_batch",
+        "responses": {
+          "200": {
+            "description": "Retry result"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:write scope"
+          },
+          "404": {
+            "description": "Batch not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:write": []
+          }
+        ]
+      }
+    },
+    "/v1/accounts": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "operationId": "list_accounts",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "description": "Filter by customer ID",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "product_id",
+            "in": "query",
+            "description": "Filter by product ID",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "account_type",
+            "in": "query",
+            "description": "Filter by account type (customer|internal)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "env_id",
+            "in": "query",
+            "description": "Staff-realm env override for internal-account reads (org-validated)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of accounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/accounts` — create account (v1 legacy).\n.5: holder callers can only create accounts owned by\nthemselves. Server-side defence-in-depth:\n- If the caller is a holder (§4.3c — no `holder:view-all` scope) and\nthey did not supply `customer_id`, we resolve it from their Auth\nuser id (via `customers`).\n- If the caller is a holder and they did supply a `customer_id` that\ndoes not match their own, we return 403 (they cannot create\naccounts for someone else).\n- If no `customers` row exists for the holder, we return 403\n— there is no way to own the account, so creating it would leave an\norphan (the list/get handlers then hide it forever).\n- Callers with `holder:view-all` (staff / sys / M2M) are\nunrestricted: they can pass any `customer_id` or none (for\ninternal accounts).",
+        "operationId": "create_account",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Account created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid account type or module validation failed"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:write": []
+          }
+        ]
+      }
+    },
+    "/v1/accounts/{id}": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/accounts/{id}` — account detail.\n.5: customer-realm callers can only fetch their own accounts\nthe service layer verifies the account's `customer_id` matches the\ncaller's customer before returning. RLS is the backstop.",
+        "operationId": "get_account",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Account ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:read scope"
+          },
+          "404": {
+            "description": "Account not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:read": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`PUT /v1/accounts/{id}` — update account (status, nickname).",
+        "operationId": "update_account",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Account ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Account updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:write": []
+          }
+        ]
+      }
+    },
+    "/v1/accounts/{id}/attributes": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/accounts/{id}/attributes` — list account attribute values.",
+        "operationId": "list_account_attributes",
+        "responses": {
+          "200": {
+            "description": "Account attributes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountAttributeResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:read": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`PUT /v1/accounts/{id}/attributes` — upsert account attribute values.",
+        "operationId": "upsert_account_attribute",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertAccountAttributeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Attribute upserted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountAttributeResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:write": []
+          }
+        ]
+      }
+    },
+    "/v1/accounts/{id}/balances": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/accounts/{id}/balances` — live balances.",
+        "operationId": "get_account_balances",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Account ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account balances",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BalanceResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:balances:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:balances:read": []
+          }
+        ]
+      }
+    },
+    "/v1/accounts/{id}/devices": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/accounts/{id}/devices` — list attached payment devices.",
+        "operationId": "list_payment_devices",
+        "responses": {
+          "200": {
+            "description": "Payment devices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PaymentDeviceResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/accounts/{id}/devices` — attach a payment device.",
+        "operationId": "attach_payment_device",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachPaymentDeviceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Device attached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentDeviceResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:write": []
+          }
+        ]
+      }
+    },
+    "/v1/accounts/{id}/schedules": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/accounts/{id}/schedules` — list schedules for an account.",
+        "operationId": "list_account_schedules",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Account ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schedules for account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduleResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:read": []
+          }
+        ]
+      }
+    },
+    "/v1/accounts/{id}/statements": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/accounts/{id}/statements` — list statements.",
+        "operationId": "get_account_statements",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Account ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account statements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatementResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:read": []
+          }
+        ]
+      }
+    },
+    "/v1/accounts/{id}/transactions": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/accounts/{id}/transactions` — transaction history.",
+        "operationId": "get_account_transactions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Account ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Filter from timestamp",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Filter to timestamp",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransactionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:read": []
+          }
+        ]
+      }
+    },
+    "/v1/adjustments": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/adjustments` — list adjustments (with `:batchGet` variant).",
+        "operationId": "list_adjustments",
+        "responses": {
+          "200": {
+            "description": "Adjustments (newest first)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdjustmentResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:postings:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:postings:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/adjustments` — create an adjustment: recompute the account state\nfor backdated postings/parameter changes by re-running the on-schedule\nmodules from the effective date and submitting a correction batch.",
+        "operationId": "create_adjustment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdjustmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Adjustment created and applied (correction batch submitted)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdjustmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:postings:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:postings:write": []
+          }
+        ]
+      }
+    },
+    "/v1/adjustments/bulk-retry": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/adjustments:bulkRetry` — retry failed adjustments (Sentin8 Jobs\npattern).",
+        "operationId": "bulk_retry_adjustments",
+        "responses": {
+          "200": {
+            "description": "Retried count"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:postings:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:postings:write": []
+          }
+        ]
+      }
+    },
+    "/v1/adjustments/{id}": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/adjustments/{id}` — adjustment detail.",
+        "operationId": "get_adjustment",
+        "responses": {
+          "200": {
+            "description": "Adjustment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdjustmentResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:postings:read": []
+          }
+        ]
+      }
+    },
+    "/v1/audit": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/audit` — query audit events.",
+        "operationId": "list_audit_events",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "description": "Filter by action",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "target_resource_type",
+            "in": "query",
+            "description": "Filter by target resource type",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEventResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:audit:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:audit:read": []
+          }
+        ]
+      }
+    },
+    "/v1/audit/action-logs": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/audit/action-logs` — action-filtered audit view (business Audit\nAPI `action_logs`).",
+        "operationId": "list_action_logs",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "description": "Filter by action",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Action logs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEventResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:audit:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:audit:read": []
+          }
+        ]
+      }
+    },
+    "/v1/calendar/bookkeeping-date/{date}": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/calendar/bookkeeping-date/{date}` — bookkeeping date for a day.",
+        "operationId": "get_bookkeeping_date",
+        "parameters": [
+          {
+            "name": "calendar_id",
+            "in": "query",
+            "description": "Calendar id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bookkeeping date",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookkeepingDateResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:read": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`PUT /v1/calendar/bookkeeping-date/{date}` — set the bookkeeping date.",
+        "operationId": "upsert_bookkeeping_date",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertBookkeepingDateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Bookkeeping date set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookkeepingDateResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:write": []
+          }
+        ]
+      }
+    },
+    "/v1/calendars": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/calendars` — list calendars.",
+        "operationId": "list_calendars",
+        "responses": {
+          "200": {
+            "description": "List of calendars",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CalendarResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/calendars` — create a calendar.",
+        "operationId": "create_calendar",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCalendarRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Calendar created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:write": []
+          }
+        ]
+      }
+    },
+    "/v1/calendars/{id}/events": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/calendars/{id}/events` — list calendar events.",
+        "operationId": "list_calendar_events",
+        "responses": {
+          "200": {
+            "description": "Calendar events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CalendarEventResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/calendars/{id}/events` — add a calendar event.",
+        "operationId": "create_calendar_event",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCalendarEventRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Event added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarEventResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid event_type"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:write": []
+          }
+        ]
+      }
+    },
+    "/v1/calendars/{id}/periods": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/calendars/{id}/periods` — list calendar periods.",
+        "operationId": "list_calendar_periods",
+        "responses": {
+          "200": {
+            "description": "Calendar periods",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CalendarPeriodResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/calendars/{id}/periods` — add a calendar period.",
+        "operationId": "create_calendar_period",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCalendarPeriodRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Period added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarPeriodResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:write": []
+          }
+        ]
+      }
+    },
+    "/v1/contract-events": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/contract-events` — contract execution history (audit events with\ntarget_resource_type='contract'/'func_hook').",
+        "operationId": "list_contract_events",
+        "responses": {
+          "200": {
+            "description": "Contract execution events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEventResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:audit:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:audit:read": []
+          }
+        ]
+      }
+    },
+    "/v1/contract-modules": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/contract-modules` — contract module catalog (Func modules\nregistered per product; sourced from the products' contract_modules field).",
+        "operationId": "list_contract_modules",
+        "responses": {
+          "200": {
+            "description": "Contract module catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContractModuleResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:read": []
+          }
+        ]
+      }
+    },
+    "/v1/contracts/simulate": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/contracts:simulate` — execute a module hook against synthetic\naccount state . Calls Sentin8:Func `POST /v1/modules/{id}/execute`\nwith a mock host-function context; **no persistence occurs** — the raw\nhook result is returned for preview/dry-run use.",
+        "operationId": "simulate_contract",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulateContractRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Simulation result (raw Func hook output)"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:postings:write scope"
+          },
+          "503": {
+            "description": "Sentin8:Func not configured"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:postings:write": []
+          }
+        ]
+      }
+    },
+    "/v1/customers": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/customers` — list/search customers.\nOptional `?search=<text>` filters by display_name or email (case-insensitive\nsubstring match). Without a search term, returns all customers in the\ncaller's org/env (subject to RLS).",
+        "operationId": "list_customers",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Free-text search (display_name or email)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "env_id",
+            "in": "query",
+            "description": "Target env_id for staff callers",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of customers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/customers` — create a customer.\nIf the caller is a user token, the `sentin8_auth_user_id` is stamped\nfrom their token claims so that holder-scoped RLS and\n`resolve_caller_customer_id` can find the row.",
+        "operationId": "create_customer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Customer created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:customers:write scope"
+          },
+          "409": {
+            "description": "Customer already exists"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:customers:write": []
+          }
+        ]
+      }
+    },
+    "/v1/customers/{id}": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/customers/{id}` — customer detail.",
+        "operationId": "get_customer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:read scope"
+          },
+          "404": {
+            "description": "Customer not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:read": []
+          }
+        ]
+      }
+    },
+    "/v1/customers/{id}/link-auth": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "operationId": "link_auth",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkAuthRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Customer linked to auth user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:customers:write scope"
+          },
+          "409": {
+            "description": "Auth user already linked to another customer"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:customers:write": []
+          }
+        ]
+      }
+    },
+    "/v1/customers/{id}/update": {
+      "put": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`PUT /v1/customers/{id}/update` — update customer (display name / contact).",
+        "operationId": "update_customer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Customer updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:customers:write scope"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:customers:write": []
+          }
+        ]
+      }
+    },
+    "/v1/derived-parameter-values": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/derived-parameter-values?account_id=` — computed derived values.",
+        "operationId": "get_derived_parameters",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "query",
+            "description": "Account id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Derived parameter values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Value"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "account_id required"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:read": []
+          }
+        ]
+      }
+    },
+    "/v1/dlq": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/dlq` — list dead-letter queue entries (local posting DLQ + Cron schedule DLQ).",
+        "operationId": "list_dlq",
+        "responses": {
+          "200": {
+            "description": "DLQ entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DlqResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:dlq:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:dlq:read": []
+          }
+        ]
+      }
+    },
+    "/v1/dlq/{id}/republish": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/dlq/{id}/republish` — republish a DLQ entry (local posting or Cron schedule).",
+        "operationId": "republish_dlq",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "DLQ entry ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "DLQ entry republished"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:dlq:republish scope"
+          },
+          "404": {
+            "description": "DLQ entry not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:dlq:republish": []
+          }
+        ]
+      }
+    },
+    "/v1/global-parameters": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/global-parameters` — list global parameters.",
+        "operationId": "list_global_parameters",
+        "responses": {
+          "200": {
+            "description": "Global parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GlobalParameterResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/global-parameters` — create/update a global parameter.",
+        "operationId": "upsert_global_parameter",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertGlobalParameterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Global parameter upserted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalParameterResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:write": []
+          }
+        ]
+      }
+    },
+    "/v1/global-parameters/{id}": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/global-parameters/{id}` — global parameter detail.",
+        "operationId": "get_global_parameter",
+        "responses": {
+          "200": {
+            "description": "Global parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalParameterResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:read": []
+          }
+        ]
+      }
+    },
+    "/v1/internal-accounts": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/internal-accounts` — list internal accounts (nickname/product_type\nfilter). Staff-realm callers may pass the org-validated `?env_id=` override\nper tenant-isolation design §10.1 (handled by the shared env resolution).",
+        "operationId": "list_internal_accounts",
+        "responses": {
+          "200": {
+            "description": "Internal accounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InternalAccountResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/internal-accounts` — create an internal account\n(counterparty plumbing: cash deposit, clearing, suspense, etc.).",
+        "operationId": "create_internal_account",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInternalAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Internal account created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalAccountResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:write scope"
+          },
+          "409": {
+            "description": "Nickname exists"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:write": []
+          }
+        ]
+      }
+    },
+    "/v1/internal-accounts/{id}": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/internal-accounts/{id}` — internal account detail.",
+        "operationId": "get_internal_account",
+        "responses": {
+          "200": {
+            "description": "Internal account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalAccountResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:read": []
+          }
+        ]
+      }
+    },
+    "/v1/jobs": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/jobs` — list jobs.",
+        "operationId": "list_jobs",
+        "parameters": [
+          {
+            "name": "schedule_id",
+            "in": "query",
+            "description": "Filter by schedule ID",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of jobs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:jobs:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:jobs:read": []
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{id}": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/jobs/{id}` — job detail.",
+        "operationId": "get_job",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Job ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:jobs:read scope"
+          },
+          "404": {
+            "description": "Job not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:jobs:read": []
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{id}/retry": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/jobs/{id}/retry` — retry a failed job.",
+        "operationId": "retry_job",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Job ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job retried",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:jobs:admin scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:jobs:admin": []
+          }
+        ]
+      }
+    },
+    "/v1/jobs:batchRepublish": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/jobs:batchRepublish` — override failed jobs (mark as OVERRIDDEN).",
+        "operationId": "batch_republish_jobs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRepublishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Jobs overridden"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:jobs:admin scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:jobs:admin": []
+          }
+        ]
+      }
+    },
+    "/v1/journal-events": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/journal-events` — query the journal.",
+        "operationId": "list_journal_events",
+        "parameters": [
+          {
+            "name": "resource_type",
+            "in": "query",
+            "description": "Filter by resource type",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource_id",
+            "in": "query",
+            "description": "Filter by resource id",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Journal events (newest first)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JournalEventResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:postings:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:postings:read": []
+          }
+        ]
+      }
+    },
+    "/v1/journal-events/{id}": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/journal-events/{id}` — one journal event.",
+        "operationId": "get_journal_event",
+        "responses": {
+          "200": {
+            "description": "Journal event",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalEventResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:postings:read": []
+          }
+        ]
+      }
+    },
+    "/v1/journal-events/{id}/replay": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/journal-events/{id}/replay` — re-drive a journal event\nidempotently . The journal row carries the full operation payload;\nposting replays are no-ops thanks to posting idempotency keys. Other\nresource kinds re-apply the recorded operation.",
+        "operationId": "replay_journal_event",
+        "responses": {
+          "200": {
+            "description": "Replay accepted (result object)"
+          },
+          "404": {
+            "description": "Journal event not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:postings:write": []
+          }
+        ]
+      }
+    },
+    "/v1/plans": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/plans` — list plans.",
+        "operationId": "list_plans",
+        "responses": {
+          "200": {
+            "description": "Plans",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlanResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/plans` — create a plan.",
+        "operationId": "create_plan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Plan created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:write scope"
+          },
+          "409": {
+            "description": "Plan name exists"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:write": []
+          }
+        ]
+      }
+    },
+    "/v1/plans/{id}": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/plans/{id}` — plan detail.",
+        "operationId": "get_plan",
+        "responses": {
+          "200": {
+            "description": "Plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:read": []
+          }
+        ]
+      }
+    },
+    "/v1/plans/{id}/migrations": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/plans/{id}/migrations` — migrate accounts onto a plan\n(PlanMigration): re-associates the from-plan accounts and closes it.",
+        "operationId": "migrate_plan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MigratePlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Migration completed"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:write": []
+          }
+        ]
+      }
+    },
+    "/v1/post-posting-failures": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/post-posting-failures` — list post-posting hook failures.",
+        "operationId": "list_post_posting_failures",
+        "responses": {
+          "200": {
+            "description": "Post-posting hook failures (DLQ subset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Value"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:postings:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:postings:read": []
+          }
+        ]
+      }
+    },
+    "/v1/post-posting-failures/{id}/republish": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/post-posting-failures/{id}/republish` — re-run the post-posting\nhook for a committed batch (delegates to Sentin8:Func).",
+        "operationId": "republish_post_posting_failure",
+        "responses": {
+          "200": {
+            "description": "Hook re-invoked"
+          },
+          "404": {
+            "description": "Failure not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:postings:write": []
+          }
+        ]
+      }
+    },
+    "/v1/postings": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/postings` — synchronous posting instruction batch.",
+        "operationId": "create_posting",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePostingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Posting batch processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid amount or empty instructions"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:postings:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:postings:write": []
+          }
+        ]
+      }
+    },
+    "/v1/postings/async": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/postings/async` — async posting via Bus (enqueues to Bus stream).",
+        "operationId": "create_posting_async",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AsyncPostingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Async posting enqueued"
+          },
+          "400": {
+            "description": "Empty instructions"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:postings:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:postings:write": []
+          }
+        ]
+      }
+    },
+    "/v1/postings/{id}": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/postings/{id}` — batch status.",
+        "operationId": "get_posting",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Posting batch ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Posting batch status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostingResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:postings:read scope"
+          },
+          "404": {
+            "description": "Posting not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:postings:read": []
+          }
+        ]
+      }
+    },
+    "/v1/postings/{id}/instructions": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/postings/{id}/instructions` — list instructions in a batch.",
+        "operationId": "get_posting_instructions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Posting batch ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of posting instructions"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:postings:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:postings:read": []
+          }
+        ]
+      }
+    },
+    "/v1/processing-groups": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/processing-groups` — list processing groups.",
+        "operationId": "list_processing_groups",
+        "responses": {
+          "200": {
+            "description": "Processing groups",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProcessingGroupResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/processing-groups` — create/update a processing group.",
+        "operationId": "upsert_processing_group",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertProcessingGroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Processing group upserted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingGroupResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:write": []
+          }
+        ]
+      }
+    },
+    "/v1/processing-groups/{id}/pause": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/processing-groups/{id}/pause` — pause EOD processing.",
+        "operationId": "pause_processing_group",
+        "responses": {
+          "200": {
+            "description": "Paused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingGroupResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:write": []
+          }
+        ]
+      }
+    },
+    "/v1/processing-groups/{id}/resume": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/processing-groups/{id}/resume` — resume EOD processing.",
+        "operationId": "resume_processing_group",
+        "responses": {
+          "200": {
+            "description": "Resumed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingGroupResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:write": []
+          }
+        ]
+      }
+    },
+    "/v1/products": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/products` — list products.",
+        "operationId": "list_products",
+        "responses": {
+          "200": {
+            "description": "List of products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/products` — create a product.",
+        "operationId": "create_product",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Product created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:write": []
+          }
+        ]
+      }
+    },
+    "/v1/products/{id}": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/products/{id}` — product detail.",
+        "operationId": "get_product",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Product ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:read scope"
+          },
+          "404": {
+            "description": "Product not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:read": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`PUT /v1/products/{id}` — update product.",
+        "operationId": "update_product",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Product ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Product updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:write": []
+          }
+        ]
+      }
+    },
+    "/v1/products/{id}/activate": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/products/{id}/activate` — activate a product.\nAlso accepts `ledger:write` (broad write scope) for end-user app tokens.",
+        "operationId": "activate_product",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Product ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Product activated"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:publish scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:publish": []
+          }
+        ]
+      }
+    },
+    "/v1/products/{id}/versions": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/products/{id}/versions` — list product versions.",
+        "operationId": "list_product_versions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Product ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of product versions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductVersionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/products/{id}/versions` — create a product version.",
+        "operationId": "create_product_version",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Product ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductVersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Product version created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVersionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:write": []
+          }
+        ]
+      }
+    },
+    "/v1/schedule-tags": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/schedule-tags` — list schedule tags.",
+        "operationId": "list_schedule_tags",
+        "responses": {
+          "200": {
+            "description": "Schedule tags",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduleTagResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/schedule-tags` — create a schedule tag (activation group).",
+        "operationId": "create_schedule_tag",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScheduleTagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tag created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleTagResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:write scope"
+          },
+          "409": {
+            "description": "Tag name exists"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:write": []
+          }
+        ]
+      }
+    },
+    "/v1/schedule-tags/{id}/assocs": {
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/schedule-tags/{id}/assocs` — attach a tag to a schedule\n(tag status ACTIVE/INACTIVE controls the schedule).",
+        "operationId": "associate_schedule_tag",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssociateScheduleTagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Associated"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:write": []
+          }
+        ]
+      }
+    },
+    "/v1/schedules": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/schedules` — list schedules.",
+        "operationId": "list_schedules",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "query",
+            "description": "Filter by account ID",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "schedule_type",
+            "in": "query",
+            "description": "Filter by schedule type",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of schedules",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduleResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/schedules` — create a schedule, delegating execution to Cron.\nLedger stores a local reference in `schedules` and creates the actual\nschedule in Cron via `POST /v1/schedules`. Cron fires the schedule and\nproxy-calls Ledger's `POST /v1/internal/schedules/run` to execute the work.",
+        "operationId": "create_schedule",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScheduleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Schedule created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:write scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:write": []
+          }
+        ]
+      }
+    },
+    "/v1/schedules/{id}": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/schedules/{id}` — schedule detail.",
+        "operationId": "get_schedule",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Schedule ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schedule detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:schedules:read scope"
+          },
+          "404": {
+            "description": "Schedule not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:schedules:read": []
+          }
+        ]
+      }
+    },
+    "/v1/streams": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/streams` — client-facing streaming catalog: the `event_type`\nfamilies the ledger emits on the `bus:{envId}:ledger` stream family\n(business \"Core Streaming API\"; topic mapping in design §11).",
+        "operationId": "list_streams",
+        "responses": {
+          "200": {
+            "description": "Emitted event families"
+          },
+          "403": {
+            "description": "Missing bank8:ledger:accounts:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:accounts:read": []
+          }
+        ]
+      }
+    },
+    "/v1/supervisor-contracts": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/supervisor-contracts` — list supervisor contracts.",
+        "operationId": "list_supervisor_contracts",
+        "responses": {
+          "200": {
+            "description": "Supervisor contracts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SupervisorContractResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`POST /v1/supervisor-contracts` — create a cross-account contract.",
+        "operationId": "create_supervisor_contract",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSupervisorContractRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Supervisor contract created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupervisorContractResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:products:write scope"
+          },
+          "409": {
+            "description": "Name exists"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:write": []
+          }
+        ]
+      }
+    },
+    "/v1/supervisor-contracts/{id}": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v1/supervisor-contracts/{id}` — supervisor contract detail.",
+        "operationId": "get_supervisor_contract",
+        "responses": {
+          "200": {
+            "description": "Supervisor contract",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupervisorContractResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:products:read": []
+          }
+        ]
+      }
+    },
+    "/v2/balances/end": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v2/balances/end` — end-of-period balances (month buckets by default).",
+        "operationId": "balances_v2_end",
+        "responses": {
+          "200": {
+            "description": "End-of-period balances",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BalanceV2Response"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:balances:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:balances:read": []
+          }
+        ]
+      }
+    },
+    "/v2/balances/live": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v2/balances/live` — current committed balances per account.",
+        "operationId": "balances_v2_live",
+        "responses": {
+          "200": {
+            "description": "Live committed balances",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BalanceV2Response"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:balances:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:balances:read": []
+          }
+        ]
+      }
+    },
+    "/v2/balances/series": {
+      "get": {
+        "tags": [
+          "ledger"
+        ],
+        "summary": "`GET /v2/balances/series` — balance series over a time range (bucket scan).",
+        "operationId": "balances_v2_series",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "query",
+            "description": "Account filter",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Range start",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Range end",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Balance series buckets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Value"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bank8:ledger:balances:read scope"
+          }
+        },
+        "security": [
+          {
+            "bank8:ledger:balances:read": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccountAttributeResponse": {
+        "type": "object",
+        "required": [
+          "account_id",
+          "attribute_key",
+          "value",
+          "updated_at"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attribute_key": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "$ref": "#/components/schemas/Value"
+          }
+        }
+      },
+      "AccountResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "env_id",
+          "account_type",
+          "status",
+          "denomination",
+          "opened_at",
+          "created_at"
+        ],
+        "properties": {
+          "account_type": {
+            "type": "string"
+          },
+          "closed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currentBalance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Current committed balance (joined from balances).\nNull if no balance row exists yet (new account with no postings)."
+          },
+          "customer_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "denomination": {
+            "type": "string"
+          },
+          "env_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nickname": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "product_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "product_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "AccountScheduleTagListQuery": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "AccountScheduleTagResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "tag_id",
+          "status"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tag_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ActionLogQuery": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "AdjustmentResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "reason",
+          "effective_date",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "correction_batch_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effective_date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "AssociateScheduleTagRequest": {
+        "type": "object",
+        "required": [
+          "schedule_id"
+        ],
+        "properties": {
+          "schedule_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "AsyncPostingRequest": {
+        "type": "object",
+        "required": [
+          "batch_id",
+          "instructions"
+        ],
+        "properties": {
+          "batch_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instructions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostingInstruction"
+            }
+          }
+        }
+      },
+      "AttachPaymentDeviceRequest": {
+        "type": "object",
+        "required": [
+          "device_type",
+          "device_token_ref"
+        ],
+        "properties": {
+          "device_token_ref": {
+            "type": "string",
+            "description": "Secret reference (never raw PAN/token material) — §4.4 secret references."
+          },
+          "device_type": {
+            "type": "string"
+          }
+        }
+      },
+      "AuditEventResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "action",
+          "timestamp"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "actor_user_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "correlation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target_resource_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "target_resource_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "BalanceEntry": {
+        "type": "object",
+        "required": [
+          "account_id",
+          "denomination",
+          "address",
+          "phase",
+          "amount"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "address": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "denomination": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          }
+        }
+      },
+      "BalanceResponse": {
+        "type": "object",
+        "required": [
+          "account_id",
+          "denomination",
+          "address",
+          "phase",
+          "amount"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "address": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "denomination": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          }
+        }
+      },
+      "BalanceSeriesQuery": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "BalanceV2Response": {
+        "type": "object",
+        "required": [
+          "account_id",
+          "denomination",
+          "phase",
+          "amount"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "denomination": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          }
+        }
+      },
+      "BatchRepublishRequest": {
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "BookkeepingDateQuery": {
+        "type": "object",
+        "properties": {
+          "calendar_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "BookkeepingDateResponse": {
+        "type": "object",
+        "required": [
+          "calendar_id",
+          "effective_date",
+          "bookkeeping_date",
+          "updated_at"
+        ],
+        "properties": {
+          "bookkeeping_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "calendar_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "effective_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "BulkBatchResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "item_count",
+          "failed_count",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "failed_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "item_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "CalendarEventResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "calendar_id",
+          "event_date",
+          "event_type"
+        ],
+        "properties": {
+          "calendar_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "event_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CalendarPeriodResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "calendar_id",
+          "start_date",
+          "end_date",
+          "period_type"
+        ],
+        "properties": {
+          "calendar_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "descriptor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "period_type": {
+            "type": "string"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "CalendarResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "timezone",
+          "is_active",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        }
+      },
+      "ContractModuleResponse": {
+        "type": "object",
+        "required": [
+          "module_id",
+          "hooks"
+        ],
+        "properties": {
+          "hooks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "module_id": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "CreateAccountRequest": {
+        "type": "object",
+        "required": [
+          "account_type"
+        ],
+        "properties": {
+          "account_type": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "denomination": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "product_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CreateAdjustmentRequest": {
+        "type": "object",
+        "required": [
+          "account_id",
+          "reason",
+          "effective_date"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "effective_date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateBulkBatchRequest": {
+        "type": "object",
+        "required": [
+          "kind",
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "$ref": "#/components/schemas/Value",
+            "description": "Item payload: for account_update: [{account_id, set: {...}}]; for\nmigration: [{account: {...}}] staged rows."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`migration` (account migrations) or `account_update` (update batches)."
+          },
+          "source_system": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CreateCalendarEventRequest": {
+        "type": "object",
+        "required": [
+          "event_date",
+          "event_type"
+        ],
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "event_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "event_type": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateCalendarPeriodRequest": {
+        "type": "object",
+        "required": [
+          "start_date",
+          "end_date"
+        ],
+        "properties": {
+          "descriptor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "period_type": {
+            "type": "string"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "CreateCalendarRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateCustomerRequest": {
+        "type": "object",
+        "required": [
+          "display_name"
+        ],
+        "properties": {
+          "display_name": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CreateInternalAccountRequest": {
+        "type": "object",
+        "required": [
+          "nickname",
+          "product_type"
+        ],
+        "properties": {
+          "denomination": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "product_type": {
+            "type": "string"
+          }
+        }
+      },
+      "CreatePlanAssocRequest": {
+        "type": "object",
+        "required": [
+          "plan_id",
+          "account_id"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plan_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CreatePlanRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "modules": {
+            "$ref": "#/components/schemas/Value"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/Value"
+          },
+          "product_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CreatePostingRequest": {
+        "type": "object",
+        "required": [
+          "batch_id",
+          "instructions"
+        ],
+        "properties": {
+          "batch_id": {
+            "type": "string"
+          },
+          "dry_run": {
+            "type": "boolean"
+          },
+          "idempotency_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instructions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostingInstruction"
+            }
+          }
+        }
+      },
+      "CreateProductRequest": {
+        "type": "object",
+        "required": [
+          "product_type",
+          "name"
+        ],
+        "properties": {
+          "modules": {},
+          "name": {
+            "type": "string"
+          },
+          "parameters": {},
+          "product_type": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateProductVersionRequest": {
+        "type": "object",
+        "properties": {
+          "contract_modules": {},
+          "expected_parameters": {},
+          "parameters": {},
+          "supported_denominations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tside": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CreateScheduleRequest": {
+        "type": "object",
+        "required": [
+          "schedule_type",
+          "cron_expression"
+        ],
+        "properties": {
+          "account_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "cron_expression": {
+            "type": "string"
+          },
+          "schedule_type": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateScheduleTagRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateSupervisorContractRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "func_module_id"
+        ],
+        "properties": {
+          "func_module_id": {
+            "type": "string"
+          },
+          "member_account_ids": {
+            "$ref": "#/components/schemas/Value"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/Value"
+          }
+        }
+      },
+      "CustomerResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "display_name",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resolved_display_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Resolved display name: uses customers.display_name if non-empty,\notherwise falls back to the linked auth user's first_name + last_name."
+          },
+          "resolved_email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Resolved email: uses customers.email if non-null, otherwise\nfalls back to the linked auth user's email."
+          },
+          "sentin8_auth_user_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "DerivedParamsQuery": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "DlqResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "message_type",
+          "payload",
+          "error_message",
+          "retry_count",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error_message": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "message_type": {
+            "type": "string"
+          },
+          "payload": {},
+          "retry_count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "GlobalParameterResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "shape",
+          "value",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "shape": {
+            "$ref": "#/components/schemas/Value"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "$ref": "#/components/schemas/Value"
+          }
+        }
+      },
+      "InternalAccountResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "denomination",
+          "status"
+        ],
+        "properties": {
+          "current_balance": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "denomination": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nickname": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "JobResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "job_type",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "completed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "job_type": {
+            "type": "string"
+          },
+          "schedule_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "started_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "JournalEventResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "resource_type",
+          "resource_id",
+          "operation",
+          "payload",
+          "checksum",
+          "created_at"
+        ],
+        "properties": {
+          "checksum": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/Value"
+          },
+          "prev_checksum": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resource_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resource_type": {
+            "type": "string"
+          }
+        }
+      },
+      "LinkAuthRequest": {
+        "type": "object",
+        "required": [
+          "sentin8_auth_user_id"
+        ],
+        "properties": {
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional local display_name stamp (VDC §VDC.2 — the ledger never\njoins the platform auth schema; the caller supplies the identity\nfields it already verified)."
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sentin8_auth_user_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ListAccountsQuery": {
+        "type": "object",
+        "description": "`GET /v1/accounts` — list accounts.\n.5: holder callers (§4.3c — no `holder:view-all` scope) see only\naccounts held by their own `customers` row, and only\n`account_type='customer'` accounts (internal accounts are never exposed\nto holders — forced here in the service layer; RLS is the backstop).\nCallers with `holder:view-all` see all env accounts. A holder caller's\n`?customer_id=` query param is ignored — they cannot impersonate another\ncustomer.",
+        "properties": {
+          "account_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "customer_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "env_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "§10.1 — staff-realm env override for internal-account reads.\nValidated against org membership; ignored for customer/delegated\ntokens (env-locked) and never widens customer-data visibility."
+          },
+          "product_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ListAdjustmentsQuery": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "ListAuditQuery": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "target_resource_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ListBulkQuery": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          }
+        }
+      },
+      "ListCustomersQuery": {
+        "type": "object",
+        "description": "Query params for `GET /v1/customers` (list/search).",
+        "properties": {
+          "env_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Target env_id for the query. Staff tokens carry\nenv_id = System Env; the caller passes the real env_id here so\nthe query scopes to the correct environment. Ignored for\nholder tokens (they are already env-scoped)."
+          },
+          "search": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Free-text search: matches display_name or email (case-insensitive)."
+          }
+        }
+      },
+      "ListInternalAccountsQuery": {
+        "type": "object",
+        "properties": {
+          "nickname": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ListJobsQuery": {
+        "type": "object",
+        "properties": {
+          "schedule_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ListJournalQuery": {
+        "type": "object",
+        "properties": {
+          "resource_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "resource_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ListSchedulesQuery": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "schedule_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "MigratePlanRequest": {
+        "type": "object",
+        "properties": {
+          "from_plan_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "PaymentDeviceResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "device_type",
+          "device_token_ref",
+          "status"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "device_token_ref": {
+            "type": "string"
+          },
+          "device_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "PlanAssocResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "plan_id",
+          "account_id"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plan_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "PlanResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "parameters",
+          "modules",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modules": {
+            "$ref": "#/components/schemas/Value"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/Value"
+          },
+          "product_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "PostingInstruction": {
+        "type": "object",
+        "required": [
+          "instruction_type",
+          "debit_account",
+          "credit_account",
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "credit_account": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "debit_account": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "denomination": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instruction_type": {
+            "type": "string"
+          },
+          "value_timestamp": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "PostingResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "batch_id",
+          "status",
+          "instruction_count",
+          "created_at",
+          "balances"
+        ],
+        "properties": {
+          "balances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BalanceEntry"
+            }
+          },
+          "batch_id": {
+            "type": "string"
+          },
+          "completed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "instruction_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "ProcessingGroupResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "utc_offset",
+          "eod_cut_off",
+          "grace_period_minutes",
+          "paused",
+          "updated_at"
+        ],
+        "properties": {
+          "eod_cut_off": {
+            "type": "string"
+          },
+          "grace_period_minutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "utc_offset": {
+            "type": "string"
+          }
+        }
+      },
+      "ProductResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "product_type",
+          "name",
+          "version",
+          "status",
+          "parameters",
+          "modules",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modules": {},
+          "name": {
+            "type": "string"
+          },
+          "parameters": {},
+          "product_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ProductVersionResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "product_id",
+          "version_number",
+          "tside",
+          "contract_modules",
+          "supported_denominations",
+          "parameters",
+          "expected_parameters",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "contract_modules": {},
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expected_parameters": {},
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parameters": {},
+          "product_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "supported_denominations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tside": {
+            "type": "string"
+          },
+          "version_number": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ScheduleResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "schedule_type",
+          "cron_expression",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "account_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cron_expression": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "last_run_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "next_run_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "schedule_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "ScheduleTagResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "SimulateContractRequest": {
+        "type": "object",
+        "required": [
+          "module_id"
+        ],
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/Value",
+            "description": "Synthetic account state — no persistence occurs."
+          },
+          "hook": {
+            "type": "string",
+            "description": "Hook name (pre_posting, post_posting, scheduled_event, activation, deactivation)."
+          },
+          "input": {
+            "$ref": "#/components/schemas/Value"
+          },
+          "module_id": {
+            "type": "string",
+            "description": "Func module id (the hook logic to execute)."
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/Value"
+          }
+        }
+      },
+      "StatementResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "period_start",
+          "period_end",
+          "opening_balance",
+          "closing_balance",
+          "document_format",
+          "created_at"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "closing_balance": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "document_format": {
+            "type": "string"
+          },
+          "document_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "opening_balance": {
+            "type": "string"
+          },
+          "period_end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "period_start": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SupervisorContractResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "func_module_id",
+          "member_account_ids",
+          "parameters",
+          "status"
+        ],
+        "properties": {
+          "func_module_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "member_account_ids": {
+            "$ref": "#/components/schemas/Value"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/Value"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "TransactionQuery": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "TransactionResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "posting_id",
+          "amount",
+          "denomination",
+          "direction",
+          "value_timestamp",
+          "booking_timestamp"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "booking_timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "denomination": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "direction": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "posting_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "value_timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UpdateAccountRequest": {
+        "type": "object",
+        "properties": {
+          "nickname": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "UpdateCustomerRequest": {
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "UpdateProductRequest": {
+        "type": "object",
+        "properties": {
+          "modules": {},
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parameters": {}
+        }
+      },
+      "UpsertAccountAttributeRequest": {
+        "type": "object",
+        "required": [
+          "attribute_key",
+          "value"
+        ],
+        "properties": {
+          "attribute_key": {
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/Value"
+          }
+        }
+      },
+      "UpsertAccountScheduleTagRequest": {
+        "type": "object",
+        "required": [
+          "tag_id"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "tag_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "UpsertBookkeepingDateRequest": {
+        "type": "object",
+        "required": [
+          "calendar_id",
+          "bookkeeping_date"
+        ],
+        "properties": {
+          "bookkeeping_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "calendar_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "UpsertGlobalParameterRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "shape": {
+            "$ref": "#/components/schemas/Value"
+          },
+          "value": {
+            "$ref": "#/components/schemas/Value"
+          }
+        }
+      },
+      "UpsertProcessingGroupRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "eod_cut_off": {
+            "type": "string"
+          },
+          "grace_period_minutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "utc_offset": {
+            "type": "string"
+          }
+        }
+      },
+      "Value": {}
+    }
+  },
+  "security": [],
+  "tags": [
+    {
+      "name": "ledger",
+      "description": "Bank8:Ledger API — accounts, products, postings, schedules, customers, audit"
+    }
+  ]
+}
