@@ -58,6 +58,17 @@ fn default_string() -> String {
     "string".into()
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/parameters",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `POST /v1/parameters` — create a parameter definition.
 pub async fn create_parameter(
     State(state): State<AppState>,
@@ -96,6 +107,17 @@ pub async fn create_parameter(
     Ok(Json(param))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/parameters",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `GET /v1/parameters` — list parameters.
 pub async fn list_parameters(
     State(state): State<AppState>,
@@ -156,6 +178,17 @@ pub struct ListParamValuesQuery {
     pub account_id: Option<Uuid>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/parameter-values",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `POST /v1/parameter-values` — create a parameter value.
 pub async fn create_parameter_value(
     State(state): State<AppState>,
@@ -196,6 +229,17 @@ pub async fn create_parameter_value(
     Ok(Json(pv))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/parameter-values",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `GET /v1/parameter-values` — list parameter values.
 pub async fn list_parameter_values(
     State(state): State<AppState>,
@@ -226,6 +270,17 @@ pub async fn list_parameter_values(
     Ok(Json(rows.iter().map(row_to_param_value).collect()))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/parameter-values:viewEffective",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `GET /v1/parameter-values:viewEffective` — resolve effective parameter value
 /// at a point in time, with hierarchy precedence (account > hierarchy > global).
 ///
@@ -440,6 +495,17 @@ pub struct CreateHierarchyNodeRequest {
     pub name: String,
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/parameter-value-hierarchy-nodes",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `POST /v1/parameter-value-hierarchy-nodes` — create a hierarchy node.
 pub async fn create_hierarchy_node(
     State(state): State<AppState>,
@@ -498,6 +564,17 @@ pub async fn create_hierarchy_node(
     }))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/parameter-value-hierarchy-nodes",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `GET /v1/parameter-value-hierarchy-nodes` — list hierarchy nodes.
 pub async fn list_hierarchy_nodes(
     State(state): State<AppState>,

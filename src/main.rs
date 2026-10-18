@@ -24,6 +24,7 @@ mod cron_client;
 mod func_hooks;
 #[allow(dead_code)]
 mod handlers;
+mod ledger_aliases;
 #[allow(dead_code)]
 mod modules;
 #[allow(dead_code)]

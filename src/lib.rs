@@ -10,6 +10,7 @@ pub mod config;
 pub mod cron_client;
 pub mod func_hooks;
 pub mod handlers;
+pub mod ledger_aliases;
 pub mod modules;
 pub mod openapi;
 pub mod policy;

@@ -656,6 +656,16 @@ pub struct ScheduleRunRequest {
 /// atomic posting batch. A `bank8_ledger_jobs` row records the outcome
 /// `failed` + `error_message` when any step fails (never unconditionally
 /// completed); `last_run_at` is updated only via propagated, awaited writes.
+#[utoipa::path(
+    post,
+    path = "/v1/internal/schedules/run",
+    responses(
+        (status = 200, description = "Due schedules dispatched (Cron proxy-back target)", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(),
+    tag = "internal",
+)]
 pub async fn internal_schedule_run(
     State(state): State<AppState>,
     headers: HeaderMap,

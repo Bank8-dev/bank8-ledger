@@ -32,6 +32,17 @@ pub struct CreateRestrictionDefinitionRequest {
     pub description: Option<String>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/restriction-definitions",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `POST /v1/restriction-definitions` — create a restriction definition.
 pub async fn create_restriction_definition(
     State(state): State<AppState>,
@@ -73,6 +84,17 @@ pub async fn create_restriction_definition(
     Ok(Json(def))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/restriction-definitions",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `GET /v1/restriction-definitions` — list restriction definitions.
 pub async fn list_restriction_definitions(
     State(state): State<AppState>,
@@ -125,6 +147,17 @@ pub struct ListRestrictionSetsQuery {
     pub customer_id: Option<Uuid>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/restriction-sets",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `POST /v1/restriction-sets` — apply a restriction set to an account or customer.
 pub async fn create_restriction_set(
     State(state): State<AppState>,
@@ -170,6 +203,17 @@ pub async fn create_restriction_set(
     Ok(Json(set))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/restriction-sets",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `GET /v1/restriction-sets` — list restriction sets.
 pub async fn list_restriction_sets(
     State(state): State<AppState>,

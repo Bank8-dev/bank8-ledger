@@ -39,7 +39,7 @@ pub struct ListAuditQuery {
 /// `GET /v1/audit` — query audit events.
 #[utoipa::path(
     get,
-    path = "/v1/audit",
+    path = "/v1/admin/audit",
     params(
         ("action" = Option<String>, Query, description = "Filter by action"),
         ("target_resource_type" = Option<String>, Query, description = "Filter by target resource type"),

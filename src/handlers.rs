@@ -208,6 +208,15 @@ pub async fn emit_event(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/health",
+    responses(
+        (status = 200, description = "Liveness (version, build)", body = serde_json::Value),
+    ),
+    security(),
+    tag = "meta",
+)]
 pub async fn health() -> axum::Json<serde_json::Value> {
     axum::Json(
         serde_json::json!({ "status": "ok", "service": "ledger", "version": sentin8::build_info::id(), "build": sentin8::build_info::build_hash() }),

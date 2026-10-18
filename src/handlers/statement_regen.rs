@@ -51,6 +51,17 @@ pub struct StatementRegenResponse {
     pub error: Option<String>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/internal/statements/regen",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "internal",
+)]
 /// `POST /v1/internal/statements/regen` — Flow proxy-back for the
 /// `statement-regen` workflow (design §10).
 ///

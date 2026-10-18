@@ -221,7 +221,7 @@ pub struct UpsertAccountScheduleTagRequest {
 /// `POST /v1/account-schedule-tags` — create/override an account schedule tag.
 #[utoipa::path(
     post,
-    path = "/v1/account-schedule-tags",
+    path = "/v1/accounts/{id}/schedule-tags",
     request_body = UpsertAccountScheduleTagRequest,
     params(("account_id" = Uuid, Path, description = "Account id (path variant: /v1/accounts/{id}/schedule-tags)")),
     responses(

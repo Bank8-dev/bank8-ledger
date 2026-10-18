@@ -706,6 +706,17 @@ pub async fn get_posting_instructions(
 // ── DLQ ──────────────────────────────────────────────────────────────────
 
 /// `GET /v1/admin/postings` — posting batches list (RFW DataTable).
+#[utoipa::path(
+    get,
+    path = "/v1/admin/postings",
+    responses(
+        (status = 200, description = "Posting batches (admin view)", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 pub async fn list_postings_batches(
     State(state): State<AppState>,
     headers: HeaderMap,

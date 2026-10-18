@@ -43,6 +43,17 @@ fn default_private() -> String {
     "PRIVATE".into()
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/flag-definitions",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `POST /v1/flag-definitions` — create a flag definition.
 pub async fn create_flag_definition(
     State(state): State<AppState>,
@@ -85,6 +96,17 @@ pub async fn create_flag_definition(
     Ok(Json(flag_def))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/flag-definitions",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `GET /v1/flag-definitions` — list flag definitions.
 pub async fn list_flag_definitions(
     State(state): State<AppState>,
@@ -149,6 +171,17 @@ pub struct ListFlagsQuery {
     pub flag_definition_id: Option<Uuid>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/flags",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `POST /v1/flags` — set a flag on an account or customer.
 pub async fn create_flag(
     State(state): State<AppState>,
@@ -195,6 +228,17 @@ pub async fn create_flag(
     Ok(Json(flag))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/flags",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "ledger",
+)]
 /// `GET /v1/flags` — list flags.
 pub async fn list_flags(
     State(state): State<AppState>,

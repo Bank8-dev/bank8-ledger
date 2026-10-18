@@ -26,6 +26,17 @@ pub struct AdminUiQuery {
     pub r#type: Option<String>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/admin/ui/{page}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// GET /v1/admin/ui/{page} — return RFW definition for the requested admin page.
 pub async fn get_admin_ui(
     State(state): State<AppState>,
@@ -121,6 +132,17 @@ pub async fn get_admin_ui(
     ))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/admin/products",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// `POST /v1/admin/products` — handle product creation form submission.
 /// Called by the RFW form renderer when the user clicks "Create Product".
 /// Creates the product and returns an `AdminUiResponse::redirect` so the
@@ -232,6 +254,17 @@ pub async fn submit_product_form(
     ))
 }
 
+#[utoipa::path(
+    put,
+    path = "/v1/admin/products/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// `PUT /v1/admin/products/{id}` — handle product edit form submission.
 pub async fn submit_product_edit(
     State(state): State<AppState>,
@@ -299,6 +332,17 @@ pub async fn submit_product_edit(
     ))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/admin/products/{id}/versions",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// `POST /v1/admin/products/{id}/versions` — create a new product version.
 pub async fn submit_product_version(
     State(state): State<AppState>,
@@ -395,6 +439,17 @@ fn form_uuid(body: &serde_json::Value, key: &str) -> Option<uuid::Uuid> {
     form_str(body, key).and_then(|s| uuid::Uuid::parse_str(&s).ok())
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/admin/accounts",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// `POST /v1/admin/accounts` — create-account form submission.
 pub async fn submit_account_form(
     State(state): State<AppState>,
@@ -464,6 +519,17 @@ pub async fn submit_account_form(
     ))
 }
 
+#[utoipa::path(
+    put,
+    path = "/v1/admin/accounts/{id}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// `PUT /v1/admin/accounts/{id}` — update-account form submission.
 pub async fn submit_account_edit(
     State(state): State<AppState>,
@@ -514,6 +580,17 @@ pub async fn submit_account_edit(
     ))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/admin/postings",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// `POST /v1/admin/postings` — new-posting form submission (batch of one).
 pub async fn submit_posting_form(
     State(state): State<AppState>,
@@ -568,6 +645,17 @@ pub async fn submit_posting_form(
     })))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/admin/parameters",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// `POST /v1/admin/parameters` — create-parameter form submission.
 pub async fn submit_parameter_form(
     State(state): State<AppState>,
@@ -620,6 +708,17 @@ pub async fn submit_parameter_form(
     ))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/admin/restriction-sets",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// `POST /v1/admin/restriction-sets` — create-restriction form submission.
 pub async fn submit_restriction_form(
     State(state): State<AppState>,
@@ -680,6 +779,17 @@ pub async fn submit_restriction_form(
     ))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/admin/flags",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// `POST /v1/admin/flags` — create-flag form submission.
 pub async fn submit_flag_form(
     State(state): State<AppState>,
@@ -736,6 +846,17 @@ pub async fn submit_flag_form(
     ))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/admin/dlq/{id}/discard",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// `POST /v1/admin/dlq/{id}/discard` — discard a DLQ entry (no republish).
 pub async fn discard_dlq_entry(
     State(state): State<AppState>,
@@ -781,6 +902,17 @@ pub async fn discard_dlq_entry(
 
 // ── Registration-declared data endpoints (RECON-5) ──────────────────────
 
+#[utoipa::path(
+    get,
+    path = "/v1/admin/reconcile",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// `GET /v1/admin/reconcile` — reconciliation summary (posting totals).
 pub async fn admin_reconcile_summary(
     State(state): State<AppState>,
@@ -830,6 +962,17 @@ pub async fn admin_reconcile_summary(
     })))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/admin/balances",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// `GET /v1/admin/balances` — account balances view (RFW DataTable rows).
 pub async fn admin_balances(
     State(state): State<AppState>,
@@ -884,6 +1027,17 @@ pub async fn admin_balances(
     Ok(Json(out))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/admin/settings",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// `GET /v1/admin/settings` — static ledger settings payload.
 pub async fn admin_settings(
     State(state): State<AppState>,
@@ -908,6 +1062,17 @@ pub async fn admin_settings(
     })))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/admin/statements",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "admin-ui",
+)]
 /// `GET /v1/admin/statements` — recent statements (RFW DataTable rows).
 pub async fn admin_statements(
     State(state): State<AppState>,

@@ -49,6 +49,17 @@ pub struct FuncHostResponse {
     pub error: Option<String>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/internal/func-host",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Missing the ledger scope gate"),
+    ),
+    security(),
+    tag = "internal",
+)]
 /// `POST /v1/internal/func-host` — Sentin8:Func proxy-back for host functions.
 /// Authorization: M2M token with `bank8:ledger:postings:write` (the Func
 /// runtime authenticates with the posting service's M2M identity because

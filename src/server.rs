@@ -339,7 +339,7 @@ pub fn routes(
             post(handlers::customers::link_auth),
         )
         // ── Audit API ─────────────────────────────────────────────────────
-        .route("/v1/audit", get(handlers::audit::list_audit_events))
+        .route("/v1/audit", get(crate::ledger_aliases::audit_events_alias))
         // ── DLQ API ───────────────────────────────────────────────────────
         .route("/v1/dlq", get(handlers::postings::list_dlq))
         .route(
@@ -354,24 +354,24 @@ pub fn routes(
         // Admin data endpoints (RFW data_endpoint calls — Dash prepends /v1/admin).
         .route(
             "/v1/admin/products",
-            get(handlers::products::list_products).post(handlers::admin_ui::submit_product_form),
+            get(crate::ledger_aliases::admin_list_products).post(handlers::admin_ui::submit_product_form),
         )
         .route(
             "/v1/admin/products/{id}",
-            get(handlers::products::get_product).put(handlers::admin_ui::submit_product_edit),
+            get(crate::ledger_aliases::admin_get_product).put(handlers::admin_ui::submit_product_edit),
         )
         .route(
             "/v1/admin/products/{id}/versions",
-            get(handlers::products::list_product_versions)
+            get(crate::ledger_aliases::admin_list_product_versions)
                 .post(handlers::admin_ui::submit_product_version),
         )
         .route(
             "/v1/admin/products/{id}/activate",
-            post(handlers::products::activate_product),
+            post(crate::ledger_aliases::admin_activate_product),
         )
         .route(
             "/v1/admin/accounts",
-            get(handlers::accounts::list_accounts).post(handlers::admin_ui::submit_account_form),
+            get(crate::ledger_aliases::admin_accounts).post(handlers::admin_ui::submit_account_form),
         )
         .route(
             "/v1/admin/accounts/{id}",
@@ -384,13 +384,13 @@ pub fn routes(
         )
         .route(
             "/v1/admin/schedules",
-            get(handlers::schedules::list_schedules),
+            get(crate::ledger_aliases::admin_list_schedules),
         )
-        .route("/v1/admin/jobs", get(handlers::schedules::list_jobs))
-        .route("/v1/admin/dlq", get(handlers::postings::list_dlq))
+        .route("/v1/admin/jobs", get(crate::ledger_aliases::admin_list_jobs))
+        .route("/v1/admin/dlq", get(crate::ledger_aliases::list_dlq_alias))
         .route(
             "/v1/admin/dlq/{id}/republish",
-            post(handlers::postings::republish_dlq),
+            post(crate::ledger_aliases::admin_republish_dlq),
         )
         .route(
             "/v1/admin/dlq/{id}/discard",
@@ -398,32 +398,32 @@ pub fn routes(
         )
         .route(
             "/v1/admin/customers",
-            get(handlers::customers::list_customers),
+            get(crate::ledger_aliases::admin_customers),
         )
         .route("/v1/admin/audit", get(handlers::audit::list_audit_events))
         .route(
             "/v1/admin/parameters",
-            get(handlers::params::list_parameters).post(handlers::admin_ui::submit_parameter_form),
+            get(crate::ledger_aliases::admin_parameters).post(handlers::admin_ui::submit_parameter_form),
         )
         .route(
             "/v1/admin/restriction-sets",
-            get(handlers::restrictions::list_restriction_sets)
+            get(crate::ledger_aliases::admin_restriction_sets)
                 .post(handlers::admin_ui::submit_restriction_form),
         )
         .route(
             "/v1/admin/restriction-definitions",
-            get(handlers::restrictions::list_restriction_definitions),
+            get(crate::ledger_aliases::admin_restriction_definitions),
         )
         .route(
             "/v1/admin/flags",
-            get(handlers::flags::list_flags).post(handlers::admin_ui::submit_flag_form),
+            get(crate::ledger_aliases::admin_flags).post(handlers::admin_ui::submit_flag_form),
         )
         .route(
             "/v1/admin/flag-definitions",
-            get(handlers::flags::list_flag_definitions),
+            get(crate::ledger_aliases::admin_flag_definitions),
         )
         // Registration-declared summary/data endpoints (Dash DataTable fetches).
-        .route("/v1/admin/overview", get(handlers::accounts::list_accounts))
+        .route("/v1/admin/overview", get(crate::ledger_aliases::admin_overview))
         .route(
             "/v1/admin/reconcile",
             get(handlers::admin_ui::admin_reconcile_summary),
