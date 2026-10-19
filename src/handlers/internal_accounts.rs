@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Internal accounts — counterparty plumbing (cash deposit, clearing,
+//! Internal accounts - counterparty plumbing (cash deposit, clearing,
 //! suspense, liquidity, …) over `accounts` with `account_type='internal'`.
 //! Reads honour the §10.1 staff-realm `?env_id=` override (org-validated) via
 //! the shared `set_tenant_context_ext` resolution.
@@ -40,7 +40,7 @@ pub struct CreateInternalAccountRequest {
     pub denomination: String,
 }
 
-/// `POST /v1/internal-accounts` — create an internal account
+/// `POST /v1/internal-accounts` - create an internal account
 /// (counterparty plumbing: cash deposit, clearing, suspense, etc.).
 #[utoipa::path(
     post,
@@ -115,7 +115,7 @@ pub struct ListInternalAccountsQuery {
     pub product_type: Option<String>,
 }
 
-/// `GET /v1/internal-accounts` — list internal accounts (nickname/product_type
+/// `GET /v1/internal-accounts` - list internal accounts (nickname/product_type
 /// filter). Staff-realm callers may pass the org-validated `?env_id=` override
 /// per tenant-isolation design §10.1 (handled by the shared env resolution).
 #[utoipa::path(
@@ -175,7 +175,7 @@ pub async fn list_internal_accounts(
     ))
 }
 
-/// `GET /v1/internal-accounts/{id}` — internal account detail.
+/// `GET /v1/internal-accounts/{id}` - internal account detail.
 #[utoipa::path(
     get,
     path = "/v1/internal-accounts/{id}",

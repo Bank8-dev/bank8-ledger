@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "bank8-ledger",
-    "description": "Sentin8 Bank8:Ledger — core ledger, posting engine, product library.",
+    "description": "Sentin8 Bank8:Ledger - core ledger, posting engine, product library.",
     "license": {
       "name": "MIT OR Apache-2.0",
       "identifier": "MIT OR Apache-2.0"
@@ -15,7 +15,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/account-migrations` — submit a bulk account migration batch\n(Data-Loader-style staging; idempotent re-run via `:bulkRetry`).",
+        "summary": "`POST /v1/account-migrations` - submit a bulk account migration batch\n(Data-Loader-style staging; idempotent re-run via `:bulkRetry`).",
         "operationId": "create_bulk_batch",
         "requestBody": {
           "content": {
@@ -57,7 +57,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/account-plan-assocs` — list account↔plan associations.",
+        "summary": "`GET /v1/account-plan-assocs` - list account↔plan associations.",
         "operationId": "list_plan_assocs",
         "responses": {
           "200": {
@@ -87,7 +87,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/account-plan-assocs` — associate an account with a plan.",
+        "summary": "`POST /v1/account-plan-assocs` - associate an account with a plan.",
         "operationId": "create_plan_assoc",
         "requestBody": {
           "content": {
@@ -126,7 +126,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/account-schedule-tags?account_id=` — list account schedule tags.",
+        "summary": "`GET /v1/account-schedule-tags?account_id=` - list account schedule tags.",
         "operationId": "list_account_schedule_tags",
         "responses": {
           "200": {
@@ -158,7 +158,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/account-update-batches` — list bulk batches (either kind).",
+        "summary": "`GET /v1/account-update-batches` - list bulk batches (either kind).",
         "operationId": "list_bulk_batches",
         "parameters": [
           {
@@ -201,7 +201,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/account-update-batches/{id}/bulk-retry` — retry failed rows in a\nbulk batch (Sentin8 Jobs bulk-operations pattern). Staged rows are applied\naccount-by-account; already-applied rows are skipped (idempotent).",
+        "summary": "`POST /v1/account-update-batches/{id}/bulk-retry` - retry failed rows in a\nbulk batch (Sentin8 Jobs bulk-operations pattern). Staged rows are applied\naccount-by-account; already-applied rows are skipped (idempotent).",
         "operationId": "bulk_retry_batch",
         "responses": {
           "200": {
@@ -304,7 +304,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/accounts` — create account (v1 legacy).\n.5: holder callers can only create accounts owned by\nthemselves. Server-side defence-in-depth:\n- If the caller is a holder (§4.3c — no `holder:view-all` scope) and\nthey did not supply `customer_id`, we resolve it from their Auth\nuser id (via `customers`).\n- If the caller is a holder and they did supply a `customer_id` that\ndoes not match their own, we return 403 (they cannot create\naccounts for someone else).\n- If no `customers` row exists for the holder, we return 403\n— there is no way to own the account, so creating it would leave an\norphan (the list/get handlers then hide it forever).\n- Callers with `holder:view-all` (staff / sys / M2M) are\nunrestricted: they can pass any `customer_id` or none (for\ninternal accounts).",
+        "summary": "`POST /v1/accounts` - create account (v1 legacy).\n.5: holder callers can only create accounts owned by\nthemselves. Server-side defence-in-depth:\n- If the caller is a holder (§4.3c - no `holder:view-all` scope) and\nthey did not supply `customer_id`, we resolve it from their Auth\nuser id (via `customers`).\n- If the caller is a holder and they did supply a `customer_id` that\ndoes not match their own, we return 403 (they cannot create\naccounts for someone else).\n- If no `customers` row exists for the holder, we return 403\n- there is no way to own the account, so creating it would leave an\norphan (the list/get handlers then hide it forever).\n- Callers with `holder:view-all` (staff / sys / M2M) are\nunrestricted: they can pass any `customer_id` or none (for\ninternal accounts).",
         "operationId": "create_account",
         "requestBody": {
           "content": {
@@ -346,7 +346,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/accounts/{id}` — account detail.\n.5: customer-realm callers can only fetch their own accounts\nthe service layer verifies the account's `customer_id` matches the\ncaller's customer before returning. RLS is the backstop.",
+        "summary": "`GET /v1/accounts/{id}` - account detail.\n.5: customer-realm callers can only fetch their own accounts\nthe service layer verifies the account's `customer_id` matches the\ncaller's customer before returning. RLS is the backstop.",
         "operationId": "get_account",
         "parameters": [
           {
@@ -388,7 +388,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`PUT /v1/accounts/{id}` — update account (status, nickname).",
+        "summary": "`PUT /v1/accounts/{id}` - update account (status, nickname).",
         "operationId": "update_account",
         "parameters": [
           {
@@ -439,7 +439,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/accounts/{id}/attributes` — list account attribute values.",
+        "summary": "`GET /v1/accounts/{id}/attributes` - list account attribute values.",
         "operationId": "list_account_attributes",
         "responses": {
           "200": {
@@ -469,7 +469,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`PUT /v1/accounts/{id}/attributes` — upsert account attribute values.",
+        "summary": "`PUT /v1/accounts/{id}/attributes` - upsert account attribute values.",
         "operationId": "upsert_account_attribute",
         "requestBody": {
           "content": {
@@ -508,7 +508,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/accounts/{id}/balances` — live balances.",
+        "summary": "`GET /v1/accounts/{id}/balances` - live balances.",
         "operationId": "get_account_balances",
         "parameters": [
           {
@@ -552,7 +552,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/accounts/{id}/devices` — list attached payment devices.",
+        "summary": "`GET /v1/accounts/{id}/devices` - list attached payment devices.",
         "operationId": "list_payment_devices",
         "responses": {
           "200": {
@@ -582,7 +582,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/accounts/{id}/devices` — attach a payment device.",
+        "summary": "`POST /v1/accounts/{id}/devices` - attach a payment device.",
         "operationId": "attach_payment_device",
         "requestBody": {
           "content": {
@@ -621,7 +621,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/account-schedule-tags` — create/override an account schedule tag.",
+        "summary": "`POST /v1/account-schedule-tags` - create/override an account schedule tag.",
         "operationId": "upsert_account_schedule_tag",
         "parameters": [
           {
@@ -672,7 +672,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/accounts/{id}/schedules` — list schedules for an account.",
+        "summary": "`GET /v1/accounts/{id}/schedules` - list schedules for an account.",
         "operationId": "list_account_schedules",
         "parameters": [
           {
@@ -716,7 +716,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/accounts/{id}/statements` — list statements.",
+        "summary": "`GET /v1/accounts/{id}/statements` - list statements.",
         "operationId": "get_account_statements",
         "parameters": [
           {
@@ -760,7 +760,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/accounts/{id}/transactions` — transaction history.",
+        "summary": "`GET /v1/accounts/{id}/transactions` - transaction history.",
         "operationId": "get_account_transactions",
         "parameters": [
           {
@@ -824,7 +824,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/adjustments` — list adjustments (with `:batchGet` variant).",
+        "summary": "`GET /v1/adjustments` - list adjustments (with `:batchGet` variant).",
         "operationId": "list_adjustments",
         "responses": {
           "200": {
@@ -854,7 +854,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/adjustments` — create an adjustment: recompute the account state\nfor backdated postings/parameter changes by re-running the on-schedule\nmodules from the effective date and submitting a correction batch.",
+        "summary": "`POST /v1/adjustments` - create an adjustment: recompute the account state\nfor backdated postings/parameter changes by re-running the on-schedule\nmodules from the effective date and submitting a correction batch.",
         "operationId": "create_adjustment",
         "requestBody": {
           "content": {
@@ -896,7 +896,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/adjustments:bulkRetry` — retry failed adjustments (Sentin8 Jobs\npattern).",
+        "summary": "`POST /v1/adjustments:bulkRetry` - retry failed adjustments (Sentin8 Jobs\npattern).",
         "operationId": "bulk_retry_adjustments",
         "responses": {
           "200": {
@@ -918,7 +918,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/adjustments/{id}` — adjustment detail.",
+        "summary": "`GET /v1/adjustments/{id}` - adjustment detail.",
         "operationId": "get_adjustment",
         "responses": {
           "200": {
@@ -947,7 +947,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/admin/accounts` — admin view of `GET /v1/accounts` (same\nhandler).",
+        "summary": "`GET /v1/admin/accounts` - admin view of `GET /v1/accounts` (same\nhandler).",
         "operationId": "admin_accounts",
         "responses": {
           "200": {
@@ -971,7 +971,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`POST /v1/admin/accounts` — create-account form submission.",
+        "summary": "`POST /v1/admin/accounts` - create-account form submission.",
         "operationId": "submit_account_form",
         "responses": {
           "200": {
@@ -997,7 +997,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`PUT /v1/admin/accounts/{id}` — update-account form submission.",
+        "summary": "`PUT /v1/admin/accounts/{id}` - update-account form submission.",
         "operationId": "submit_account_edit",
         "responses": {
           "200": {
@@ -1023,7 +1023,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/audit` — query audit events.",
+        "summary": "`GET /v1/audit` - query audit events.",
         "operationId": "list_audit_events",
         "parameters": [
           {
@@ -1075,7 +1075,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`GET /v1/admin/balances` — account balances view (RFW DataTable rows).",
+        "summary": "`GET /v1/admin/balances` - account balances view (RFW DataTable rows).",
         "operationId": "admin_balances",
         "responses": {
           "200": {
@@ -1101,7 +1101,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/admin/customers` — admin view of `GET /v1/customers`.",
+        "summary": "`GET /v1/admin/customers` - admin view of `GET /v1/customers`.",
         "operationId": "admin_customers",
         "responses": {
           "200": {
@@ -1127,7 +1127,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/admin/dlq` — admin view of `GET /v1/dlq`.",
+        "summary": "`GET /v1/admin/dlq` - admin view of `GET /v1/dlq`.",
         "operationId": "list_dlq_alias",
         "responses": {
           "200": {
@@ -1153,7 +1153,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`POST /v1/admin/dlq/{id}/discard` — discard a DLQ entry (no republish).",
+        "summary": "`POST /v1/admin/dlq/{id}/discard` - discard a DLQ entry (no republish).",
         "operationId": "discard_dlq_entry",
         "responses": {
           "200": {
@@ -1179,7 +1179,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/admin/dlq/{id}/republish` — RFW alias of\n`POST /v1/dlq/{id}/republish`.",
+        "summary": "`POST /v1/admin/dlq/{id}/republish` - RFW alias of\n`POST /v1/dlq/{id}/republish`.",
         "operationId": "admin_republish_dlq",
         "parameters": [
           {
@@ -1214,7 +1214,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/admin/flag-definitions` — admin view of\n`GET /v1/flag-definitions`.",
+        "summary": "`GET /v1/admin/flag-definitions` - admin view of\n`GET /v1/flag-definitions`.",
         "operationId": "admin_flag_definitions",
         "responses": {
           "200": {
@@ -1240,7 +1240,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/admin/flags` — admin view of `GET /v1/flags`.",
+        "summary": "`GET /v1/admin/flags` - admin view of `GET /v1/flags`.",
         "operationId": "admin_flags",
         "responses": {
           "200": {
@@ -1264,7 +1264,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`POST /v1/admin/flags` — create-flag form submission.",
+        "summary": "`POST /v1/admin/flags` - create-flag form submission.",
         "operationId": "submit_flag_form",
         "responses": {
           "200": {
@@ -1290,7 +1290,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/admin/jobs` — admin view of `GET /v1/jobs`.",
+        "summary": "`GET /v1/admin/jobs` - admin view of `GET /v1/jobs`.",
         "operationId": "admin_list_jobs",
         "responses": {
           "200": {
@@ -1310,7 +1310,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`GET /v1/admin/overview` — the overview page's data (accounts-backed\nsummary; same handler as `GET /v1/accounts`).",
+        "summary": "`GET /v1/admin/overview` - the overview page's data (accounts-backed\nsummary; same handler as `GET /v1/accounts`).",
         "operationId": "admin_overview",
         "responses": {
           "200": {
@@ -1336,7 +1336,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/admin/parameters` — admin view of `GET /v1/parameters`.",
+        "summary": "`GET /v1/admin/parameters` - admin view of `GET /v1/parameters`.",
         "operationId": "admin_parameters",
         "responses": {
           "200": {
@@ -1360,7 +1360,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`POST /v1/admin/parameters` — create-parameter form submission.",
+        "summary": "`POST /v1/admin/parameters` - create-parameter form submission.",
         "operationId": "submit_parameter_form",
         "responses": {
           "200": {
@@ -1386,7 +1386,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/admin/postings` — posting batches list (RFW DataTable).",
+        "summary": "`GET /v1/admin/postings` - posting batches list (RFW DataTable).",
         "operationId": "list_postings_batches",
         "responses": {
           "200": {
@@ -1410,7 +1410,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`POST /v1/admin/postings` — new-posting form submission (batch of one).",
+        "summary": "`POST /v1/admin/postings` - new-posting form submission (batch of one).",
         "operationId": "submit_posting_form",
         "responses": {
           "200": {
@@ -1436,7 +1436,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/admin/products` — admin view of `GET /v1/products`.",
+        "summary": "`GET /v1/admin/products` - admin view of `GET /v1/products`.",
         "operationId": "admin_list_products",
         "responses": {
           "200": {
@@ -1460,7 +1460,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`POST /v1/admin/products` — handle product creation form submission.\nCalled by the RFW form renderer when the user clicks \"Create Product\".\nCreates the product and returns an `AdminUiResponse::redirect` so the\nRFW renderer navigates back to the products list.",
+        "summary": "`POST /v1/admin/products` - handle product creation form submission.\nCalled by the RFW form renderer when the user clicks \"Create Product\".\nCreates the product and returns an `AdminUiResponse::redirect` so the\nRFW renderer navigates back to the products list.",
         "operationId": "submit_product_form",
         "responses": {
           "200": {
@@ -1486,7 +1486,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/admin/products/{id}` — admin view of `GET /v1/products/{id}`.",
+        "summary": "`GET /v1/admin/products/{id}` - admin view of `GET /v1/products/{id}`.",
         "operationId": "admin_get_product",
         "parameters": [
           {
@@ -1519,7 +1519,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`PUT /v1/admin/products/{id}` — handle product edit form submission.",
+        "summary": "`PUT /v1/admin/products/{id}` - handle product edit form submission.",
         "operationId": "submit_product_edit",
         "responses": {
           "200": {
@@ -1545,7 +1545,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/admin/products/{id}/activate` — RFW alias of\n`POST /v1/products/{id}/activate`.",
+        "summary": "`POST /v1/admin/products/{id}/activate` - RFW alias of\n`POST /v1/products/{id}/activate`.",
         "operationId": "admin_activate_product",
         "parameters": [
           {
@@ -1575,7 +1575,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/admin/products/{id}/versions` — admin view of\n`GET /v1/products/{id}/versions`.",
+        "summary": "`GET /v1/admin/products/{id}/versions` - admin view of\n`GET /v1/products/{id}/versions`.",
         "operationId": "admin_list_product_versions",
         "parameters": [
           {
@@ -1608,7 +1608,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`POST /v1/admin/products/{id}/versions` — create a new product version.",
+        "summary": "`POST /v1/admin/products/{id}/versions` - create a new product version.",
         "operationId": "submit_product_version",
         "responses": {
           "200": {
@@ -1634,7 +1634,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`GET /v1/admin/reconcile` — reconciliation summary (posting totals).",
+        "summary": "`GET /v1/admin/reconcile` - reconciliation summary (posting totals).",
         "operationId": "admin_reconcile_summary",
         "responses": {
           "200": {
@@ -1660,7 +1660,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/admin/restriction-definitions` — admin view of\n`GET /v1/restriction-definitions`.",
+        "summary": "`GET /v1/admin/restriction-definitions` - admin view of\n`GET /v1/restriction-definitions`.",
         "operationId": "admin_restriction_definitions",
         "responses": {
           "200": {
@@ -1686,7 +1686,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/admin/restriction-sets` — admin view of\n`GET /v1/restriction-sets`.",
+        "summary": "`GET /v1/admin/restriction-sets` - admin view of\n`GET /v1/restriction-sets`.",
         "operationId": "admin_restriction_sets",
         "responses": {
           "200": {
@@ -1710,7 +1710,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`POST /v1/admin/restriction-sets` — create-restriction form submission.",
+        "summary": "`POST /v1/admin/restriction-sets` - create-restriction form submission.",
         "operationId": "submit_restriction_form",
         "responses": {
           "200": {
@@ -1736,7 +1736,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/admin/schedules` — admin view of `GET /v1/schedules`.",
+        "summary": "`GET /v1/admin/schedules` - admin view of `GET /v1/schedules`.",
         "operationId": "admin_list_schedules",
         "responses": {
           "200": {
@@ -1762,7 +1762,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`GET /v1/admin/settings` — static ledger settings payload.",
+        "summary": "`GET /v1/admin/settings` - static ledger settings payload.",
         "operationId": "admin_settings",
         "responses": {
           "200": {
@@ -1788,7 +1788,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "`GET /v1/admin/statements` — recent statements (RFW DataTable rows).",
+        "summary": "`GET /v1/admin/statements` - recent statements (RFW DataTable rows).",
         "operationId": "admin_statements",
         "responses": {
           "200": {
@@ -1814,7 +1814,7 @@
         "tags": [
           "admin-ui"
         ],
-        "summary": "GET /v1/admin/ui/{page} — return RFW definition for the requested admin page.",
+        "summary": "GET /v1/admin/ui/{page} - return RFW definition for the requested admin page.",
         "operationId": "get_admin_ui",
         "responses": {
           "200": {
@@ -1840,7 +1840,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/audit` — alias of `GET /v1/admin/audit` (same handler).",
+        "summary": "`GET /v1/audit` - alias of `GET /v1/admin/audit` (same handler).",
         "operationId": "audit_events_alias",
         "responses": {
           "200": {
@@ -1866,7 +1866,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/audit/action-logs` — action-filtered audit view (business Audit\nAPI `action_logs`).",
+        "summary": "`GET /v1/audit/action-logs` - action-filtered audit view (business Audit\nAPI `action_logs`).",
         "operationId": "list_action_logs",
         "parameters": [
           {
@@ -1909,7 +1909,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/calendar/bookkeeping-date/{date}` — bookkeeping date for a day.",
+        "summary": "`GET /v1/calendar/bookkeeping-date/{date}` - bookkeeping date for a day.",
         "operationId": "get_bookkeeping_date",
         "parameters": [
           {
@@ -1948,7 +1948,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`PUT /v1/calendar/bookkeeping-date/{date}` — set the bookkeeping date.",
+        "summary": "`PUT /v1/calendar/bookkeeping-date/{date}` - set the bookkeeping date.",
         "operationId": "upsert_bookkeeping_date",
         "requestBody": {
           "content": {
@@ -1987,7 +1987,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/calendars` — list calendars.",
+        "summary": "`GET /v1/calendars` - list calendars.",
         "operationId": "list_calendars",
         "responses": {
           "200": {
@@ -2017,7 +2017,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/calendars` — create a calendar.",
+        "summary": "`POST /v1/calendars` - create a calendar.",
         "operationId": "create_calendar",
         "requestBody": {
           "content": {
@@ -2056,7 +2056,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/calendars/{id}/events` — list calendar events.",
+        "summary": "`GET /v1/calendars/{id}/events` - list calendar events.",
         "operationId": "list_calendar_events",
         "responses": {
           "200": {
@@ -2086,7 +2086,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/calendars/{id}/events` — add a calendar event.",
+        "summary": "`POST /v1/calendars/{id}/events` - add a calendar event.",
         "operationId": "create_calendar_event",
         "requestBody": {
           "content": {
@@ -2128,7 +2128,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/calendars/{id}/periods` — list calendar periods.",
+        "summary": "`GET /v1/calendars/{id}/periods` - list calendar periods.",
         "operationId": "list_calendar_periods",
         "responses": {
           "200": {
@@ -2158,7 +2158,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/calendars/{id}/periods` — add a calendar period.",
+        "summary": "`POST /v1/calendars/{id}/periods` - add a calendar period.",
         "operationId": "create_calendar_period",
         "requestBody": {
           "content": {
@@ -2197,7 +2197,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/contract-events` — contract execution history (audit events with\ntarget_resource_type='contract'/'func_hook').",
+        "summary": "`GET /v1/contract-events` - contract execution history (audit events with\ntarget_resource_type='contract'/'func_hook').",
         "operationId": "list_contract_events",
         "responses": {
           "200": {
@@ -2229,7 +2229,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/contract-modules` — contract module catalog (Func modules\nregistered per product; sourced from the products' contract_modules field).",
+        "summary": "`GET /v1/contract-modules` - contract module catalog (Func modules\nregistered per product; sourced from the products' contract_modules field).",
         "operationId": "list_contract_modules",
         "responses": {
           "200": {
@@ -2261,7 +2261,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/contracts:simulate` — execute a module hook against synthetic\naccount state . Calls Sentin8:Func `POST /v1/modules/{id}/execute`\nwith a mock host-function context; **no persistence occurs** — the raw\nhook result is returned for preview/dry-run use.",
+        "summary": "`POST /v1/contracts:simulate` - execute a module hook against synthetic\naccount state . Calls Sentin8:Func `POST /v1/modules/{id}/execute`\nwith a mock host-function context; **no persistence occurs** - the raw\nhook result is returned for preview/dry-run use.",
         "operationId": "simulate_contract",
         "requestBody": {
           "content": {
@@ -2296,7 +2296,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/customers` — list/search customers.\nOptional `?search=<text>` filters by display_name or email (case-insensitive\nsubstring match). Without a search term, returns all customers in the\ncaller's org/env (subject to RLS).",
+        "summary": "`GET /v1/customers` - list/search customers.\nOptional `?search=<text>` filters by display_name or email (case-insensitive\nsubstring match). Without a search term, returns all customers in the\ncaller's org/env (subject to RLS).",
         "operationId": "list_customers",
         "parameters": [
           {
@@ -2346,7 +2346,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/customers` — create a customer.\nIf the caller is a user token, the `sentin8_auth_user_id` is stamped\nfrom their token claims so that holder-scoped RLS and\n`resolve_caller_customer_id` can find the row.",
+        "summary": "`POST /v1/customers` - create a customer.\nIf the caller is a user token, the `sentin8_auth_user_id` is stamped\nfrom their token claims so that holder-scoped RLS and\n`resolve_caller_customer_id` can find the row.",
         "operationId": "create_customer",
         "requestBody": {
           "content": {
@@ -2388,7 +2388,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/customers/{id}` — customer detail.",
+        "summary": "`GET /v1/customers/{id}` - customer detail.",
         "operationId": "get_customer",
         "parameters": [
           {
@@ -2485,7 +2485,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`PUT /v1/customers/{id}/update` — update customer (display name / contact).",
+        "summary": "`PUT /v1/customers/{id}/update` - update customer (display name / contact).",
         "operationId": "update_customer",
         "parameters": [
           {
@@ -2539,7 +2539,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/derived-parameter-values?account_id=` — computed derived values.",
+        "summary": "`GET /v1/derived-parameter-values?account_id=` - computed derived values.",
         "operationId": "get_derived_parameters",
         "parameters": [
           {
@@ -2583,7 +2583,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/dlq` — list dead-letter queue entries (local posting DLQ + Cron schedule DLQ).",
+        "summary": "`GET /v1/dlq` - list dead-letter queue entries (local posting DLQ + Cron schedule DLQ).",
         "operationId": "list_dlq",
         "responses": {
           "200": {
@@ -2615,7 +2615,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/dlq/{id}/republish` — republish a DLQ entry (local posting or Cron schedule).",
+        "summary": "`POST /v1/dlq/{id}/republish` - republish a DLQ entry (local posting or Cron schedule).",
         "operationId": "republish_dlq",
         "parameters": [
           {
@@ -2652,7 +2652,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/flag-definitions` — list flag definitions.",
+        "summary": "`GET /v1/flag-definitions` - list flag definitions.",
         "operationId": "list_flag_definitions",
         "responses": {
           "200": {
@@ -2676,7 +2676,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/flag-definitions` — create a flag definition.",
+        "summary": "`POST /v1/flag-definitions` - create a flag definition.",
         "operationId": "create_flag_definition",
         "responses": {
           "200": {
@@ -2702,7 +2702,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/flags` — list flags.",
+        "summary": "`GET /v1/flags` - list flags.",
         "operationId": "list_flags",
         "responses": {
           "200": {
@@ -2726,7 +2726,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/flags` — set a flag on an account or customer.",
+        "summary": "`POST /v1/flags` - set a flag on an account or customer.",
         "operationId": "create_flag",
         "responses": {
           "200": {
@@ -2752,7 +2752,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/global-parameters` — list global parameters.",
+        "summary": "`GET /v1/global-parameters` - list global parameters.",
         "operationId": "list_global_parameters",
         "responses": {
           "200": {
@@ -2782,7 +2782,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/global-parameters` — create/update a global parameter.",
+        "summary": "`POST /v1/global-parameters` - create/update a global parameter.",
         "operationId": "upsert_global_parameter",
         "requestBody": {
           "content": {
@@ -2821,7 +2821,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/global-parameters/{id}` — global parameter detail.",
+        "summary": "`GET /v1/global-parameters/{id}` - global parameter detail.",
         "operationId": "get_global_parameter",
         "responses": {
           "200": {
@@ -2869,7 +2869,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/internal-accounts` — list internal accounts (nickname/product_type\nfilter). Staff-realm callers may pass the org-validated `?env_id=` override\nper tenant-isolation design §10.1 (handled by the shared env resolution).",
+        "summary": "`GET /v1/internal-accounts` - list internal accounts (nickname/product_type\nfilter). Staff-realm callers may pass the org-validated `?env_id=` override\nper tenant-isolation design §10.1 (handled by the shared env resolution).",
         "operationId": "list_internal_accounts",
         "responses": {
           "200": {
@@ -2899,7 +2899,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/internal-accounts` — create an internal account\n(counterparty plumbing: cash deposit, clearing, suspense, etc.).",
+        "summary": "`POST /v1/internal-accounts` - create an internal account\n(counterparty plumbing: cash deposit, clearing, suspense, etc.).",
         "operationId": "create_internal_account",
         "requestBody": {
           "content": {
@@ -2941,7 +2941,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/internal-accounts/{id}` — internal account detail.",
+        "summary": "`GET /v1/internal-accounts/{id}` - internal account detail.",
         "operationId": "get_internal_account",
         "responses": {
           "200": {
@@ -2970,7 +2970,7 @@
         "tags": [
           "internal"
         ],
-        "summary": "`POST /v1/internal/func-host` — Sentin8:Func proxy-back for host functions.\nAuthorization: M2M token with `bank8:ledger:postings:write` (the Func\nruntime authenticates with the posting service's M2M identity because\nhost functions can move money). Tenant context comes from the `env_id`\nin the request body — the Func runtime resolves it from the hook\ncontext, and the M2M token's own env claim is cross-checked.",
+        "summary": "`POST /v1/internal/func-host` - Sentin8:Func proxy-back for host functions.\nAuthorization: M2M token with `bank8:ledger:postings:write` (the Func\nruntime authenticates with the posting service's M2M identity because\nhost functions can move money). Tenant context comes from the `env_id`\nin the request body - the Func runtime resolves it from the hook\ncontext, and the M2M token's own env claim is cross-checked.",
         "operationId": "func_host",
         "responses": {
           "200": {
@@ -2996,7 +2996,7 @@
         "tags": [
           "internal"
         ],
-        "summary": "`POST /v1/internal/schedules/run` — Cron proxy-back endpoint.\nCron calls this when a Ledger schedule fires. Ledger executes the scheduled\nwork (§4.3): it resolves the schedule's `schedule_type`, loads the affected\naccount(s) with their product modules + parameters, runs the on-schedule\nmodule functions to generate posting instructions, and submits them as one\natomic posting batch. A `bank8_ledger_jobs` row records the outcome\n`failed` + `error_message` when any step fails (never unconditionally\ncompleted); `last_run_at` is updated only via propagated, awaited writes.",
+        "summary": "`POST /v1/internal/schedules/run` - Cron proxy-back endpoint.\nCron calls this when a Ledger schedule fires. Ledger executes the scheduled\nwork (§4.3): it resolves the schedule's `schedule_type`, loads the affected\naccount(s) with their product modules + parameters, runs the on-schedule\nmodule functions to generate posting instructions, and submits them as one\natomic posting batch. A `bank8_ledger_jobs` row records the outcome\n`failed` + `error_message` when any step fails (never unconditionally\ncompleted); `last_run_at` is updated only via propagated, awaited writes.",
         "operationId": "internal_schedule_run",
         "responses": {
           "200": {
@@ -3019,7 +3019,7 @@
         "tags": [
           "internal"
         ],
-        "summary": "`POST /v1/internal/statements/regen` — Flow proxy-back for the\n`statement-regen` workflow (design §10).",
+        "summary": "`POST /v1/internal/statements/regen` - Flow proxy-back for the\n`statement-regen` workflow (design §10).",
         "description": "Authorization mirrors the platform's canonical Flow proxy-back gate\n(sys `flow_delegate::execute_step`): the caller must present an\nAuth-issued M2M bearer with `sentin8:sys:steps:execute` (Flow's\n`sentin8-flow-sys` client). Transport identity (PQ-TLS + platform CA)\nis machine identity, not service authorization; anonymous → 401,\nwrong scope → 403. The workflow's env is cross-checked against the\nbearer's env claim (a proxy-back can only act on an env its token\ncan address; the platform plane bypasses via `is_platform_admin`).",
         "operationId": "statement_regen_step",
         "responses": {
@@ -3046,7 +3046,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/jobs` — list jobs.",
+        "summary": "`GET /v1/jobs` - list jobs.",
         "operationId": "list_jobs",
         "parameters": [
           {
@@ -3099,7 +3099,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/jobs/{id}` — job detail.",
+        "summary": "`GET /v1/jobs/{id}` - job detail.",
         "operationId": "get_job",
         "parameters": [
           {
@@ -3143,7 +3143,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/jobs/{id}/retry` — retry a failed job.",
+        "summary": "`POST /v1/jobs/{id}/retry` - retry a failed job.",
         "operationId": "retry_job",
         "parameters": [
           {
@@ -3184,7 +3184,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/jobs:batchRepublish` — override failed jobs (mark as OVERRIDDEN).",
+        "summary": "`POST /v1/jobs:batchRepublish` - override failed jobs (mark as OVERRIDDEN).",
         "operationId": "batch_republish_jobs",
         "requestBody": {
           "content": {
@@ -3216,7 +3216,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/journal-events` — query the journal.",
+        "summary": "`GET /v1/journal-events` - query the journal.",
         "operationId": "list_journal_events",
         "parameters": [
           {
@@ -3269,7 +3269,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/journal-events/{id}` — one journal event.",
+        "summary": "`GET /v1/journal-events/{id}` - one journal event.",
         "operationId": "get_journal_event",
         "responses": {
           "200": {
@@ -3298,7 +3298,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/journal-events/{id}/replay` — re-drive a journal event\nidempotently . The journal row carries the full operation payload;\nposting replays are no-ops thanks to posting idempotency keys. Other\nresource kinds re-apply the recorded operation.",
+        "summary": "`POST /v1/journal-events/{id}/replay` - re-drive a journal event\nidempotently . The journal row carries the full operation payload;\nposting replays are no-ops thanks to posting idempotency keys. Other\nresource kinds re-apply the recorded operation.",
         "operationId": "replay_journal_event",
         "responses": {
           "200": {
@@ -3320,7 +3320,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/parameter-value-hierarchy-nodes` — list hierarchy nodes.",
+        "summary": "`GET /v1/parameter-value-hierarchy-nodes` - list hierarchy nodes.",
         "operationId": "list_hierarchy_nodes",
         "responses": {
           "200": {
@@ -3344,7 +3344,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/parameter-value-hierarchy-nodes` — create a hierarchy node.",
+        "summary": "`POST /v1/parameter-value-hierarchy-nodes` - create a hierarchy node.",
         "operationId": "create_hierarchy_node",
         "responses": {
           "200": {
@@ -3370,7 +3370,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/parameter-values` — list parameter values.",
+        "summary": "`GET /v1/parameter-values` - list parameter values.",
         "operationId": "list_parameter_values",
         "responses": {
           "200": {
@@ -3394,7 +3394,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/parameter-values` — create a parameter value.",
+        "summary": "`POST /v1/parameter-values` - create a parameter value.",
         "operationId": "create_parameter_value",
         "responses": {
           "200": {
@@ -3420,8 +3420,8 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/parameter-values:viewEffective` — resolve effective parameter value\nat a point in time, with hierarchy precedence (account > hierarchy > global).",
-        "description": "Results are served from a bounded TTL cache (design §10): the\nparameter-value write path is insert-only with `effective_from`, so a\nshort TTL self-heals and no event-driven invalidation is needed. The\nposting money path never consults this cache — parameter resolution\nthere is transactional by design (a stale fee rate is a correctness\ndefect, not a latency trade).",
+        "summary": "`GET /v1/parameter-values:viewEffective` - resolve effective parameter value\nat a point in time, with hierarchy precedence (account > hierarchy > global).",
+        "description": "Results are served from a bounded TTL cache (design §10): the\nparameter-value write path is insert-only with `effective_from`, so a\nshort TTL self-heals and no event-driven invalidation is needed. The\nposting money path never consults this cache - parameter resolution\nthere is transactional by design (a stale fee rate is a correctness\ndefect, not a latency trade).",
         "operationId": "view_effective_parameter",
         "responses": {
           "200": {
@@ -3447,7 +3447,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/parameters` — list parameters.",
+        "summary": "`GET /v1/parameters` - list parameters.",
         "operationId": "list_parameters",
         "responses": {
           "200": {
@@ -3471,7 +3471,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/parameters` — create a parameter definition.",
+        "summary": "`POST /v1/parameters` - create a parameter definition.",
         "operationId": "create_parameter",
         "responses": {
           "200": {
@@ -3497,7 +3497,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/plans` — list plans.",
+        "summary": "`GET /v1/plans` - list plans.",
         "operationId": "list_plans",
         "responses": {
           "200": {
@@ -3527,7 +3527,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/plans` — create a plan.",
+        "summary": "`POST /v1/plans` - create a plan.",
         "operationId": "create_plan",
         "requestBody": {
           "content": {
@@ -3569,7 +3569,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/plans/{id}` — plan detail.",
+        "summary": "`GET /v1/plans/{id}` - plan detail.",
         "operationId": "get_plan",
         "responses": {
           "200": {
@@ -3598,7 +3598,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/plans/{id}/migrations` — migrate accounts onto a plan\n(PlanMigration): re-associates the from-plan accounts and closes it.",
+        "summary": "`POST /v1/plans/{id}/migrations` - migrate accounts onto a plan\n(PlanMigration): re-associates the from-plan accounts and closes it.",
         "operationId": "migrate_plan",
         "requestBody": {
           "content": {
@@ -3630,7 +3630,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/post-posting-failures` — list post-posting hook failures.",
+        "summary": "`GET /v1/post-posting-failures` - list post-posting hook failures.",
         "operationId": "list_post_posting_failures",
         "responses": {
           "200": {
@@ -3662,7 +3662,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/post-posting-failures/{id}/republish` — re-run the post-posting\nhook for a committed batch (delegates to Sentin8:Func).",
+        "summary": "`POST /v1/post-posting-failures/{id}/republish` - re-run the post-posting\nhook for a committed batch (delegates to Sentin8:Func).",
         "operationId": "republish_post_posting_failure",
         "responses": {
           "200": {
@@ -3684,7 +3684,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/postings` — synchronous posting instruction batch.",
+        "summary": "`POST /v1/postings` - synchronous posting instruction batch.",
         "operationId": "create_posting",
         "requestBody": {
           "content": {
@@ -3726,7 +3726,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/postings/async` — async posting via Bus (enqueues to Bus stream).",
+        "summary": "`POST /v1/postings/async` - async posting via Bus (enqueues to Bus stream).",
         "operationId": "create_posting_async",
         "requestBody": {
           "content": {
@@ -3761,7 +3761,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/postings/{id}` — batch status.",
+        "summary": "`GET /v1/postings/{id}` - batch status.",
         "operationId": "get_posting",
         "parameters": [
           {
@@ -3805,7 +3805,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/postings/{id}/instructions` — list instructions in a batch.",
+        "summary": "`GET /v1/postings/{id}/instructions` - list instructions in a batch.",
         "operationId": "get_posting_instructions",
         "parameters": [
           {
@@ -3839,7 +3839,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/processing-groups` — list processing groups.",
+        "summary": "`GET /v1/processing-groups` - list processing groups.",
         "operationId": "list_processing_groups",
         "responses": {
           "200": {
@@ -3869,7 +3869,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/processing-groups` — create/update a processing group.",
+        "summary": "`POST /v1/processing-groups` - create/update a processing group.",
         "operationId": "upsert_processing_group",
         "requestBody": {
           "content": {
@@ -3908,7 +3908,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/processing-groups/{id}/pause` — pause EOD processing.",
+        "summary": "`POST /v1/processing-groups/{id}/pause` - pause EOD processing.",
         "operationId": "pause_processing_group",
         "responses": {
           "200": {
@@ -3934,7 +3934,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/processing-groups/{id}/resume` — resume EOD processing.",
+        "summary": "`POST /v1/processing-groups/{id}/resume` - resume EOD processing.",
         "operationId": "resume_processing_group",
         "responses": {
           "200": {
@@ -3960,7 +3960,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/products` — list products.",
+        "summary": "`GET /v1/products` - list products.",
         "operationId": "list_products",
         "responses": {
           "200": {
@@ -3990,7 +3990,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/products` — create a product.",
+        "summary": "`POST /v1/products` - create a product.",
         "operationId": "create_product",
         "requestBody": {
           "content": {
@@ -4029,7 +4029,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/products/{id}` — product detail.",
+        "summary": "`GET /v1/products/{id}` - product detail.",
         "operationId": "get_product",
         "parameters": [
           {
@@ -4071,7 +4071,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`PUT /v1/products/{id}` — update product.",
+        "summary": "`PUT /v1/products/{id}` - update product.",
         "operationId": "update_product",
         "parameters": [
           {
@@ -4122,7 +4122,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/products/{id}/activate` — activate a product.\nAlso accepts `ledger:write` (broad write scope) for end-user app tokens.",
+        "summary": "`POST /v1/products/{id}/activate` - activate a product.\nAlso accepts `ledger:write` (broad write scope) for end-user app tokens.",
         "operationId": "activate_product",
         "parameters": [
           {
@@ -4156,7 +4156,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/products/{id}/versions` — list product versions.",
+        "summary": "`GET /v1/products/{id}/versions` - list product versions.",
         "operationId": "list_product_versions",
         "parameters": [
           {
@@ -4198,7 +4198,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/products/{id}/versions` — create a product version.",
+        "summary": "`POST /v1/products/{id}/versions` - create a product version.",
         "operationId": "create_product_version",
         "parameters": [
           {
@@ -4249,7 +4249,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/restriction-definitions` — list restriction definitions.",
+        "summary": "`GET /v1/restriction-definitions` - list restriction definitions.",
         "operationId": "list_restriction_definitions",
         "responses": {
           "200": {
@@ -4273,7 +4273,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/restriction-definitions` — create a restriction definition.",
+        "summary": "`POST /v1/restriction-definitions` - create a restriction definition.",
         "operationId": "create_restriction_definition",
         "responses": {
           "200": {
@@ -4299,7 +4299,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/restriction-sets` — list restriction sets.",
+        "summary": "`GET /v1/restriction-sets` - list restriction sets.",
         "operationId": "list_restriction_sets",
         "responses": {
           "200": {
@@ -4323,7 +4323,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/restriction-sets` — apply a restriction set to an account or customer.",
+        "summary": "`POST /v1/restriction-sets` - apply a restriction set to an account or customer.",
         "operationId": "create_restriction_set",
         "responses": {
           "200": {
@@ -4349,7 +4349,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/schedule-tags` — list schedule tags.",
+        "summary": "`GET /v1/schedule-tags` - list schedule tags.",
         "operationId": "list_schedule_tags",
         "responses": {
           "200": {
@@ -4379,7 +4379,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/schedule-tags` — create a schedule tag (activation group).",
+        "summary": "`POST /v1/schedule-tags` - create a schedule tag (activation group).",
         "operationId": "create_schedule_tag",
         "requestBody": {
           "content": {
@@ -4421,7 +4421,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/schedule-tags/{id}/assocs` — attach a tag to a schedule\n(tag status ACTIVE/INACTIVE controls the schedule).",
+        "summary": "`POST /v1/schedule-tags/{id}/assocs` - attach a tag to a schedule\n(tag status ACTIVE/INACTIVE controls the schedule).",
         "operationId": "associate_schedule_tag",
         "requestBody": {
           "content": {
@@ -4453,7 +4453,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/schedules` — list schedules.",
+        "summary": "`GET /v1/schedules` - list schedules.",
         "operationId": "list_schedules",
         "parameters": [
           {
@@ -4504,7 +4504,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/schedules` — create a schedule, delegating execution to Cron.\nLedger stores a local reference in `schedules` and creates the actual\nschedule in Cron via `POST /v1/schedules`. Cron fires the schedule and\nproxy-calls Ledger's `POST /v1/internal/schedules/run` to execute the work.",
+        "summary": "`POST /v1/schedules` - create a schedule, delegating execution to Cron.\nLedger stores a local reference in `schedules` and creates the actual\nschedule in Cron via `POST /v1/schedules`. Cron fires the schedule and\nproxy-calls Ledger's `POST /v1/internal/schedules/run` to execute the work.",
         "operationId": "create_schedule",
         "requestBody": {
           "content": {
@@ -4543,7 +4543,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/schedules/{id}` — schedule detail.",
+        "summary": "`GET /v1/schedules/{id}` - schedule detail.",
         "operationId": "get_schedule",
         "parameters": [
           {
@@ -4587,7 +4587,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/streams` — client-facing streaming catalog: the `event_type`\nfamilies the ledger emits on the `bus:{envId}:ledger` stream family\n(business \"Core Streaming API\"; topic mapping in design §11).",
+        "summary": "`GET /v1/streams` - client-facing streaming catalog: the `event_type`\nfamilies the ledger emits on the `bus:{envId}:ledger` stream family\n(business \"Core Streaming API\"; topic mapping in design §11).",
         "operationId": "list_streams",
         "responses": {
           "200": {
@@ -4609,7 +4609,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/supervisor-contracts` — list supervisor contracts.",
+        "summary": "`GET /v1/supervisor-contracts` - list supervisor contracts.",
         "operationId": "list_supervisor_contracts",
         "responses": {
           "200": {
@@ -4639,7 +4639,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`POST /v1/supervisor-contracts` — create a cross-account contract.",
+        "summary": "`POST /v1/supervisor-contracts` - create a cross-account contract.",
         "operationId": "create_supervisor_contract",
         "requestBody": {
           "content": {
@@ -4681,7 +4681,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v1/supervisor-contracts/{id}` — supervisor contract detail.",
+        "summary": "`GET /v1/supervisor-contracts/{id}` - supervisor contract detail.",
         "operationId": "get_supervisor_contract",
         "responses": {
           "200": {
@@ -4710,7 +4710,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v2/balances/end` — end-of-period balances (month buckets by default).",
+        "summary": "`GET /v2/balances/end` - end-of-period balances (month buckets by default).",
         "operationId": "balances_v2_end",
         "responses": {
           "200": {
@@ -4742,7 +4742,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v2/balances/live` — current committed balances per account.",
+        "summary": "`GET /v2/balances/live` - current committed balances per account.",
         "operationId": "balances_v2_live",
         "responses": {
           "200": {
@@ -4774,7 +4774,7 @@
         "tags": [
           "ledger"
         ],
-        "summary": "`GET /v2/balances/series` — balance series over a time range (bucket scan).",
+        "summary": "`GET /v2/balances/series` - balance series over a time range (bucket scan).",
         "operationId": "balances_v2_series",
         "parameters": [
           {
@@ -5082,7 +5082,7 @@
         "properties": {
           "device_token_ref": {
             "type": "string",
-            "description": "Secret reference (never raw PAN/token material) — §4.4 secret references."
+            "description": "Secret reference (never raw PAN/token material) - §4.4 secret references."
           },
           "device_type": {
             "type": "string"
@@ -6094,7 +6094,7 @@
               "string",
               "null"
             ],
-            "description": "Optional local display_name stamp (VDC §VDC.2 — the ledger never\njoins the platform auth schema; the caller supplies the identity\nfields it already verified)."
+            "description": "Optional local display_name stamp (VDC §VDC.2 - the ledger never\njoins the platform auth schema; the caller supplies the identity\nfields it already verified)."
           },
           "email": {
             "type": [
@@ -6110,7 +6110,7 @@
       },
       "ListAccountsQuery": {
         "type": "object",
-        "description": "`GET /v1/accounts` — list accounts.\n.5: holder callers (§4.3c — no `holder:view-all` scope) see only\naccounts held by their own `customers` row, and only\n`account_type='customer'` accounts (internal accounts are never exposed\nto holders — forced here in the service layer; RLS is the backstop).\nCallers with `holder:view-all` see all env accounts. A holder caller's\n`?customer_id=` query param is ignored — they cannot impersonate another\ncustomer.",
+        "description": "`GET /v1/accounts` - list accounts.\n.5: holder callers (§4.3c - no `holder:view-all` scope) see only\naccounts held by their own `customers` row, and only\n`account_type='customer'` accounts (internal accounts are never exposed\nto holders - forced here in the service layer; RLS is the backstop).\nCallers with `holder:view-all` see all env accounts. A holder caller's\n`?customer_id=` query param is ignored - they cannot impersonate another\ncustomer.",
         "properties": {
           "account_type": {
             "type": [
@@ -6130,7 +6130,7 @@
               "string",
               "null"
             ],
-            "description": "§10.1 — staff-realm env override for internal-account reads.\nValidated against org membership; ignored for customer/delegated\ntokens (env-locked) and never widens customer-data visibility."
+            "description": "§10.1 - staff-realm env override for internal-account reads.\nValidated against org membership; ignored for customer/delegated\ntokens (env-locked) and never widens customer-data visibility."
           },
           "product_id": {
             "type": [
@@ -6669,7 +6669,7 @@
         "properties": {
           "account": {
             "$ref": "#/components/schemas/Value",
-            "description": "Synthetic account state — no persistence occurs."
+            "description": "Synthetic account state - no persistence occurs."
           },
           "hook": {
             "type": "string",
@@ -6986,7 +6986,7 @@
   "tags": [
     {
       "name": "ledger",
-      "description": "Bank8:Ledger API — accounts, products, postings, schedules, customers, audit"
+      "description": "Bank8:Ledger API - accounts, products, postings, schedules, customers, audit"
     }
   ]
 }

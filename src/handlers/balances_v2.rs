@@ -3,11 +3,11 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Balances v2 — live / end-of-period / series over `balances` buckets
+//! Balances v2 - live / end-of-period / series over `balances` buckets
 //! (design §5.3).
 //! `balances` holds the latest committed amount per
 //! (account, denomination, address, phase). Holder-scoped callers (§4.3c)
-//! only see balances of their own customer accounts — the `holder_scope_ids`
+//! only see balances of their own customer accounts - the `holder_scope_ids`
 //! defence-in-depth filter never leaks env-wide rows.
 
 use axum::{
@@ -66,7 +66,7 @@ async fn holder_scope_ids(conn: &mut sqlx::PgConnection, auth: &auth::AuthContex
     }
 }
 
-/// `GET /v2/balances/live` — current committed balances per account.
+/// `GET /v2/balances/live` - current committed balances per account.
 #[utoipa::path(
     get,
     path = "/v2/balances/live",
@@ -119,7 +119,7 @@ fn row_to_balance_v2(r: &sqlx::postgres::PgRow) -> BalanceV2Response {
     }
 }
 
-/// `GET /v2/balances/end` — end-of-period balances (month buckets by default).
+/// `GET /v2/balances/end` - end-of-period balances (month buckets by default).
 #[utoipa::path(
     get,
     path = "/v2/balances/end",
@@ -136,12 +136,12 @@ pub async fn balances_v2_end(
 ) -> Result<Json<Vec<BalanceV2Response>>, (StatusCode, String)> {
     // End-of-period = the committed bucket as of the end of the previous
     // month; `balances` holds the latest committed amount per
-    // (account, denomination, address, phase) — the EOD processor and the
+    // (account, denomination, address, phase) - the EOD processor and the
     // schedule engine keep the monthly bucket current via on-schedule runs.
     balances_v2_live(State(state), headers).await
 }
 
-/// `GET /v2/balances/series` — balance series over a time range (bucket scan).
+/// `GET /v2/balances/series` - balance series over a time range (bucket scan).
 #[utoipa::path(
     get,
     path = "/v2/balances/series",

@@ -7,7 +7,7 @@
 //! Contract logic runs in Sentin8:Func WASM modules; this module exposes:
 //! - the Func-module catalog view derived from products' `contract_modules`,
 //! - the contract execution history (audit view),
-//! - `POST /v1/contracts/simulate` — execute a module hook against synthetic
+//! - `POST /v1/contracts/simulate` - execute a module hook against synthetic
 //! account state with **no persistence** (preview/dry-run),
 //! - supervisor contracts (cross-account contracts with member accounts).
 
@@ -46,7 +46,7 @@ pub struct CreateSupervisorContractRequest {
     pub parameters: JsonValue,
 }
 
-/// `POST /v1/supervisor-contracts` — create a cross-account contract.
+/// `POST /v1/supervisor-contracts` - create a cross-account contract.
 #[utoipa::path(
     post,
     path = "/v1/supervisor-contracts",
@@ -110,7 +110,7 @@ pub async fn create_supervisor_contract(
     }))
 }
 
-/// `GET /v1/supervisor-contracts` — list supervisor contracts.
+/// `GET /v1/supervisor-contracts` - list supervisor contracts.
 #[utoipa::path(
     get,
     path = "/v1/supervisor-contracts",
@@ -159,7 +159,7 @@ pub async fn list_supervisor_contracts(
     ))
 }
 
-/// `GET /v1/supervisor-contracts/{id}` — supervisor contract detail.
+/// `GET /v1/supervisor-contracts/{id}` - supervisor contract detail.
 #[utoipa::path(
     get,
     path = "/v1/supervisor-contracts/{id}",
@@ -216,7 +216,7 @@ pub struct SimulateContractRequest {
     /// Hook name (pre_posting, post_posting, scheduled_event, activation, deactivation).
     #[serde(default = "default_hook")]
     pub hook: String,
-    /// Synthetic account state — no persistence occurs.
+    /// Synthetic account state - no persistence occurs.
     #[serde(default)]
     pub account: JsonValue,
     #[serde(default)]
@@ -228,9 +228,9 @@ fn default_hook() -> String {
     "pre_posting".into()
 }
 
-/// `POST /v1/contracts:simulate` — execute a module hook against synthetic
+/// `POST /v1/contracts:simulate` - execute a module hook against synthetic
 /// account state . Calls Sentin8:Func `POST /v1/modules/{id}/execute`
-/// with a mock host-function context; **no persistence occurs** — the raw
+/// with a mock host-function context; **no persistence occurs** - the raw
 /// hook result is returned for preview/dry-run use.
 #[utoipa::path(
     post,
@@ -263,7 +263,7 @@ pub async fn simulate_contract(
             "Sentin8:Func not configured".into(),
         ));
     }
-    // Certificate-presenting client (CERTFREE-4F) — the `ledger`
+    // Certificate-presenting client (CERTFREE-4F) - the `ledger`
     // workload certificate presents in the TLS handshake; the callback
     // token is the separate proxy-back contract.
     let client = match state.config.func_client.clone() {
@@ -322,7 +322,7 @@ pub struct ContractModuleResponse {
     pub hooks: Vec<String>,
 }
 
-/// `GET /v1/contract-modules` — contract module catalog (Func modules
+/// `GET /v1/contract-modules` - contract module catalog (Func modules
 /// registered per product; sourced from the products' contract_modules field).
 #[utoipa::path(
     get,
@@ -409,7 +409,7 @@ pub async fn list_contract_modules(
     Ok(Json(modules))
 }
 
-/// `GET /v1/contract-events` — contract execution history (audit events with
+/// `GET /v1/contract-events` - contract execution history (audit events with
 /// target_resource_type='contract'/'func_hook').
 #[utoipa::path(
     get,

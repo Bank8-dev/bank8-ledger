@@ -19,7 +19,7 @@ const PG_ROLES: &[PgRole] = &[PgRole {
     // Grants live in the bank8 vertical database only (DBX §6.6
     // database-per-vertical, schema-per-service).
     database: "bank8",
-    // Ledger owns all its reads — no cross-schema grants.
+    // Ledger owns all its reads - no cross-schema grants.
     cross_schema_grants: &[],
 }];
 
@@ -28,14 +28,14 @@ const PG_ROLES: &[PgRole] = &[PgRole {
 /// `certless:<workload>` rows into `sentin8.auth_m2m_scope_grants`. Scopes
 /// use the full vocabulary form (bare forms + missing grants fail-closed
 /// every bus/policy/stat DCR).
-/// - `bank8:ledger` — the service's own client (ledger/src/server.rs):
+/// - `bank8:ledger` - the service's own client (ledger/src/server.rs):
 ///
 /// bus produce/consume + the shared Func/Cron M2M token source.
-/// - `bank8:ledger-policy` — Shield hot-reload consumer
+/// - `bank8:ledger-policy` - Shield hot-reload consumer
 ///
 /// (policy_bus_client, full colon identity).
-/// - `ledger-policy` — Shield stat emitter (stat_emit short form).
-/// - `ledger-audit` — shell audit-journal pusher workload (audit crate
+/// - `ledger-policy` - Shield stat emitter (stat_emit short form).
+/// - `ledger-audit` - shell audit-journal pusher workload (audit crate
 ///
 /// §6.8; boot step 8c).
 const M2M_GRANTS: &[M2mGrant] = &[
@@ -68,7 +68,7 @@ const M2M_GRANTS: &[M2mGrant] = &[
     },
     // Staff directory reads (isolation-design §10 / VDC §VDC.5): the
     // customer-search org check resolves the requested env's org via
-    // Sys's tenant-snapshot API — the sanctioned on-demand cross-tenant
+    // Sys's tenant-snapshot API - the sanctioned on-demand cross-tenant
     // read (the former cross-database `sentin8.auth_*` / `sentin8.sys_*`
     // joins never existed in the vertical's own database).
     M2mGrant {
@@ -92,7 +92,7 @@ const M2M_GRANTS: &[M2mGrant] = &[
         scopes: &["sentin8:storage:env:write", "sentin8:storage:env:read"],
     },
     // TLS-RLS-4 (design/sentin8-vertical-data-plane-contract.md §VDC.7):
-    // the database-free HostContextResolver’s resolve workload — cache
+    // the database-free HostContextResolver’s resolve workload - cache
     // miss calls Sys `GET /v1/resolve/hostname`.
     M2mGrant {
         workload: "bank8-ledger-tls",
@@ -352,30 +352,30 @@ const ADMIN_UI_PAGES: &[AdminUiPage] = &[
 
 /// Default declarative policy set (Sentin8:Policy design §3.2/§3.4,
 /// seeded by `vertical enroll` as `origin='platform'`, `mode='enforced'`):
-/// action-granular scope permits over the LIVE effective scope set — the
+/// action-granular scope permits over the LIVE effective scope set - the
 /// exact mirror of the gates this service's handlers evaluate in step 5
 /// (policy design §4.3). Step 5 is the only gate; shadow is the
 /// emergency one-UPDATE rollback lever only.
-/// The Shield text of the declared scope-mirror set — public so the policy
+/// The Shield text of the declared scope-mirror set - public so the policy
 /// wiring tests assert against the REAL seed (drift fails the
 /// suite instead of silently diverging from enrollment).
 pub const SCOPE_MIRROR_POLICIES: &str =
     "permit(principal, action == Action::\"bank8:ledger:accounts:read\", resource) when { principal.scopes.contains(\"bank8:ledger:accounts:read\") };\npermit(principal, action == Action::\"bank8:ledger:accounts:read\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:accounts:read\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:accounts:read\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:accounts:write\", resource) when { principal.scopes.contains(\"bank8:ledger:accounts:write\") };\npermit(principal, action == Action::\"bank8:ledger:accounts:write\", resource) when { principal.scopes.contains(\"bank8:ledger:customers:write\") };\npermit(principal, action == Action::\"bank8:ledger:accounts:write\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:accounts:write\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:accounts:write\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:audit:read\", resource) when { principal.scopes.contains(\"bank8:ledger:audit:read\") };\npermit(principal, action == Action::\"bank8:ledger:audit:read\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:audit:read\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:audit:read\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:balances:read\", resource) when { principal.scopes.contains(\"bank8:ledger:accounts:read\") };\npermit(principal, action == Action::\"bank8:ledger:balances:read\", resource) when { principal.scopes.contains(\"bank8:ledger:balances:read\") };\npermit(principal, action == Action::\"bank8:ledger:balances:read\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:balances:read\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:balances:read\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:customers:write\", resource) when { principal.scopes.contains(\"bank8:ledger:customers:write\") };\npermit(principal, action == Action::\"bank8:ledger:customers:write\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:customers:write\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:customers:write\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:dlq:read\", resource) when { principal.scopes.contains(\"bank8:ledger:dlq:read\") };\npermit(principal, action == Action::\"bank8:ledger:dlq:read\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:dlq:read\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:dlq:read\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:dlq:republish\", resource) when { principal.scopes.contains(\"bank8:ledger:dlq:republish\") };\npermit(principal, action == Action::\"bank8:ledger:dlq:republish\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:dlq:republish\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:dlq:republish\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:jobs:admin\", resource) when { principal.scopes.contains(\"bank8:ledger:jobs:admin\") };\npermit(principal, action == Action::\"bank8:ledger:jobs:admin\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:jobs:admin\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:jobs:admin\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:jobs:read\", resource) when { principal.scopes.contains(\"bank8:ledger:jobs:read\") };\npermit(principal, action == Action::\"bank8:ledger:jobs:read\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:jobs:read\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:jobs:read\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:postings:read\", resource) when { principal.scopes.contains(\"bank8:ledger:audit:read\") };\npermit(principal, action == Action::\"bank8:ledger:postings:read\", resource) when { principal.scopes.contains(\"bank8:ledger:dlq:read\") };\npermit(principal, action == Action::\"bank8:ledger:postings:read\", resource) when { principal.scopes.contains(\"bank8:ledger:postings:read\") };\npermit(principal, action == Action::\"bank8:ledger:postings:read\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:postings:read\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:postings:read\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:postings:write\", resource) when { principal.scopes.contains(\"bank8:ledger:dlq:republish\") };\npermit(principal, action == Action::\"bank8:ledger:postings:write\", resource) when { principal.scopes.contains(\"bank8:ledger:jobs:admin\") };\npermit(principal, action == Action::\"bank8:ledger:postings:write\", resource) when { principal.scopes.contains(\"bank8:ledger:postings:write\") };\npermit(principal, action == Action::\"bank8:ledger:postings:write\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:postings:write\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:postings:write\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:products:publish\", resource) when { principal.scopes.contains(\"bank8:ledger:products:publish\") };\npermit(principal, action == Action::\"bank8:ledger:products:publish\", resource) when { principal.scopes.contains(\"bank8:ledger:products:write\") };\npermit(principal, action == Action::\"bank8:ledger:products:publish\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:products:publish\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:products:publish\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:products:read\", resource) when { principal.scopes.contains(\"bank8:ledger:products:read\") };\npermit(principal, action == Action::\"bank8:ledger:products:read\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:products:read\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:products:read\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:products:write\", resource) when { principal.scopes.contains(\"bank8:ledger:products:write\") };\npermit(principal, action == Action::\"bank8:ledger:products:write\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:products:write\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:products:write\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:schedules:read\", resource) when { principal.scopes.contains(\"bank8:ledger:schedules:read\") };\npermit(principal, action == Action::\"bank8:ledger:schedules:read\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:schedules:read\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:schedules:read\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };\npermit(principal, action == Action::\"bank8:ledger:schedules:write\", resource) when { principal.scopes.contains(\"bank8:ledger:schedules:write\") };\npermit(principal, action == Action::\"bank8:ledger:schedules:write\", resource) when { principal.scopes.contains(\"sentin8:sys:admin\") };\npermit(principal, action == Action::\"bank8:ledger:schedules:write\", resource) when { principal.scopes.contains(\"sentin8:sys:org:admin\") };\npermit(principal, action == Action::\"bank8:ledger:schedules:write\", resource) when { principal.scopes.contains(\"sentin8:sys:env:admin\") };";
 
-/// (single-line mirror text — see the POLICIES decl below for the
+/// (single-line mirror text - see the POLICIES decl below for the
 /// description/mode wiring)
 const POLICIES: &[PolicySetDecl] = &[PolicySetDecl {
     policy_set_name: "scope-mirror",
     description: "Action-granular scope permits for bank8:ledger over the LIVE effective scope set (design §3.1d). Step 5 is the only gate.",
     // Shield text lives in SCOPE_MIRROR_POLICIES (single source; the policy
-    // wiring tests assert against this exact string — drift fails the suite).
+    // wiring tests assert against this exact string - drift fails the suite).
     policies: SCOPE_MIRROR_POLICIES,
     schema: None,
     mode: "enforced",
     default_enabled: true,
 }];
 
-/// Default ReBAC relation tuples (design §3.1c) — none declared by ledger
+/// Default ReBAC relation tuples (design §3.1c) - none declared by ledger
 /// today; env admins author their own graph via the relations admin API.
 const RELATIONS: &[RelationDecl] = &[];
 

@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-// Ledger integration tests — Story
+// Ledger integration tests - Story
 use bank8_ledger_server::modules::{validate_module_composition, validate_product_type_parameters};
 
 #[test]

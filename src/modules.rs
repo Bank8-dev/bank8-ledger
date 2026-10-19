@@ -3,15 +3,15 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Ledger product module execution engine — 14 built-in modules.
+//! Ledger product module execution engine - 14 built-in modules.
 //! Modules are the reusable building blocks of product behavior. Each module
 //! encapsulates a specific financial rule. Products compose modules by listing
 //! their names in the `modules` JSON array and configuring their parameters
 //! in the `parameters` JSON blob.
 //! Modules execute at three lifecycle points:
-//! 1. Account creation — validate initial setup
-//! 2. Posting time — validate each transaction (pre_posting_hook)
-//! 3. On schedule — periodic processing (interest, fees, dormancy)
+//! 1. Account creation - validate initial setup
+//! 2. Posting time - validate each transaction (pre_posting_hook)
+//! 3. On schedule - periodic processing (interest, fees, dormancy)
 
 use chrono::Datelike;
 use rust_decimal::prelude::ToPrimitive;
@@ -227,7 +227,7 @@ pub fn validate_posting_maximum_balance(
     let amount: Decimal = instruction.amount.parse().unwrap_or(Decimal::ZERO);
     if let Some(max) = ctx.param_dec("maximum_balance") {
         // Check if this is a credit (deposit) that would exceed max.
-        // The credit_account receives the deposit — we check against that account's balance.
+        // The credit_account receives the deposit - we check against that account's balance.
         if current_balance + amount > max {
             return Err(ModuleError {
                 module: "maximum-balance".into(),
@@ -479,10 +479,10 @@ pub fn validate_posting(
 /// Compute derived parameters for an account at runtime.
 /// Derived parameters are calculated from template and instance parameters
 /// rather than stored. Examples:
-/// - `total_outstanding_debt` — sum of all loan account balances
-/// - `remaining_term` — months remaining on a loan/mortgage
-/// - `next_repayment_date` — next scheduled repayment date
-/// - `available_redraw_funds` — available redraw on a home loan
+/// - `total_outstanding_debt` - sum of all loan account balances
+/// - `remaining_term` - months remaining on a loan/mortgage
+/// - `next_repayment_date` - next scheduled repayment date
+/// - `available_redraw_funds` - available redraw on a home loan
 pub fn compute_derived_parameters(
     ctx: &ModuleContext,
     account: &AccountV2,
@@ -514,7 +514,7 @@ pub fn compute_derived_parameters(
             serde_json::json!(current_balance.to_string()),
         );
 
-        // Next repayment date — if repayment_day is set, compute next occurrence
+        // Next repayment date - if repayment_day is set, compute next occurrence
         let repayment_day = ctx.param("repayment_day").and_then(|v| match v {
             serde_json::Value::Number(n) => n.as_i64(),
             serde_json::Value::String(s) => s.parse::<i64>().ok(),
@@ -618,7 +618,7 @@ pub fn validate_product_type_parameters(
             }
         }
         "mortgage" => {
-            // due_amount_calculation_day must be 1–28
+            // due_amount_calculation_day must be 1-28
             if let Some(day) = parameters
                 .get("due_amount_calculation_day")
                 .and_then(|v| v.as_i64())
@@ -713,7 +713,7 @@ pub fn validate_module_composition(
                 code: "INVALID_MODULE_FOR_PRODUCT".into(),
             });
         }
-        // Warn (not error) if module is not in the allowed list — it may be a custom module
+        // Warn (not error) if module is not in the allowed list - it may be a custom module
         if !allowed.iter().any(|m| m == module) {
             tracing::debug!(module = %module, product_type = %product_type, "module not in standard allowed list (may be custom)");
         }
@@ -890,7 +890,7 @@ mod tests {
         }
     }
 
-    /// Owned context holder — keeps `modules` and `params` alive so
+    /// Owned context holder - keeps `modules` and `params` alive so
     /// `ModuleContext` borrowed references stay valid without leaking.
     struct OwnedCtx {
         modules: Vec<String>,
@@ -1338,7 +1338,7 @@ mod tests {
 
     #[test]
     fn inactivity_fee_not_charged_at_threshold() {
-        // NOTE: params are read via `as_str ` — numeric JSON values
+        // NOTE: params are read via `as_str ` - numeric JSON values
         // silently fall back to the default threshold. String form is the
         // calling convention (same as amounts).
         let o = OwnedCtx::new(
@@ -1728,7 +1728,7 @@ mod tests {
         .unwrap();
     }
 }
-// ── Unit tests — core module engine (pure logic; no DB) ──────────────────
+// ── Unit tests - core module engine (pure logic; no DB) ──────────────────
 
 #[cfg(test)]
 mod module_tests {
@@ -2346,7 +2346,7 @@ mod module_tests {
         );
         // A withdrawal at/above the deposit minimum but below its own minimum
         // is caught by withdrawal-limits (deposit-limits passes at 100 >= 10,
-        // withdrawal-limits rejects 5 < 10 — same amount, different caps).
+        // withdrawal-limits rejects 5 < 10 - same amount, different caps).
         assert_eq!(
             validate_posting_withdrawal_limits(&c, &posting("WITHDRAWAL", "5"), Decimal::ZERO)
                 .unwrap_err()

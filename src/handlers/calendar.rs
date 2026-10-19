@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Calendar model — calendar events, periods and bookkeeping dates.
+//! Calendar model - calendar events, periods and bookkeeping dates.
 //! Events are HOLIDAY / WEEKEND / ROLL / PAUSE markers; periods are named
 //! date ranges (monthly by default); bookkeeping dates remap an effective
 //! date to a different bookkeeping date. The schedule-run dispatcher consults
@@ -39,7 +39,7 @@ pub struct CreateCalendarEventRequest {
     pub description: Option<String>,
 }
 
-/// `POST /v1/calendars/{id}/events` — add a calendar event.
+/// `POST /v1/calendars/{id}/events` - add a calendar event.
 #[utoipa::path(
     post,
     path = "/v1/calendars/{id}/events",
@@ -106,7 +106,7 @@ pub async fn create_calendar_event(
     }))
 }
 
-/// `GET /v1/calendars/{id}/events` — list calendar events.
+/// `GET /v1/calendars/{id}/events` - list calendar events.
 #[utoipa::path(
     get,
     path = "/v1/calendars/{id}/events",
@@ -180,7 +180,7 @@ fn default_period_type() -> String {
     "monthly".into()
 }
 
-/// `POST /v1/calendars/{id}/periods` — add a calendar period.
+/// `POST /v1/calendars/{id}/periods` - add a calendar period.
 #[utoipa::path(
     post,
     path = "/v1/calendars/{id}/periods",
@@ -238,7 +238,7 @@ pub async fn create_calendar_period(
     }))
 }
 
-/// `GET /v1/calendars/{id}/periods` — list calendar periods.
+/// `GET /v1/calendars/{id}/periods` - list calendar periods.
 #[utoipa::path(
     get,
     path = "/v1/calendars/{id}/periods",
@@ -298,7 +298,7 @@ pub struct BookkeepingDateResponse {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// `GET /v1/calendar/bookkeeping-date/{date}` — bookkeeping date for a day.
+/// `GET /v1/calendar/bookkeeping-date/{date}` - bookkeeping date for a day.
 #[utoipa::path(
     get,
     path = "/v1/calendar/bookkeeping-date/{date}",
@@ -369,7 +369,7 @@ pub struct UpsertBookkeepingDateRequest {
     pub bookkeeping_date: chrono::NaiveDate,
 }
 
-/// `PUT /v1/calendar/bookkeeping-date/{date}` — set the bookkeeping date.
+/// `PUT /v1/calendar/bookkeeping-date/{date}` - set the bookkeeping date.
 #[utoipa::path(
     put,
     path = "/v1/calendar/bookkeeping-date/{date}",
@@ -425,7 +425,7 @@ pub async fn upsert_bookkeeping_date(
     }))
 }
 
-// ── Unit tests (§8.6 conventions — pure logic, no DB) ────────────────────
+// ── Unit tests (§8.6 conventions - pure logic, no DB) ────────────────────
 
 #[cfg(test)]
 mod tests {

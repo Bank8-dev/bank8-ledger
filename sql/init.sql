@@ -3,13 +3,13 @@
 -- SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 -- SPDX-License-Identifier: Apache-2.0
 
--- Bank8:Ledger — the service's own schema `ledger` (schema-per-service):
+-- Bank8:Ledger - the service's own schema `ledger` (schema-per-service):
 -- ledger_* domain tables + ledger.outbox / ledger.audit_journal producer
 -- tables, all FORCE-RLS env-scoped.
 --
 -- The Bank8:Ledger-owned ledger.product_versions (WASM binary registry for Bank8:Ledger
 -- product versions) and ledger.account_flags (set_flag directive) are defined
--- below — they are Bank8:Ledger concepts that reference ledger.products and
+-- below - they are Bank8:Ledger concepts that reference ledger.products and
 -- ledger.accounts, so they must live here (after those tables are created).
 
 -- Bank8:Ledger accounts table
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS ledger.products (
 
 CREATE INDEX IF NOT EXISTS idx_ledger_products_env ON ledger.products (env_id);
 
--- Bank8:Ledger postings table — posting instruction batches
+-- Bank8:Ledger postings table - posting instruction batches
 CREATE TABLE IF NOT EXISTS ledger.postings (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     env_id  UUID NOT NULL,
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS ledger.postings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_ledger_postings_env ON ledger.postings (env_id);
--- Idempotency: a partial UNIQUE index closes the SELECT-then-INSERT race —
+-- Idempotency: a partial UNIQUE index closes the SELECT-then-INSERT race -
 -- concurrent batches with the same key collide on insert and the ON CONFLICT
 -- clause returns the original row (posting engine §4.1).
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ledger_postings_idempotency
@@ -161,10 +161,10 @@ CREATE TABLE IF NOT EXISTS ledger.audit_events (
 CREATE INDEX IF NOT EXISTS idx_ledger_audit_env ON ledger.audit_events (env_id);
 
 -- ──────────────────────────────────────────────────────────────────────────
--- Bank8:Ledger extended tables — flags, restrictions, parameters, customers,
+-- Bank8:Ledger extended tables - flags, restrictions, parameters, customers,
 -- product version configs, calendars, transactions, statements, account
 -- schedule associations.
--- Stories 10.1.22–10.1.43.
+-- Stories 10.1.22-10.1.43.
 
 -- Bank8:Ledger customers table
 CREATE TABLE IF NOT EXISTS ledger.customers (
@@ -172,14 +172,14 @@ CREATE TABLE IF NOT EXISTS ledger.customers (
     env_id  UUID NOT NULL,
     -- Party type (F8 institution scout): 'person' = a human customer
     -- (optionally linked to a Sentin8:Auth user); 'institution' = the bank
-    -- itself in this env (one per env, created by seed_internal_accounts —
+    -- itself in this env (one per env, created by seed_internal_accounts -
     -- owns the internal chart-of-accounts so customer_id is never NULL).
     -- The institution row NEVER links an auth user (sentin8_auth_user_id
-    -- stays NULL) so the §4.3c holder subquery can never match it — it is
+    -- stays NULL) so the §4.3c holder subquery can never match it - it is
     -- structurally invisible to customers. account_type remains the
     -- enforcement discriminator; customer_type is modeling + audit.
     customer_type   TEXT NOT NULL DEFAULT 'person' CHECK (customer_type IN ('person', 'institution')),
-    -- Sentin8:Auth user link (Epic 15.6). Nullable — customers often exist before
+    -- Sentin8:Auth user link (Epic 15.6). Nullable - customers often exist before
     -- they sign up (in-branch onboarding, KYC import). Stamped by Bank8:Ledger
     -- `POST /v1/customers/{id}/link-auth` when the customer completes Sentin8:Auth
     -- sign-up. Used by holder-scoped RLS (§4.3c) to admit customer-realm
@@ -197,7 +197,7 @@ CREATE TABLE IF NOT EXISTS ledger.customers (
 CREATE INDEX IF NOT EXISTS idx_ledger_customers_env ON ledger.customers (env_id);
 CREATE INDEX IF NOT EXISTS idx_ledger_customers_sentin8_auth_user ON ledger.customers (sentin8_auth_user_id) WHERE sentin8_auth_user_id IS NOT NULL;
 -- Partial unique index: only non-NULL sentin8_auth_user_id enforces uniqueness within
--- (env_id). NULL rows (pre-auth customers) are exempt — multiple
+-- (env_id). NULL rows (pre-auth customers) are exempt - multiple
 -- customers can have sentin8_auth_user_id IS NULL in the same env.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ledger_customers_sentin8_auth_user_uniq
     ON ledger.customers (env_id, sentin8_auth_user_id)
@@ -208,7 +208,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_ledger_customers_sentin8_auth_user_uniq
     WHERE sentin8_auth_user_id IS NOT NULL;
 
 -- F8 institution scout: exactly ONE institution party per env (the bank
--- itself). Partial unique index — only rows with customer_type='institution'
+-- itself). Partial unique index - only rows with customer_type='institution'
 -- participate, so any number of person customers remain allowed.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ledger_customers_institution_uniq
     ON ledger.customers (env_id)
@@ -371,7 +371,7 @@ CREATE INDEX IF NOT EXISTS idx_ledger_product_versions_env ON ledger.product_ver
 CREATE INDEX IF NOT EXISTS idx_ledger_product_versions_product ON ledger.product_versions (product_id);
 CREATE INDEX IF NOT EXISTS idx_ledger_product_versions_active ON ledger.product_versions (product_id) WHERE status = 'active';
 
--- Bank8:Ledger account flags table — used by Sentin8:Func set_flag directive
+-- Bank8:Ledger account flags table - used by Sentin8:Func set_flag directive
 CREATE TABLE IF NOT EXISTS ledger.account_flags (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     env_id  UUID NOT NULL,
@@ -442,12 +442,12 @@ CREATE TABLE IF NOT EXISTS ledger.account_schedule_assocs (
 );
 CREATE INDEX IF NOT EXISTS idx_ledger_account_schedule_assocs_account ON ledger.account_schedule_assocs (account_id);
 
--- ── LEDG-COMPLETE epic (2026-09-06) — new tables for the business API
+-- ── LEDG-COMPLETE epic (2026-09-06) - new tables for the business API
 -- completion (design §8.0). All env-scoped, RLS-enabled, no migration
--- code (new platform — re-seed via `vertical init`).
+-- code (new platform - re-seed via `vertical init`).
 
 -- Journal events (LC-2): append-only hash-chained journal. INSERT-only
--- at the SQL level — no UPDATE/DELETE policy is created (append-only).
+-- at the SQL level - no UPDATE/DELETE policy is created (append-only).
 CREATE TABLE IF NOT EXISTS ledger.journal_events (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     env_id          UUID NOT NULL,
@@ -509,7 +509,7 @@ CREATE TABLE IF NOT EXISTS ledger.plan_migrations (
 );
 
 -- Processing groups (LC-5): timezone-offset EOD batching (Cron is UTC-only,
--- cron design §4.2a — offsets are ledger-side).
+-- cron design §4.2a - offsets are ledger-side).
 CREATE TABLE IF NOT EXISTS ledger.processing_groups (
     id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     env_id                  UUID NOT NULL,
@@ -714,7 +714,7 @@ ALTER TABLE ledger.account_schedule_assocs FORCE ROW LEVEL SECURITY;
 -- LEDG-COMPLETE epic: RLS on the new tables (design §8.0).
 ALTER TABLE ledger.journal_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ledger.journal_events FORCE ROW LEVEL SECURITY;
--- Append-only: SELECT + INSERT policies only (no UPDATE/DELETE policy exists —
+-- Append-only: SELECT + INSERT policies only (no UPDATE/DELETE policy exists -
 -- the journal is immutable; replay appends new rows, never rewrites).
 DROP POLICY IF EXISTS journal_events_select ON ledger.journal_events;
 CREATE POLICY journal_events_select ON ledger.journal_events FOR SELECT USING (
@@ -761,7 +761,7 @@ ALTER TABLE ledger.account_migrations FORCE ROW LEVEL SECURITY;
 ALTER TABLE ledger.account_update_batches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ledger.account_update_batches FORCE ROW LEVEL SECURITY;
 
--- RLS policies (standard env pattern) — applied to ALL tenant tables.
+-- RLS policies (standard env pattern) - applied to ALL tenant tables.
 DO $$
 DECLARE
     tbl TEXT;
@@ -899,13 +899,13 @@ DROP POLICY IF EXISTS audit_events_insert ON ledger.audit_events;
 CREATE POLICY audit_events_insert ON ledger.audit_events FOR INSERT
     WITH CHECK (sentin8_context_initialized() AND env_id = sentin8_current_env_id());
 
--- Holder-scoped RLS policies (§4.3c — customer-held records; Option A revision).
+-- Holder-scoped RLS policies (§4.3c - customer-held records; Option A revision).
 -- ledger.accounts, ledger.flags, ledger.restriction_sets carry customer_id.
 -- ALL human callers (customers AND staff) see only rows held by a customer linked to
 -- their Sentin8:Auth user. `holder:view-all` is M2M-ONLY (architecture-principles
 -- §4.3c revision, §4.3f): the branch is gated on token_tp = 'm2m' so a leaked
 -- user-role grant cannot activate env-wide visibility. Staff access to customer
--- data goes through CIBA delegation — which mints a normal customer token.
+-- data goes through CIBA delegation - which mints a normal customer token.
 -- These DROP + REPLACE the standard env policies created by the loop above.
 ALTER TABLE ledger.accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ledger.accounts FORCE ROW LEVEL SECURITY;
@@ -924,7 +924,7 @@ CREATE POLICY accounts_select ON ledger.accounts FOR SELECT USING (
                     AND env_id = sentin8_current_env_id())
                 -- Staff-override branch (isolation-design §10.1): the
                 -- handler validated the caller's org relationship and
-                -- stamped the request — counterparty plumbing (internal
+                -- stamped the request - counterparty plumbing (internal
                 -- accounts) in the overridden env is readable for this
                 -- transaction only. Never exposes customer rows.
                 OR (current_setting('app.staff_override', TRUE) = 'true'
@@ -1009,11 +1009,11 @@ CREATE POLICY restriction_sets_delete ON ledger.restriction_sets FOR DELETE USIN
             AND env_id = sentin8_current_env_id()
         );
 
--- ── Per-service role grants + search_path (F1 — §4.3e) ──────────────────
+-- ── Per-service role grants + search_path (F1 - §4.3e) ──────────────────
 -- The ledger connects via its own PostgreSQL role (bank8_ledger_service,
 -- created + granted by `sentin8-cli vertical enroll` from this service's
 -- --print-registration --section=pg_roles). RLS only ENFORCES when the
--- service does NOT bypass it — the superuser and NOBYPASSRLS-violating
+-- service does NOT bypass it - the superuser and NOBYPASSRLS-violating
 -- roles make every policy above inert. These grants give the role table
 -- access; the RLS policies scope the rows.
 -- The search_path puts the service's OWN schema FIRST (outbox/audit_journal

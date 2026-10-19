@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Flag handlers — flag definitions and flags.
+//! Flag handlers - flag definitions and flags.
 
 use axum::{
     extract::{Query, State},
@@ -54,7 +54,7 @@ fn default_private() -> String {
     security(),
     tag = "ledger",
 )]
-/// `POST /v1/flag-definitions` — create a flag definition.
+/// `POST /v1/flag-definitions` - create a flag definition.
 pub async fn create_flag_definition(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -107,7 +107,7 @@ pub async fn create_flag_definition(
     security(),
     tag = "ledger",
 )]
-/// `GET /v1/flag-definitions` — list flag definitions.
+/// `GET /v1/flag-definitions` - list flag definitions.
 pub async fn list_flag_definitions(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -182,7 +182,7 @@ pub struct ListFlagsQuery {
     security(),
     tag = "ledger",
 )]
-/// `POST /v1/flags` — set a flag on an account or customer.
+/// `POST /v1/flags` - set a flag on an account or customer.
 pub async fn create_flag(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -239,7 +239,7 @@ pub async fn create_flag(
     security(),
     tag = "ledger",
 )]
-/// `GET /v1/flags` — list flags.
+/// `GET /v1/flags` - list flags.
 pub async fn list_flags(
     State(state): State<AppState>,
     headers: HeaderMap,

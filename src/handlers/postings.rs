@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Posting handlers — posting instruction batches (sync/async), instructions, DLQ.
+//! Posting handlers - posting instruction batches (sync/async), instructions, DLQ.
 //! The posting engine implements:
 //! - Double-entry validation (every debit has a credit)
 //! - Atomic batch processing (all instructions succeed or all fail)
@@ -83,7 +83,7 @@ pub struct AsyncPostingRequest {
     pub instructions: Vec<PostingInstruction>,
 }
 
-/// `POST /v1/postings` — synchronous posting instruction batch.
+/// `POST /v1/postings` - synchronous posting instruction batch.
 #[utoipa::path(
     post,
     path = "/v1/postings",
@@ -163,7 +163,7 @@ pub async fn create_posting(
     }
 
     // Insert posting batch. ON CONFLICT closes the SELECT-then-INSERT race
-    // window on the idempotency key — a concurrent duplicate returns the
+    // window on the idempotency key - a concurrent duplicate returns the
     // original batch row instead of creating a second one.
     let row = sqlx::query(
         r#"INSERT INTO postings (env_id, batch_id, status, idempotency_key, instruction_count)
@@ -204,7 +204,7 @@ pub async fn create_posting(
 
     // Process each instruction atomically.
     // Tenant-authored posting hooks are event-triggered via `event_triggers`
-    // registration (architecture principles §4.14) or direct bus consumers —
+    // registration (architecture principles §4.14) or direct bus consumers -
     // never inline SQL column lookups inside the posting transaction. The
     // `/v1/internal/func-host` proxy-back and the
     // scheduled/activation/deactivation hooks remain (their module ids come
@@ -216,7 +216,7 @@ pub async fn create_posting(
     // written. Pure logic lives in `check_double_entry` (unit-tested).
     check_double_entry(&req.instructions).map_err(|e| (StatusCode::BAD_REQUEST, e))?;
 
-    // Module context cache — product id → (modules, parameters). Loaded once
+    // Module context cache - product id → (modules, parameters). Loaded once
     // per product so every instruction in the batch reuses it.
     let mut module_ctx_cache: std::collections::HashMap<
         Uuid,
@@ -228,7 +228,7 @@ pub async fn create_posting(
         let value_ts = instr.value_timestamp.unwrap_or_else(chrono::Utc::now);
 
         // Posting-time module validation (§4.2.2 execution point 2). The
-        // debit account's product drives the rules — withdrawal/deposit
+        // debit account's product drives the rules - withdrawal/deposit
         // limits, transaction-type limits, maximum balance, overdraft.
         // Daily totals are summed across the whole batch per (account, type)
         // so a batch cannot split around a daily cap.
@@ -348,7 +348,7 @@ pub async fn create_posting(
                 }
                 // Overdraft sweep: if the debit would overdraw and the product
                 // has a sweep, the sweep covers the gap from the linked
-                // savings account — surfaced as a hook result, the posting
+                // savings account - surfaced as a hook result, the posting
                 // itself proceeds (sweep amount recorded in the audit trail).
                 if let Some(sweep) =
                     crate::modules::validate_posting_overdraft_sweep(&ctx, &v2, current_balance)
@@ -426,7 +426,7 @@ pub async fn create_posting(
         .await
         .map_err(err_db)?;
 
-    // Emit audit event (§8.4 — exactly five columns / five values; errors
+    // Emit audit event (§8.4 - exactly five columns / five values; errors
     // propagate so an audit failure aborts the posting instead of committing
     // a silent empty transaction).
     sqlx::query(
@@ -436,7 +436,7 @@ pub async fn create_posting(
     .bind(a.env_id()).bind(&a.claims.sub).bind("create").bind(posting_id.to_string())
     .execute(&mut *tx).await.map_err(err_db)?;
 
-    // Emit outbox event with publisher identity token (§4.5) — errors
+    // Emit outbox event with publisher identity token (§4.5) - errors
     // propagate (§8.4 rule 2): never commit a posting whose event emission
     // failed. Outbox-first: the ledger.outbox row commits atomically with
     // the posting; the shell's post-commit relay pushes it to Bus.
@@ -465,7 +465,7 @@ pub async fn create_posting(
 
     tx.commit().await.map_err(err_db)?;
 
-    // Read-back verification — count the posting row on a pooled (fresh)
+    // Read-back verification - count the posting row on a pooled (fresh)
     // connection. Surfaces any disconnect between "sqlx commit returned Ok"
     // and the row actually being visible (e.g. wrong database/search_path).
     let readback: Option<(String, i64)> = sqlx::query_as(
@@ -515,7 +515,7 @@ pub async fn create_posting(
     }))
 }
 
-/// `POST /v1/postings/async` — async posting via Bus (enqueues to Bus stream).
+/// `POST /v1/postings/async` - async posting via Bus (enqueues to Bus stream).
 #[utoipa::path(
     post,
     path = "/v1/postings/async",
@@ -582,7 +582,7 @@ pub async fn create_posting_async(
 
     // Enqueue to Bus (M2M-backed client built at startup).
     // Pass the publisher's bearer token so subscribers can delegate (§4.5).
-    // Errors propagate (§8.4 rule 2) — an async request whose enqueue fails
+    // Errors propagate (§8.4 rule 2) - an async request whose enqueue fails
     // must fail the request, never return pending with no event produced.
     let publisher_id_token = headers
         .get(axum::http::header::AUTHORIZATION)
@@ -611,7 +611,7 @@ pub async fn create_posting_async(
     ))
 }
 
-/// `GET /v1/postings/{id}` — batch status.
+/// `GET /v1/postings/{id}` - batch status.
 #[utoipa::path(
     get,
     path = "/v1/postings/{id}",
@@ -656,7 +656,7 @@ pub async fn get_posting(
     }))
 }
 
-/// `GET /v1/postings/{id}/instructions` — list instructions in a batch.
+/// `GET /v1/postings/{id}/instructions` - list instructions in a batch.
 #[utoipa::path(
     get,
     path = "/v1/postings/{id}/instructions",
@@ -705,7 +705,7 @@ pub async fn get_posting_instructions(
 
 // ── DLQ ──────────────────────────────────────────────────────────────────
 
-/// `GET /v1/admin/postings` — posting batches list (RFW DataTable).
+/// `GET /v1/admin/postings` - posting batches list (RFW DataTable).
 #[utoipa::path(
     get,
     path = "/v1/admin/postings",
@@ -766,7 +766,7 @@ pub struct DlqResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// `GET /v1/dlq` — list dead-letter queue entries (local posting DLQ + Cron schedule DLQ).
+/// `GET /v1/dlq` - list dead-letter queue entries (local posting DLQ + Cron schedule DLQ).
 #[utoipa::path(
     get,
     path = "/v1/dlq",
@@ -856,7 +856,7 @@ pub async fn list_dlq(
     Ok(Json(entries))
 }
 
-/// `POST /v1/dlq/{id}/republish` — republish a DLQ entry (local posting or Cron schedule).
+/// `POST /v1/dlq/{id}/republish` - republish a DLQ entry (local posting or Cron schedule).
 #[utoipa::path(
     post,
     path = "/v1/dlq/{id}/republish",
@@ -896,7 +896,7 @@ pub async fn republish_dlq(
         let payload: serde_json::Value = row.get("payload");
         let message_type: String = row.get("message_type");
         // Re-enqueue to Bus (M2M-backed client built at startup).
-        // Pass the admin's token as publisher — the republish is attributed
+        // Pass the admin's token as publisher - the republish is attributed
         // to the admin, not the original producer (§4.5).
         let publisher_id_token = headers
             .get(axum::http::header::AUTHORIZATION)
@@ -938,7 +938,7 @@ pub async fn republish_dlq(
             serde_json::json!({ "republished": true, "source": "local" }),
         ));
     }
-    // Not in local DLQ — try Cron DLQ.
+    // Not in local DLQ - try Cron DLQ.
     let cron = crate::cron_client::CronClient::new(
         &state.config.sentin8_cron_url,
         &state.config.cron_token().await,
@@ -955,7 +955,7 @@ pub async fn republish_dlq(
         )),
     }
 }
-// ── Double-entry batch validation (pure logic — unit-tested) ────────────
+// ── Double-entry batch validation (pure logic - unit-tested) ────────────
 
 /// Instruction types that DEBIT the source account (money leaves the
 /// account). All other types (DEPOSIT, INTEREST_APPLICATION credit leg,
@@ -971,7 +971,7 @@ fn debits_source(instruction_type: &str) -> bool {
 /// Sums the debit-direction amounts and the credit-direction amounts per
 /// denomination across the batch; both sides must be equal. A single
 /// instruction is trivially balanced (its debit leg equals its credit leg),
-/// so batches of size 1 always pass — multi-instruction batches must net
+/// so batches of size 1 always pass - multi-instruction batches must net
 /// out. Returns `Err(message)` on imbalance.
 pub fn check_double_entry(instructions: &[PostingInstruction]) -> Result<(), String> {
     if instructions.len() <= 1 {
@@ -1024,7 +1024,7 @@ pub async fn replay_batch(
         return serde_json::json!({ "batch_id": batch_id, "posting_id": id, "replayed": false, "reason": "already committed" });
     }
     // Parse the journaled instructions back into the request shape and run
-    // the standard engine (committing a new batch — journal replays of
+    // the standard engine (committing a new batch - journal replays of
     // pre-commit failures legitimately re-execute).
     let parsed: Result<Vec<PostingInstruction>, _> = serde_json::from_value(instructions);
     match parsed {
@@ -1192,7 +1192,7 @@ async fn create_posting_inner(
     })
 }
 
-// ── Unit tests (design §8.6 — posting-path pure logic) ──────────────────
+// ── Unit tests (design §8.6 - posting-path pure logic) ──────────────────
 
 #[cfg(test)]
 mod tests {
@@ -1259,7 +1259,7 @@ mod tests {
 
     #[test]
     fn per_denomination_independence() {
-        // CAD nets to 0, USD nets to 0 — both pass even though the
+        // CAD nets to 0, USD nets to 0 - both pass even though the
         // instruction types differ.
         check_double_entry(&[
             instr("WITHDRAWAL", "100", "CAD"),
@@ -1272,7 +1272,7 @@ mod tests {
 
     #[test]
     fn multiple_debits_one_credit_nets_out() {
-        // 60 + 40 debits vs one 100 credit — balanced.
+        // 60 + 40 debits vs one 100 credit - balanced.
         check_double_entry(&[
             instr("WITHDRAWAL", "60", "CAD"),
             instr("WITHDRAWAL", "40", "CAD"),
@@ -1294,7 +1294,7 @@ mod tests {
 
     #[test]
     fn fee_application_debits_the_source() {
-        // FEE_APPLICATION belongs to the debit direction — two fee
+        // FEE_APPLICATION belongs to the debit direction - two fee
         // applications net against one deposit.
         check_double_entry(&[
             instr("FEE_APPLICATION", "5", "CAD"),

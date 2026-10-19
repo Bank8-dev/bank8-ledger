@@ -13,7 +13,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::IntoResponse;
 
-/// `GET /v1/admin/accounts` — admin view of `GET /v1/accounts` (same
+/// `GET /v1/admin/accounts` - admin view of `GET /v1/accounts` (same
 /// handler).
 #[utoipa::path(
     get,
@@ -37,7 +37,7 @@ pub async fn admin_accounts(
     }
 }
 
-/// `GET /v1/admin/overview` — the overview page's data (accounts-backed
+/// `GET /v1/admin/overview` - the overview page's data (accounts-backed
 /// summary; same handler as `GET /v1/accounts`).
 #[utoipa::path(
     get,
@@ -61,7 +61,7 @@ pub async fn admin_overview(
     }
 }
 
-/// `GET /v1/admin/customers` — admin view of `GET /v1/customers`.
+/// `GET /v1/admin/customers` - admin view of `GET /v1/customers`.
 #[utoipa::path(
     get,
     path = "/v1/admin/customers",
@@ -84,7 +84,7 @@ pub async fn admin_customers(
     }
 }
 
-/// `GET /v1/admin/flag-definitions` — admin view of
+/// `GET /v1/admin/flag-definitions` - admin view of
 /// `GET /v1/flag-definitions`.
 #[utoipa::path(
     get,
@@ -107,7 +107,7 @@ pub async fn admin_flag_definitions(
     }
 }
 
-/// `GET /v1/admin/flags` — admin view of `GET /v1/flags`.
+/// `GET /v1/admin/flags` - admin view of `GET /v1/flags`.
 #[utoipa::path(
     get,
     path = "/v1/admin/flags",
@@ -130,7 +130,7 @@ pub async fn admin_flags(
     }
 }
 
-/// `GET /v1/admin/parameters` — admin view of `GET /v1/parameters`.
+/// `GET /v1/admin/parameters` - admin view of `GET /v1/parameters`.
 #[utoipa::path(
     get,
     path = "/v1/admin/parameters",
@@ -152,7 +152,7 @@ pub async fn admin_parameters(
     }
 }
 
-/// `GET /v1/admin/restriction-definitions` — admin view of
+/// `GET /v1/admin/restriction-definitions` - admin view of
 /// `GET /v1/restriction-definitions`.
 #[utoipa::path(
     get,
@@ -175,7 +175,7 @@ pub async fn admin_restriction_definitions(
     }
 }
 
-/// `GET /v1/admin/restriction-sets` — admin view of
+/// `GET /v1/admin/restriction-sets` - admin view of
 /// `GET /v1/restriction-sets`.
 #[utoipa::path(
     get,
@@ -199,7 +199,7 @@ pub async fn admin_restriction_sets(
     }
 }
 
-/// `POST /v1/admin/dlq/{id}/republish` — RFW alias of
+/// `POST /v1/admin/dlq/{id}/republish` - RFW alias of
 /// `POST /v1/dlq/{id}/republish`.
 #[utoipa::path(
     post,
@@ -223,7 +223,7 @@ pub async fn admin_republish_dlq(
     }
 }
 
-/// `GET /v1/admin/products/{id}` — admin view of `GET /v1/products/{id}`.
+/// `GET /v1/admin/products/{id}` - admin view of `GET /v1/products/{id}`.
 #[utoipa::path(
     get,
     path = "/v1/admin/products/{id}",
@@ -246,7 +246,7 @@ pub async fn admin_get_product(
     }
 }
 
-/// `GET /v1/admin/products/{id}/versions` — admin view of
+/// `GET /v1/admin/products/{id}/versions` - admin view of
 /// `GET /v1/products/{id}/versions`.
 #[utoipa::path(
     get,
@@ -270,7 +270,7 @@ pub async fn admin_list_product_versions(
     }
 }
 
-/// `GET /v1/admin/jobs` — admin view of `GET /v1/jobs`.
+/// `GET /v1/admin/jobs` - admin view of `GET /v1/jobs`.
 #[utoipa::path(
     get,
     path = "/v1/admin/jobs",
@@ -291,7 +291,7 @@ pub async fn admin_list_jobs(
     }
 }
 
-/// `POST /v1/admin/products/{id}/activate` — RFW alias of
+/// `POST /v1/admin/products/{id}/activate` - RFW alias of
 /// `POST /v1/products/{id}/activate`.
 #[utoipa::path(
     post,
@@ -311,7 +311,7 @@ pub async fn admin_activate_product(
 ) -> Result<StatusCode, (StatusCode, String)> {
     crate::handlers::products::activate_product(State(state), headers, Path(id)).await
 }
-/// `GET /v1/admin/dlq` — admin view of `GET /v1/dlq`.
+/// `GET /v1/admin/dlq` - admin view of `GET /v1/dlq`.
 #[utoipa::path(
     get,
     path = "/v1/admin/dlq",
@@ -333,7 +333,7 @@ pub async fn list_dlq_alias(
     }
 }
 
-/// `GET /v1/admin/products` — admin view of `GET /v1/products`.
+/// `GET /v1/admin/products` - admin view of `GET /v1/products`.
 #[utoipa::path(
     get,
     path = "/v1/admin/products",
@@ -355,7 +355,7 @@ pub async fn admin_list_products(
     }
 }
 
-/// `GET /v1/audit` — alias of `GET /v1/admin/audit` (same handler).
+/// `GET /v1/audit` - alias of `GET /v1/admin/audit` (same handler).
 #[utoipa::path(
     get,
     path = "/v1/audit",
@@ -378,7 +378,7 @@ pub async fn audit_events_alias(
     }
 }
 
-/// `GET /v1/admin/schedules` — admin view of `GET /v1/schedules`.
+/// `GET /v1/admin/schedules` - admin view of `GET /v1/schedules`.
 #[utoipa::path(
     get,
     path = "/v1/admin/schedules",

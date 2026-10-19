@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Parameter handlers — parameters, parameter values, hierarchy nodes.
+//! Parameter handlers - parameters, parameter values, hierarchy nodes.
 
 use axum::{
     extract::{Query, State},
@@ -69,7 +69,7 @@ fn default_string() -> String {
     security(),
     tag = "ledger",
 )]
-/// `POST /v1/parameters` — create a parameter definition.
+/// `POST /v1/parameters` - create a parameter definition.
 pub async fn create_parameter(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -118,7 +118,7 @@ pub async fn create_parameter(
     security(),
     tag = "ledger",
 )]
-/// `GET /v1/parameters` — list parameters.
+/// `GET /v1/parameters` - list parameters.
 pub async fn list_parameters(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -189,7 +189,7 @@ pub struct ListParamValuesQuery {
     security(),
     tag = "ledger",
 )]
-/// `POST /v1/parameter-values` — create a parameter value.
+/// `POST /v1/parameter-values` - create a parameter value.
 pub async fn create_parameter_value(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -240,7 +240,7 @@ pub async fn create_parameter_value(
     security(),
     tag = "ledger",
 )]
-/// `GET /v1/parameter-values` — list parameter values.
+/// `GET /v1/parameter-values` - list parameter values.
 pub async fn list_parameter_values(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -281,13 +281,13 @@ pub async fn list_parameter_values(
     security(),
     tag = "ledger",
 )]
-/// `GET /v1/parameter-values:viewEffective` — resolve effective parameter value
+/// `GET /v1/parameter-values:viewEffective` - resolve effective parameter value
 /// at a point in time, with hierarchy precedence (account > hierarchy > global).
 ///
 /// Results are served from a bounded TTL cache (design §10): the
 /// parameter-value write path is insert-only with `effective_from`, so a
 /// short TTL self-heals and no event-driven invalidation is needed. The
-/// posting money path never consults this cache — parameter resolution
+/// posting money path never consults this cache - parameter resolution
 /// there is transactional by design (a stale fee rate is a correctness
 /// defect, not a latency trade).
 pub async fn view_effective_parameter(
@@ -357,7 +357,7 @@ pub async fn view_effective_parameter(
     Ok(Json(response))
 }
 
-/// Cache key for `viewEffective` — everything the resolution depends on.
+/// Cache key for `viewEffective` - everything the resolution depends on.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct EffectiveCacheKey {
     env_id: Uuid,
@@ -371,7 +371,7 @@ struct EffectiveCacheKey {
 /// expired entries are dropped *before* inserting, so a cache saturated
 /// with distinct hot keys self-prunes instead of growing.
 ///
-/// Locking: a `std::sync::Mutex` is safe here — the critical section is
+/// Locking: a `std::sync::Mutex` is safe here - the critical section is
 /// a small map clone/insert with no `await`, far under any tokio
 /// blocking-safety concern for a request-path cache.
 #[derive(Default)]
@@ -380,13 +380,13 @@ pub struct EffectiveParamCache {
 }
 
 impl EffectiveParamCache {
-    /// Cache TTL — parameter values are insert-only with `effective_from`,
+    /// Cache TTL - parameter values are insert-only with `effective_from`,
     /// so an entry older than this can never re-resolve differently unless
     /// a new value row was written; a fresh write then lands after at most
     /// one TTL window.
     const TTL: Duration = Duration::from_secs(30);
 
-    /// Cache capacity — bounded, matching the platform bounded-cache
+    /// Cache capacity - bounded, matching the platform bounded-cache
     /// pattern (RoleResolver). Insert-time pruning keeps it under this
     /// count of *live* entries.
     const MAX_ENTRIES: usize = 4096;
@@ -408,7 +408,7 @@ impl EffectiveParamCache {
         // Prune expired entries before inserting (bounded-cache pattern).
         entries.retain(|_, (_, fetched_at)| fetched_at.elapsed() <= Self::TTL);
         if entries.len() >= Self::MAX_ENTRIES {
-            // Evict by oldest fetched-at — a tiny O(n) scan at capacity,
+            // Evict by oldest fetched-at - a tiny O(n) scan at capacity,
             // cheaper than tracking an ordering structure for a cold path.
             if let Some(oldest) = entries
                 .iter()
@@ -506,7 +506,7 @@ pub struct CreateHierarchyNodeRequest {
     security(),
     tag = "ledger",
 )]
-/// `POST /v1/parameter-value-hierarchy-nodes` — create a hierarchy node.
+/// `POST /v1/parameter-value-hierarchy-nodes` - create a hierarchy node.
 pub async fn create_hierarchy_node(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -575,7 +575,7 @@ pub async fn create_hierarchy_node(
     security(),
     tag = "ledger",
 )]
-/// `GET /v1/parameter-value-hierarchy-nodes` — list hierarchy nodes.
+/// `GET /v1/parameter-value-hierarchy-nodes` - list hierarchy nodes.
 pub async fn list_hierarchy_nodes(
     State(state): State<AppState>,
     headers: HeaderMap,

@@ -274,6 +274,6 @@ use crate::handlers;
     security(),
     tags(
         (name = "policy", description = "Shield policy administration (shared surface)"),
-        (name = "ledger", description = "Bank8:Ledger API — accounts, products, postings, schedules, customers, audit"),
+        (name = "ledger", description = "Bank8:Ledger API - accounts, products, postings, schedules, customers, audit"),
     ),
 )]pub struct LedgerOpenApi;

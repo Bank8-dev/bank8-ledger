@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Audit handlers — audit events and action logs.
+//! Audit handlers - audit events and action logs.
 
 use axum::{
     extract::{Query, State},
@@ -36,7 +36,7 @@ pub struct ListAuditQuery {
     pub target_resource_type: Option<String>,
 }
 
-/// `GET /v1/audit` — query audit events.
+/// `GET /v1/audit` - query audit events.
 #[utoipa::path(
     get,
     path = "/v1/admin/audit",
@@ -94,7 +94,7 @@ pub async fn list_audit_events(
 
 // ── Action logs  ──────────────────────────────────────────────────
 
-/// `GET /v1/audit/action-logs` — action-filtered audit view (business Audit
+/// `GET /v1/audit/action-logs` - action-filtered audit view (business Audit
 /// API `action_logs`).
 #[utoipa::path(
     get,

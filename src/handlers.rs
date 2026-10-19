@@ -3,34 +3,34 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Ledger HTTP handlers — re-exports from sub-modules.
+//! Ledger HTTP handlers - re-exports from sub-modules.
 //! The full Ledger API surface is split across sub-modules:
-//! - `handlers_accounts` — accounts v1/v2, balances v1/v2, transactions, statements
-//! - `handlers_postings` — posting instruction batches (sync/async), instructions, DLQ
-//! - `handlers_products` — products, product versions, product activation
-//! - `handlers_schedules` — schedules, jobs, calendars
-//! - `handlers_flags` — flag definitions, flags
-//! - `handlers_restrictions` — restriction definitions, restriction sets
-//! - `handlers_params` — parameters, parameter values, hierarchy nodes
-//! - `handlers_customers` — customers CRUD (incl. update)
-//! - `handlers_audit` — audit events, action logs
+//! - `handlers_accounts` - accounts v1/v2, balances v1/v2, transactions, statements
+//! - `handlers_postings` - posting instruction batches (sync/async), instructions, DLQ
+//! - `handlers_products` - products, product versions, product activation
+//! - `handlers_schedules` - schedules, jobs, calendars
+//! - `handlers_flags` - flag definitions, flags
+//! - `handlers_restrictions` - restriction definitions, restriction sets
+//! - `handlers_params` - parameters, parameter values, hierarchy nodes
+//! - `handlers_customers` - customers CRUD (incl. update)
+//! - `handlers_audit` - audit events, action logs
 //! Resource-family handler modules:
-//! - `handlers_journal` — hash-chained journal events
-//! - `handlers_adjustments` — adjustments + post-posting failures (/4)
-//! - `handlers_balances_v2` — balances live/end/series
-//! - `handlers_processing_groups` — EOD grouping config
-//! - `handlers_calendar` — calendar events/periods/bookkeeping dates
-//! - `handlers_schedule_tags` — schedule + account schedule tags
-//! - `handlers_plans` — plans, migrations, account assocs
-//! - `handlers_contracts` — contract catalog/simulate/supervisor
-//! - `handlers_parameters_ext` — derived + global parameters
-//! - `handlers_internal_accounts` — internal accounts
-//! - `handlers_account_extras` — attributes + payment devices
-//! - `handlers_bulk_batches` — migrations + update batches
-//! - `handlers_streams` — streaming catalog
+//! - `handlers_journal` - hash-chained journal events
+//! - `handlers_adjustments` - adjustments + post-posting failures (/4)
+//! - `handlers_balances_v2` - balances live/end/series
+//! - `handlers_processing_groups` - EOD grouping config
+//! - `handlers_calendar` - calendar events/periods/bookkeeping dates
+//! - `handlers_schedule_tags` - schedule + account schedule tags
+//! - `handlers_plans` - plans, migrations, account assocs
+//! - `handlers_contracts` - contract catalog/simulate/supervisor
+//! - `handlers_parameters_ext` - derived + global parameters
+//! - `handlers_internal_accounts` - internal accounts
+//! - `handlers_account_extras` - attributes + payment devices
+//! - `handlers_bulk_batches` - migrations + update batches
+//! - `handlers_streams` - streaming catalog
 //! **Authorization model:** RBAC scopes are verified by
 //! Sentin8:Auth; fine-grained attribute rules are **Shield** policies evaluated
-//! upstream (Sentin8:Auth/Sentin8:BFF) — no handler evaluates policies locally
+//! upstream (Sentin8:Auth/Sentin8:BFF) - no handler evaluates policies locally
 //! or queries role tables at request time (design §6.1). Staff access to
 //! customer data arrives exclusively as **CIBA-delegated** customer tokens
 //! with `act` claims (design §6.2); every tenant query sets the RLS context
@@ -76,10 +76,10 @@ pub struct AppState {
     /// M2M-backed Bus client built at startup via DCR (RFC 7591).
     pub bus_client: sentin8::bus::client::BusClient,
     /// Shield policy engine : step 5 is the ONLY gate
-    /// handlers verify the token (steps 1–4) then evaluate a
+    /// handlers verify the token (steps 1-4) then evaluate a
     /// `bank8:ledger:<resource>:<action>` target; no JWT scope check remains.
     pub policy: Arc<crate::policy::Engine>,
-    /// Shared Sentin8:Policy admin surface (§3.6) — same engine
+    /// Shared Sentin8:Policy admin surface (§3.6) - same engine
     /// instance the request path evaluates.
     pub admin: sentin8::shield::admin::SharedAdminState,
     /// Bounded TTL cache behind `parameter-values:viewEffective`
@@ -108,7 +108,7 @@ pub async fn set_tenant_context(
         .map(|_| ())
 }
 
-/// Extended tenant context setter — resolves admin flags from the caller's
+/// Extended tenant context setter - resolves admin flags from the caller's
 /// scopes (option a) and passes the Auth user UUID for holder-scoped RLS.
 /// Use this for handlers that read `accounts`, `flags`, or
 /// `restriction_sets` (the customer-held tables).
@@ -130,11 +130,11 @@ pub async fn set_tenant_context_ext(
         .map(|_| ())
 }
 
-/// Staff-override context setter (isolation-design §10.1) — the handler has
+/// Staff-override context setter (isolation-design §10.1) - the handler has
 /// ALREADY validated the caller's org relationship for a cross-env read
 /// (via Sys's tenant-snapshot API); this stamps the request so the RLS
 /// policies admit the counterparty-plumbing reads (internal accounts) in
-/// the overridden env. Transaction-local — the stamp evaporates with the
+/// the overridden env. Transaction-local - the stamp evaporates with the
 /// transaction that carries the validated read.
 pub async fn set_staff_override_context(
     conn: &mut sqlx::PgConnection,
@@ -157,10 +157,10 @@ pub async fn set_staff_override_context(
 }
 
 /// Resolve the effective env for a request.
-/// Story — reads env from the token claims only. BFF exchanges
+/// Story - reads env from the token claims only. BFF exchanges
 /// sys-realm tokens via RFC 8693 , so the JWT claims carry the
 /// correct env. App BFF end-users already have env-scoped tokens from
-/// Auth. No header overrides needed — the token is the single source of truth.
+/// Auth. No header overrides needed - the token is the single source of truth.
 pub fn resolve_org_env(
     headers: &axum::http::HeaderMap,
     _token_org: uuid::Uuid,
@@ -184,14 +184,14 @@ pub fn err_db(e: sqlx::Error) -> (axum::http::StatusCode, String) {
 }
 
 /// Emit a domain event to the service's LOCAL outbox (DBX producer path,
-/// architecture-principles §6.7 — ledger design §11).
+/// architecture-principles §6.7 - ledger design §11).
 /// Inserts an `ledger.outbox` row that the shell's post-commit relay
 /// drains to Bus `POST /v1/produce` (idempotency_key = row id). Call this
-/// after the domain insert/update/delete succeeds — on handlers with an
+/// after the domain insert/update/delete succeeds - on handlers with an
 /// open domain transaction, prefer `insert_outbox_row` on the SAME
 /// transaction (outbox-first, atomic).
 /// The outbox is FORCE-RLS'd; the pool helper sets the tenant context on
-/// its own connection. Errors are logged and ignored — the outbox is
+/// its own connection. Errors are logged and ignored - the outbox is
 /// best-effort for non-posting entities (the posting path inserts
 /// in-transaction with `?` propagation, §8.4 rule 2).
 pub async fn emit_event(

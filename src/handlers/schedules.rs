@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Schedule and job handlers — schedules, jobs, calendars.
+//! Schedule and job handlers - schedules, jobs, calendars.
 
 use axum::{
     extract::{Path, Query, State},
@@ -51,7 +51,7 @@ pub struct ListSchedulesQuery {
     pub schedule_type: Option<String>,
 }
 
-/// `POST /v1/schedules` — create a schedule, delegating execution to Cron.
+/// `POST /v1/schedules` - create a schedule, delegating execution to Cron.
 /// Ledger stores a local reference in `schedules` and creates the actual
 /// schedule in Cron via `POST /v1/schedules`. Cron fires the schedule and
 /// proxy-calls Ledger's `POST /v1/internal/schedules/run` to execute the work.
@@ -92,7 +92,7 @@ pub async fn create_schedule(
     .bind(a.env_id()).bind(req.account_id).bind(&req.schedule_type).bind(&req.cron_expression)
     .fetch_one(&mut *conn).await.map_err(err_db)?;
     let local_id: Uuid = row.get("id");
-    // Delegate to Cron — create the actual schedule there.
+    // Delegate to Cron - create the actual schedule there.
     let cron = crate::cron_client::CronClient::new(
         &state.config.sentin8_cron_url,
         &state.config.cron_token().await,
@@ -140,7 +140,7 @@ pub async fn create_schedule(
     Ok(Json(schedule))
 }
 
-/// `GET /v1/schedules` — list schedules.
+/// `GET /v1/schedules` - list schedules.
 #[utoipa::path(
     get,
     path = "/v1/schedules",
@@ -184,7 +184,7 @@ pub async fn list_schedules(
     Ok(Json(rows.iter().map(row_to_schedule).collect()))
 }
 
-/// `GET /v1/schedules/{id}` — schedule detail.
+/// `GET /v1/schedules/{id}` - schedule detail.
 #[utoipa::path(
     get,
     path = "/v1/schedules/{id}",
@@ -222,7 +222,7 @@ pub async fn get_schedule(
     Ok(Json(row_to_schedule(&row)))
 }
 
-/// `GET /v1/accounts/{id}/schedules` — list schedules for an account.
+/// `GET /v1/accounts/{id}/schedules` - list schedules for an account.
 #[utoipa::path(
     get,
     path = "/v1/accounts/{id}/schedules",
@@ -274,7 +274,7 @@ pub struct JobResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// `GET /v1/jobs` — list jobs.
+/// `GET /v1/jobs` - list jobs.
 #[utoipa::path(
     get,
     path = "/v1/jobs",
@@ -326,7 +326,7 @@ pub struct ListJobsQuery {
     pub status: Option<String>,
 }
 
-/// `GET /v1/jobs/{id}` — job detail.
+/// `GET /v1/jobs/{id}` - job detail.
 #[utoipa::path(
     get,
     path = "/v1/jobs/{id}",
@@ -364,7 +364,7 @@ pub async fn get_job(
     Ok(Json(row_to_job(&row)))
 }
 
-/// `POST /v1/jobs/{id}/retry` — retry a failed job.
+/// `POST /v1/jobs/{id}/retry` - retry a failed job.
 #[utoipa::path(
     post,
     path = "/v1/jobs/{id}/retry",
@@ -412,7 +412,7 @@ pub async fn retry_job(
     Ok(Json(job))
 }
 
-/// `POST /v1/jobs:batchRepublish` — override failed jobs (mark as OVERRIDDEN).
+/// `POST /v1/jobs:batchRepublish` - override failed jobs (mark as OVERRIDDEN).
 #[utoipa::path(
     post,
     path = "/v1/jobs:batchRepublish",
@@ -463,7 +463,7 @@ pub struct BatchRepublishRequest {
 
 // ── Statements (design §10) ─────────────────────────────────────────────
 
-/// Statement generation (scheduled path — design §10).
+/// Statement generation (scheduled path - design §10).
 ///
 /// For each active customer account: compute the period window (the prior
 /// calendar month), sum committed credit/debit postings for the period and
@@ -605,7 +605,7 @@ async fn generate_statement_for_account(
     let object_path = format!("statements/objects/{env_id}/{account_id}/{statement_id}.json");
     storage.put_statement(&object_path, doc_bytes).await?;
 
-    // Idempotent insert — the natural key (account, period) makes a Cron
+    // Idempotent insert - the natural key (account, period) makes a Cron
     // retry dedupe on the same period (design §10).
     let inserted = sqlx::query(
         r#"INSERT INTO statements (env_id, account_id, period_start, period_end, opening_balance, closing_balance, document_url, document_format)
@@ -648,7 +648,7 @@ pub struct ScheduleRunRequest {
     pub target_config: serde_json::Value,
 }
 
-/// `POST /v1/internal/schedules/run` — Cron proxy-back endpoint.
+/// `POST /v1/internal/schedules/run` - Cron proxy-back endpoint.
 /// Cron calls this when a Ledger schedule fires. Ledger executes the scheduled
 /// work (§4.3): it resolves the schedule's `schedule_type`, loads the affected
 /// account(s) with their product modules + parameters, runs the on-schedule
@@ -721,7 +721,7 @@ pub async fn internal_schedule_run(
 
     // Execute the scheduled work by dispatching to the on-schedule modules
     // for the affected account(s). Any failure marks the job failed with the
-    // error message — Cron retries per its max_retries, then DLQs.
+    // error message - Cron retries per its max_retries, then DLQs.
     let run_result = run_scheduled_work(&state, _a.env_id(), &schedule_type, account_id).await;
 
     let response = match run_result {
@@ -889,7 +889,7 @@ async fn run_scheduled_work(
             updated_at: chrono::Utc::now(),
         };
 
-        // Last activity days — newest transaction for this account (dormancy
+        // Last activity days - newest transaction for this account (dormancy
         // and inactivity fees).
         let last_activity_days: i64 = sqlx::query_scalar(
             r#"SELECT COALESCE(EXTRACT(DAY FROM now() - MAX(booking_timestamp))::BIGINT, 365)"#,
@@ -1007,7 +1007,7 @@ async fn run_scheduled_work(
 
     // Submit every generated instruction as ONE atomic posting batch (same
     // engine as POST /v1/postings). Idempotency key = schedule identity +
-    // UTC date — a Cron retry on the same day dedupes.
+    // UTC date - a Cron retry on the same day dedupes.
     if !generated.is_empty() {
         let batch_id = format!(
             "sched-{schedule_type}-{}",
@@ -1075,7 +1075,7 @@ async fn run_scheduled_work(
             .await
             .map_err(|e| format!("update credit balance: {e}"))?;
         }
-        // Audit + outbox (§8.4 — errors propagate). Outbox-first: the
+        // Audit + outbox (§8.4 - errors propagate). Outbox-first: the
         // ledger.outbox row commits atomically with the schedule batch;
         // the shell's post-commit relay pushes it to Bus.
         sqlx::query(
@@ -1105,7 +1105,7 @@ async fn run_scheduled_work(
     Ok(results)
 }
 
-/// Batch id key for a scheduled run — used in the idempotency key so Cron
+/// Batch id key for a scheduled run - used in the idempotency key so Cron
 /// retries dedupe on the same day.
 fn ledger_schedule_key(schedule_type: &str, account_id: Option<Uuid>) -> String {
     match account_id {
@@ -1114,7 +1114,7 @@ fn ledger_schedule_key(schedule_type: &str, account_id: Option<Uuid>) -> String 
     }
 }
 
-/// Fee posting instruction — debit the customer account (the fee is charged).
+/// Fee posting instruction - debit the customer account (the fee is charged).
 fn fee_instruction(
     account_id: Uuid,
     denom: &str,
@@ -1176,7 +1176,7 @@ pub async fn run_correction_for_account(
     match batch_id {
         Some(id) => Ok(id),
         None => {
-            // Nothing to correct (modules produced no postings) — return the
+            // Nothing to correct (modules produced no postings) - return the
             // adjustment as applied with a nil batch reference.
             Ok(Uuid::nil())
         }
@@ -1207,7 +1207,7 @@ fn default_utc() -> String {
     "UTC".into()
 }
 
-/// `POST /v1/calendars` — create a calendar.
+/// `POST /v1/calendars` - create a calendar.
 #[utoipa::path(
     post,
     path = "/v1/calendars",
@@ -1268,7 +1268,7 @@ pub async fn create_calendar(
     }))
 }
 
-/// `GET /v1/calendars` — list calendars.
+/// `GET /v1/calendars` - list calendars.
 #[utoipa::path(
     get,
     path = "/v1/calendars",
@@ -1357,7 +1357,7 @@ mod schedule_tests {
             ledger_schedule_key("fee_application", Some(acct)),
             format!("fee_application:{acct}")
         );
-        // Env-wide run (no account) — distinct key so a per-account retry
+        // Env-wide run (no account) - distinct key so a per-account retry
         // never collides with the daily env sweep.
         assert_eq!(
             ledger_schedule_key("fee_application", None),
@@ -1374,7 +1374,7 @@ mod schedule_tests {
         );
     }
 
-    /// Daily idempotency-key derivation: `sched:{key}:{yyyymmdd}` — the same
+    /// Daily idempotency-key derivation: `sched:{key}:{yyyymmdd}` - the same
     /// day dedupes, a different day does not (schedules / corrections).
     #[test]
     fn daily_idem_key_varies_by_day() {

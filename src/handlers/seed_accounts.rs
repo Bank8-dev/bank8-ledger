@@ -43,7 +43,7 @@ const SEED_ACCOUNTS: &[(&str, &str)] = &[
     ("Paper Statement Fee Income", "paper_statement_fee_income"),
     ("Fee Rebate", "fee_rebate"),
     ("Deposit Account", "deposit"),
-    // §3.1.3 (eteller design) — teller counterparty accounts. The resolver
+    // §3.1.3 (eteller design) - teller counterparty accounts. The resolver
     // in bank8/apps/eteller looks these nicknames up; they were never seeded
     // before, so teller postings failed with "internal account not found".
     ("ledger:cash_deposit_account", "cash_deposit"),
@@ -93,12 +93,12 @@ const SEED_ACCOUNTS: &[(&str, &str)] = &[
 /// Default denominations to seed accounts for.
 const SEED_DENOMINATIONS: &[&str] = &["CAD", "USD", "EUR", "GBP", "AUD", "MYR", "SGD", "AED"];
 
-/// Create-or-get the env's institution customer (F8 scout — the bank
+/// Create-or-get the env's institution customer (F8 scout - the bank
 /// itself as an explicit party).
 /// Exactly one per env (enforced by the partial unique index on
 /// `customer_type = 'institution'`). The row NEVER links an auth user
 /// (`sentin8_auth_user_id` stays NULL) so the §4.3c holder subquery can
-/// never match it — structurally invisible to customers.
+/// never match it - structurally invisible to customers.
 async fn ensure_institution_customer(
     conn: &mut sqlx::PgConnection,
     env_id: Uuid,
@@ -134,15 +134,15 @@ async fn ensure_institution_customer(
 /// (via the `sentin8:sys:service:updated` Bus event). Idempotent
 /// skips accounts that already exist.
 /// Every query runs on ONE acquired connection with the tenant context
-/// set for the target env — RLS is enforced (per-service DSN, F1), so a
+/// set for the target env - RLS is enforced (per-service DSN, F1), so a
 /// context-less query would return zero rows and silently skip all seeds.
 pub async fn seed_internal_accounts(pool: &PgPool, env_id: Uuid) -> anyhow::Result<()> {
     use crate::handlers::set_tenant_context;
-    // Explicit transaction (rule 2 — same-connection context): the context
+    // Explicit transaction (rule 2 - same-connection context): the context
     // is transaction-local (`set_config(..., true)`); on an autocommit
     // connection it evaporates between statements, `sentin8_context_initialized()`
     // evaluates false, and the `customers` INSERT policy rejects the
-    // institution row (fail-closed) — the whole seed then fails with
+    // institution row (fail-closed) - the whole seed then fails with
     // "new row violates row-level security".
     let mut conn = pool.begin().await?;
     set_tenant_context(&mut conn, env_id).await?;
@@ -174,10 +174,10 @@ pub async fn seed_internal_accounts(pool: &PgPool, env_id: Uuid) -> anyhow::Resu
             .await;
 
             match existing {
-                Ok(Some(_)) => { /* Already exists — skip */ }
+                Ok(Some(_)) => { /* Already exists - skip */ }
                 Ok(None) => {
                     // Create the internal account, owned by the institution
-                    // party (F8 — customer_id is never NULL for internal
+                    // party (F8 - customer_id is never NULL for internal
                     // accounts).
                     let account_id = Uuid::new_v4();
                     let result = sqlx::query(
@@ -231,11 +231,11 @@ pub struct ServiceUpdatedPayload {
 /// When `service == "ledger"` and `enabled == true`, seed the standard
 /// set of internal bank accounts (interest, fees, penalties) for all
 /// supported denominations, and seed the env's per-env policy sets.
-/// Idempotent — safe to call multiple times. Other services' events
+/// Idempotent - safe to call multiple times. Other services' events
 /// are ignored.
 pub async fn seed_for_service_event(pool: &PgPool, msg: &sentin8::bus::contracts::Message) {
     // Event names use ALL-COLON segments (AGENTS.md event-naming rule).
-    // NOTE: `sentin8:sys.service.updated` (dot) was a bug — sys emits
+    // NOTE: `sentin8:sys.service.updated` (dot) was a bug - sys emits
     // `sentin8:sys:service:updated`, so env-init never fired.
     if msg.event_type != "sentin8:sys:service:updated" {
         return;
@@ -254,19 +254,19 @@ pub async fn seed_for_service_event(pool: &PgPool, msg: &sentin8::bus::contracts
     // VDC-2 (design/sentin8-vertical-data-plane-contract.md §VDC.4): the
     // former "verify in sys_services" gate was a cross-database read that
     // never worked (the platform tables do not exist in the bank8
-    // database — the seed was ALWAYS silently skipped). Provenance is now
+    // database - the seed was ALWAYS silently skipped). Provenance is now
     // structural: Bus's produce-side event-ownership gate guarantees only
     // `sentin8`-vertical workloads may mint `sentin8:sys:*` events, and
     // this consumer verifies the recorded `publisher_vertical` before
     // seeding (defense-in-depth belt to the structural suspenders).
     if let Err(reason) = sentin8::bus::client::BusClient::require_publisher(msg) {
-        tracing::warn!(reason = %reason, "env-init: untrusted publisher — skipping seed");
+        tracing::warn!(reason = %reason, "env-init: untrusted publisher - skipping seed");
         return;
     }
 
     // Shield per-env set seeding (VDC §VDC.6): the ledger's Shield engine
     // evaluates policies per-request env, and its boot-load only finds the
-    // SYSTEM-env substrate rows — a tenant-env user request (staff SSO to
+    // SYSTEM-env substrate rows - a tenant-env user request (staff SSO to
     // Bank8:Admin) would hit `no_set_for_env` fail-closed denial. Seed the
     // env's copy of the ledger's platform-origin sets from the SYSTEM-env
     // template BEFORE any user request can arrive in that env.
@@ -286,7 +286,7 @@ pub async fn seed_for_service_event(pool: &PgPool, msg: &sentin8::bus::contracts
 }
 
 /// Copy this service's `origin='platform'` policy sets from the SYSTEM-env
-/// substrate template into the given env — the vertical-DB mirror of what
+/// substrate template into the given env - the vertical-DB mirror of what
 /// Sentin8:Sys does for the platform DB at env creation (sys handlers
 /// `seeded per-env platform policy sets`). Idempotent: an existing
 /// tenant-env row is never overwritten (`ON CONFLICT DO NOTHING`), so

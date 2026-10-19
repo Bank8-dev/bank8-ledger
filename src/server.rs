@@ -15,7 +15,7 @@ use crate::handlers::{self, AppState};
 /// auth DESIGN §4.3f): mint-or-load the Acme-issued pair and wrap it in
 /// a reqwest client. The receiving service's TLS layer authenticates the
 /// handshake and the enroll-published registry map authorizes the
-/// scopes — no bearer token exists on this path.
+/// scopes - no bearer token exists on this path.
 ///
 /// # Errors
 /// Returns the certificate-ensure or transport-build failure (the
@@ -42,7 +42,7 @@ pub async fn build_state(
     let mut config = crate::config::LedgerConfig::from_env();
 
     // Cert-presenting Bus client (CERTFREE-4V): the `ledger` workload
-    // CERTIFICATE is the identity — no DCR, no token (auth DESIGN
+    // CERTIFICATE is the identity - no DCR, no token (auth DESIGN
     // §4.3f); the mint retries while the fleet boots.
     let bus_client = loop {
         match sentin8::bus::client::BusClient::for_workload(
@@ -61,32 +61,32 @@ pub async fn build_state(
     };
 
     // The service's own workload transport (CERTFREE-4V): the
-    // `ledger` certificate presents in the TLS handshake — the
+    // `ledger` certificate presents in the TLS handshake - the
     // receiving service's TLS layer authenticates it and the registry
-    // map authorizes the scopes. Non-fatal on failure — the Func/Cron
+    // map authorizes the scopes. Non-fatal on failure - the Func/Cron
     // clients keep the static dev tokens until the next boot.
     match build_workload_http(&config.sentin8_auth_issuer, "ledger").await {
         Ok(http) => config.m2m_http = Some(http),
-        Err(e) => tracing::warn!(error = %e, "ledger workload transport unavailable — degraded"),
+        Err(e) => tracing::warn!(error = %e, "ledger workload transport unavailable - degraded"),
     }
 
     // Cert-presenting transport for statement document uploads (design
     // §10): the `ledger-storage` workload's certificate holds the Storage
     // env-read/write scopes; the scheduled statement step PUTs the
     // rendered document and the FDX statement_download path reads it back
-    // via a signed link. Non-fatal — statement generation degrades when
+    // via a signed link. Non-fatal - statement generation degrades when
     // the transport is missing.
     match build_workload_http(&config.sentin8_auth_issuer, "ledger-storage").await {
         Ok(http) => config.storage_http = Some(http),
         Err(e) => {
-            tracing::warn!(error = %e, "ledger-storage transport unavailable — statement uploads degraded")
+            tracing::warn!(error = %e, "ledger-storage transport unavailable - statement uploads degraded")
         }
     }
 
     // CERTFREE-4F: the direct Func lanes (hook republish) present the
-    // `ledger` workload certificate — Func's cert-first gate resolves it
+    // `ledger` workload certificate - Func's cert-first gate resolves it
     // against the registry map. None → the hook lanes degrade loudly.
-    // (The proxy-back CallbackConfig token stays — the token Func
+    // (The proxy-back CallbackConfig token stays - the token Func
     // presents BACK to ledger's internal func-host API.)
     if !config.sentin8_func_url.is_empty() {
         match sentin8::auth::m2m::ensure_workload_certificate(
@@ -105,12 +105,12 @@ pub async fn build_state(
                 ) {
                     Ok(c) => config.func_client = Some(c),
                     Err(e) => {
-                        tracing::warn!(error = %e, "ledger func transport build failed — hook lanes degraded")
+                        tracing::warn!(error = %e, "ledger func transport build failed - hook lanes degraded")
                     }
                 }
             }
             Err(e) => {
-                tracing::warn!(error = %e, "ledger func certificate not ready — hook lanes degraded")
+                tracing::warn!(error = %e, "ledger func certificate not ready - hook lanes degraded")
             }
         }
     }
@@ -121,8 +121,8 @@ pub async fn build_state(
     // `policy` stream as a direct consumer (design §3.2); deny/would-deny
     // decisions emit to Stat (§4.2f). The engine is stored in AppState so
     // handlers gate via `policy::require` (step 5 is the ONLY gate).
-    // ── Sentin8:Policy (§4.2b — shell-owned boot): consume the
-    // engine the shell booted in step 8 — no second engine, consumer, or
+    // ── Sentin8:Policy (§4.2b - shell-owned boot): consume the
+    // engine the shell booted in step 8 - no second engine, consumer, or
     // DCR registration here.
     let policy_engine = core.admin.policy.clone();
 
@@ -153,13 +153,13 @@ pub async fn build_state(
 /// Add this service's routes onto the shell-provided router. The shell
 /// owns the boot sequence, state binding, OpenAPI merge and the standard
 /// middleware stack; this adds ONLY routes (including the service's own
-/// `/v1/health` — custom payload).
+/// `/v1/health` - custom payload).
 pub fn routes(
     router: axum::Router<crate::handlers::AppState>,
 ) -> axum::Router<crate::handlers::AppState> {
     router
         .route("/v1/health", get(handlers::health))
-        // ── Sentin8:Policy admin API (§3.6 — shared
+        // ── Sentin8:Policy admin API (§3.6 - shared
         // implementation; handlers generic over this AppState).
         .route(
             "/v1/admin/policy-sets",
@@ -351,7 +351,7 @@ pub fn routes(
             "/v1/admin/ui/{*page}",
             get(handlers::admin_ui::get_admin_ui),
         )
-        // Admin data endpoints (RFW data_endpoint calls — Dash prepends /v1/admin).
+        // Admin data endpoints (RFW data_endpoint calls - Dash prepends /v1/admin).
         .route(
             "/v1/admin/products",
             get(crate::ledger_aliases::admin_list_products).post(handlers::admin_ui::submit_product_form),
@@ -631,10 +631,10 @@ pub fn routes(
             "/v1/audit/action-logs",
             get(handlers::audit::list_action_logs),
         )
-    // Traffic counter — counts every inbound request (excludes health checks).
+    // Traffic counter - counts every inbound request (excludes health checks).
 }
 
-/// Shared policy-admin surface accessor (§3.6) — the shared
+/// Shared policy-admin surface accessor (§3.6) - the shared
 /// handlers extract this service's admin state via [`HasPolicyAdmin`].
 impl sentin8::shield::admin::HasPolicyAdmin for handlers::AppState {
     fn policy_admin(&self) -> &sentin8::shield::admin::SharedAdminState {

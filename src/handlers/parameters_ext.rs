@@ -27,7 +27,7 @@ use crate::handlers::{err_db, set_tenant_context, set_tenant_context_ext, AppSta
 
 // ── Derived parameters  ───────────────────────────────────────────
 
-/// `GET /v1/derived-parameter-values?account_id=` — computed derived values.
+/// `GET /v1/derived-parameter-values?account_id=` - computed derived values.
 #[utoipa::path(
     get,
     path = "/v1/derived-parameter-values",
@@ -146,7 +146,7 @@ pub struct UpsertGlobalParameterRequest {
     pub value: JsonValue,
 }
 
-/// `POST /v1/global-parameters` — create/update a global parameter.
+/// `POST /v1/global-parameters` - create/update a global parameter.
 #[utoipa::path(
     post,
     path = "/v1/global-parameters",
@@ -199,7 +199,7 @@ pub async fn upsert_global_parameter(
     }))
 }
 
-/// `GET /v1/global-parameters` — list global parameters.
+/// `GET /v1/global-parameters` - list global parameters.
 #[utoipa::path(
     get,
     path = "/v1/global-parameters",
@@ -247,7 +247,7 @@ pub async fn list_global_parameters(
     ))
 }
 
-/// `GET /v1/global-parameters/{id}` — global parameter detail.
+/// `GET /v1/global-parameters/{id}` - global parameter detail.
 #[utoipa::path(
     get,
     path = "/v1/global-parameters/{id}",

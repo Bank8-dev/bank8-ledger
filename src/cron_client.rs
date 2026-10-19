@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Cron HTTP client — Ledger delegates all scheduling to Cron.
+//! Cron HTTP client - Ledger delegates all scheduling to Cron.
 //! Ledger does NOT run its own scheduler. Instead, it creates schedules in
 //! Cron via `POST /v1/schedules` and implements a proxy-back endpoint
 //! `POST /v1/internal/schedules/run` that Cron calls when a schedule fires.
@@ -65,7 +65,7 @@ impl CronClient {
         }
     }
 
-    /// `POST /v1/schedules` — create a schedule in Cron.
+    /// `POST /v1/schedules` - create a schedule in Cron.
     pub async fn create_schedule(
         &self,
         req: &CreateCronSchedule,
@@ -84,7 +84,7 @@ impl CronClient {
         resp.json().await.map_err(|e| format!("cron decode: {e}"))
     }
 
-    /// `GET /v1/schedules` — list schedules from Cron.
+    /// `GET /v1/schedules` - list schedules from Cron.
     pub async fn list_schedules(&self) -> Result<Vec<CronScheduleResponse>, String> {
         let resp = self
             .http
@@ -99,7 +99,7 @@ impl CronClient {
         resp.json().await.map_err(|e| format!("cron decode: {e}"))
     }
 
-    /// `DELETE /v1/schedules/{id}` — delete a schedule in Cron.
+    /// `DELETE /v1/schedules/{id}` - delete a schedule in Cron.
     pub async fn delete_schedule(&self, id: &str) -> Result<(), String> {
         let resp = self
             .http
@@ -114,7 +114,7 @@ impl CronClient {
         Ok(())
     }
 
-    /// `POST /v1/schedules/{id}/pause` — pause a schedule.
+    /// `POST /v1/schedules/{id}/pause` - pause a schedule.
     pub async fn pause_schedule(&self, id: &str) -> Result<(), String> {
         let resp = self
             .http
@@ -129,7 +129,7 @@ impl CronClient {
         Ok(())
     }
 
-    /// `POST /v1/schedules/{id}/resume` — resume a schedule.
+    /// `POST /v1/schedules/{id}/resume` - resume a schedule.
     pub async fn resume_schedule(&self, id: &str) -> Result<(), String> {
         let resp = self
             .http
@@ -144,7 +144,7 @@ impl CronClient {
         Ok(())
     }
 
-    /// `GET /v1/jobs` — list jobs from Cron.
+    /// `GET /v1/jobs` - list jobs from Cron.
     pub async fn list_jobs(&self) -> Result<Vec<CronJobResponse>, String> {
         let resp = self
             .http
@@ -159,7 +159,7 @@ impl CronClient {
         resp.json().await.map_err(|e| format!("cron decode: {e}"))
     }
 
-    /// `POST /v1/jobs/{id}/retry` — retry a failed job in Cron.
+    /// `POST /v1/jobs/{id}/retry` - retry a failed job in Cron.
     pub async fn retry_job(&self, id: &str) -> Result<CronJobResponse, String> {
         let resp = self
             .http
@@ -174,7 +174,7 @@ impl CronClient {
         resp.json().await.map_err(|e| format!("cron decode: {e}"))
     }
 
-    /// `GET /v1/dlq` — list DLQ entries from Cron.
+    /// `GET /v1/dlq` - list DLQ entries from Cron.
     pub async fn list_dlq(&self) -> Result<Vec<serde_json::Value>, String> {
         let resp = self
             .http
@@ -189,7 +189,7 @@ impl CronClient {
         resp.json().await.map_err(|e| format!("cron decode: {e}"))
     }
 
-    /// `POST /v1/dlq/{id}/republish` — republish a DLQ entry in Cron.
+    /// `POST /v1/dlq/{id}/republish` - republish a DLQ entry in Cron.
     pub async fn republish_dlq(&self, id: &str) -> Result<(), String> {
         let resp = self
             .http

@@ -48,7 +48,7 @@ pub struct CreateAdjustmentRequest {
     pub effective_date: chrono::DateTime<chrono::Utc>,
 }
 
-/// `POST /v1/adjustments` — create an adjustment: recompute the account state
+/// `POST /v1/adjustments` - create an adjustment: recompute the account state
 /// for backdated postings/parameter changes by re-running the on-schedule
 /// modules from the effective date and submitting a correction batch.
 #[utoipa::path(
@@ -95,7 +95,7 @@ pub async fn create_adjustment(
     // modules from the effective date to today, submitting the generated
     // posting instructions as one atomic correction batch. The schedule
     // engine (`run_scheduled_work`) already implements the
-    // "generate postings from on-schedule modules" logic — the adjustment
+    // "generate postings from on-schedule modules" logic - the adjustment
     // drives it for this account and records the resulting batch id.
     let correction =
         crate::handlers::schedules::run_correction_for_account(&state, a.env_id(), req.account_id)
@@ -140,7 +140,7 @@ pub struct ListAdjustmentsQuery {
     pub account_id: Option<Uuid>,
 }
 
-/// `GET /v1/adjustments` — list adjustments (with `:batchGet` variant).
+/// `GET /v1/adjustments` - list adjustments (with `:batchGet` variant).
 #[utoipa::path(
     get,
     path = "/v1/adjustments",
@@ -194,7 +194,7 @@ pub async fn list_adjustments(
     ))
 }
 
-/// `GET /v1/adjustments/{id}` — adjustment detail.
+/// `GET /v1/adjustments/{id}` - adjustment detail.
 #[utoipa::path(
     get,
     path = "/v1/adjustments/{id}",
@@ -243,7 +243,7 @@ pub async fn get_adjustment(
     }))
 }
 
-/// `POST /v1/adjustments:bulkRetry` — retry failed adjustments (Sentin8 Jobs
+/// `POST /v1/adjustments:bulkRetry` - retry failed adjustments (Sentin8 Jobs
 /// pattern).
 #[utoipa::path(
     post,
@@ -301,9 +301,9 @@ pub async fn bulk_retry_adjustments(
     ))
 }
 
-// ── Post-posting failures — DLQ view with failure_type=post_posting ──
+// ── Post-posting failures - DLQ view with failure_type=post_posting ──
 
-/// `GET /v1/post-posting-failures` — list post-posting hook failures.
+/// `GET /v1/post-posting-failures` - list post-posting hook failures.
 #[utoipa::path(
     get,
     path = "/v1/post-posting-failures",
@@ -360,7 +360,7 @@ pub async fn list_post_posting_failures(
     Ok(Json(failures))
 }
 
-/// `POST /v1/post-posting-failures/{id}/republish` — re-run the post-posting
+/// `POST /v1/post-posting-failures/{id}/republish` - re-run the post-posting
 /// hook for a committed batch (delegates to Sentin8:Func).
 #[utoipa::path(
     post,

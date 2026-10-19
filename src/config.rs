@@ -18,46 +18,46 @@ pub struct LedgerConfig {
     pub sentin8_auth_jwks_url: String,
     pub sentin8_bus_url: String,
     pub sentin8_func_url: String,
-    /// Certificate-presenting Func client (CERTFREE-4F — the `ledger`
+    /// Certificate-presenting Func client (CERTFREE-4F - the `ledger`
     /// workload certificate presents in the TLS handshake). Built at
     /// boot; `None` degrades the hook lanes loudly.
     pub func_client: Option<sentin8_func_sdk::client::FuncClient>,
     /// Static token for the proxy-back CallbackConfig (the token Func
-    /// presents BACK to ledger's internal func-host API — a separate
+    /// presents BACK to ledger's internal func-host API - a separate
     /// contract from the Func client's own auth).
     pub sentin8_func_token: String,
     pub sentin8_cron_url: String,
     pub sentin8_cron_token: String,
-    /// Sentin8:Flow base URL — the per-account-period statement regeneration
+    /// Sentin8:Flow base URL - the per-account-period statement regeneration
     /// workflow trigger (design §10). The client rides the boot-installed
-    /// `ledger` workload transport (CERTFREE-4V — no M2M token exists);
+    /// `ledger` workload transport (CERTFREE-4V - no M2M token exists);
     /// the static token is the proxy-back callback credential.
     pub sentin8_flow_url: String,
     pub sentin8_flow_token: String,
-    /// Sentin8:Storage base URL — statement document uploads (design §10).
+    /// Sentin8:Storage base URL - statement document uploads (design §10).
     pub sentin8_storage_url: String,
     pub stream_family: String,
-    /// Story — Stat config for Ledger telemetry.
+    /// Story - Stat config for Ledger telemetry.
     pub sentin8_stat_url: String,
     pub sentin8_stat_property_id: uuid::Uuid,
-    /// Shared Auth client — constructed once so the discovery and JWKS
+    /// Shared Auth client - constructed once so the discovery and JWKS
     /// caches are reused across every request (5-minute TTL each).
     /// Cloning is cheap (the caches live behind an `Arc`).
     pub sentin8_auth_client: AuthClient,
     /// Certificate-presenting transport for the service's own
-    /// workload identity (CERTFREE-4V — no M2M token exists): the
-    /// `ledger` certificate presents in the TLS handshake — the
+    /// workload identity (CERTFREE-4V - no M2M token exists): the
+    /// `ledger` certificate presents in the TLS handshake - the
     /// receiving service's TLS layer authenticates it and the
     /// enroll-published registry map authorizes the scopes.
     pub m2m_http: Option<reqwest::Client>,
     /// Certificate-presenting transport for the `ledger-storage`
-    /// workload (statement document uploads to Sentin8:Storage —
+    /// workload (statement document uploads to Sentin8:Storage -
     /// design §10). Distinct from `m2m_http` because the scope grants
     /// differ (`sentin8:storage:env:write`/`read` vs the domain scopes).
     pub storage_http: Option<reqwest::Client>,
 }
 
-/// Manual `Debug` — never logs the transport internals.
+/// Manual `Debug` - never logs the transport internals.
 impl std::fmt::Debug for LedgerConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LedgerConfig")
@@ -104,7 +104,7 @@ impl LedgerConfig {
             sentin8_storage_url: env::var("SENTIN8_STORAGE_URL")
                 .unwrap_or_else(|_| cfg.sentin8_storage_url()),
             // Design §11: the ledger stream family is `ledger`
-            // (`bus:{envId}:ledger`) — one family for the outbox relay,
+            // (`bus:{envId}:ledger`) - one family for the outbox relay,
             // the REST-produce paths, and every consumer.
             stream_family: env::var("BANK8_LEDGER_STREAM_FAMILY")
                 .unwrap_or_else(|_| "ledger".into()),
@@ -126,7 +126,7 @@ impl LedgerConfig {
         }
     }
 
-    /// Token for the proxy-back CallbackConfig — the static
+    /// Token for the proxy-back CallbackConfig - the static
     /// `SENTIN8_FUNC_TOKEN` env value (the token Func presents BACK to
     /// ledger's internal func-host API; NOT the Func client's own
     /// auth, which is the certificate).
@@ -134,7 +134,7 @@ impl LedgerConfig {
         self.sentin8_func_token.clone()
     }
 
-    /// Token for Sentin8:Cron calls — the static `SENTIN8_CRON_TOKEN`
+    /// Token for Sentin8:Cron calls - the static `SENTIN8_CRON_TOKEN`
     /// env value (Cron authenticates bearer tokens).
     pub async fn cron_token(&self) -> String {
         self.sentin8_cron_token.clone()

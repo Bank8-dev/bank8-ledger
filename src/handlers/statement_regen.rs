@@ -3,12 +3,12 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Statement regeneration proxy-back — `POST /v1/internal/statements/regen`
+//! Statement regeneration proxy-back - `POST /v1/internal/statements/regen`
 //! (design §10). Sentin8:Flow drives the per-account-period
 //! `statement-regen` workflow; each step proxies back here to recompute the
 //! period sums and rewrite the Storage document. This is the *proxy-back*
 //! data path of the regen workflow (the scheduled path wrote the row and
-//! the first render) — a workflow retry re-enters here.
+//! the first render) - a workflow retry re-enters here.
 
 use axum::{
     extract::State,
@@ -31,7 +31,7 @@ pub struct StatementRegenRequest {
     pub workflow_id: Uuid,
     /// Step name within the logic.
     pub step_name: String,
-    /// Step input — `account_id`, `period`, `env_id`.
+    /// Step input - `account_id`, `period`, `env_id`.
     pub input: serde_json::Value,
     /// Flow's accumulated user data.
     #[serde(default)]
@@ -41,7 +41,7 @@ pub struct StatementRegenRequest {
     pub step_config: Option<serde_json::Value>,
 }
 
-/// Proxy-back response — the same shape the payments step contract uses.
+/// Proxy-back response - the same shape the payments step contract uses.
 #[derive(Debug, Serialize)]
 pub struct StatementRegenResponse {
     pub status: String,
@@ -62,7 +62,7 @@ pub struct StatementRegenResponse {
     security(),
     tag = "internal",
 )]
-/// `POST /v1/internal/statements/regen` — Flow proxy-back for the
+/// `POST /v1/internal/statements/regen` - Flow proxy-back for the
 /// `statement-regen` workflow (design §10).
 ///
 /// Authorization mirrors the platform's canonical Flow proxy-back gate
@@ -115,7 +115,7 @@ pub async fn statement_regen_step(
         .to_string();
 
     // Recompute the period sums and rewrite the document (the retryable
-    // part of regeneration — the statement row already exists).
+    // part of regeneration - the statement row already exists).
     let mut tx = state.pool.begin().await.map_err(err_db)?;
     set_tenant_context(&mut tx, env_id).await.map_err(err_db)?;
     let row = sqlx::query(

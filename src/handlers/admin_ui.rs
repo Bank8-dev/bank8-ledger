@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Bank8:Ledger Admin UI handlers — RFW (Remote Flutter Widget) definitions.
+//! Bank8:Ledger Admin UI handlers - RFW (Remote Flutter Widget) definitions.
 //! Each handler returns an `AdminUiPage` (or `AdminUiResponse`) that Sentin8:Dash
 //! fetches via `GET /v1/admin/ui/{page}` and renders at runtime.
 //! See `sentin8-architecture-principles.md` §4.15 for the full Remote UI architecture.
@@ -37,14 +37,14 @@ pub struct AdminUiQuery {
     security(),
     tag = "admin-ui",
 )]
-/// GET /v1/admin/ui/{page} — return RFW definition for the requested admin page.
+/// GET /v1/admin/ui/{page} - return RFW definition for the requested admin page.
 pub async fn get_admin_ui(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(page): Path<String>,
     Query(q): Query<AdminUiQuery>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
-    // Step 5 — Shield decides (principles §5.2, policy design §4.3). UI
+    // Step 5 - Shield decides (principles §5.2, policy design §4.3). UI
     // definitions carry no data; the scope-mirror set permits read actions
     // per-scope, and platform/org/env admin scopes ride the same live-scope
     // evaluation (the platform set permits them for read actions too).
@@ -58,7 +58,7 @@ pub async fn get_admin_ui(
     .await?;
 
     // NOTE: no seeding here. Seeding is event-driven only (env-init via
-    // Sentin8:Bus `sentin8:sys:service:updated`) — a GET must never mutate
+    // Sentin8:Bus `sentin8:sys:service:updated`) - a GET must never mutate
     // data, and seeding the *caller's* env let staff tokens create internal
     // accounts in feature-disabled envs (incident 2026-08-28).
 
@@ -76,7 +76,7 @@ pub async fn get_admin_ui(
                 product_type_selection_page()
             }
         }
-        // Product detail/edit/versions are handled dynamically — the page
+        // Product detail/edit/versions are handled dynamically - the page
         // name includes the product ID (e.g. "products/abc-123/edit").
         // These are matched by prefix below.
         "schedules" => schedules_page(),
@@ -93,7 +93,7 @@ pub async fn get_admin_ui(
         "customers" => customers_page(),
         "statements" => statements_page(),
         "settings" => settings_page(),
-        // ── Policy Studio (design §3.7, story 28.14) — shared page
+        // ── Policy Studio (design §3.7, story 28.14) - shared page
         // constructors; the guard guarantees `Some` (§3.7 dispatch).
         p if sentin8::rfw::policy_page("bank8:ledger", p).is_some() => {
             sentin8::rfw::policy_page("bank8:ledger", p)
@@ -143,7 +143,7 @@ pub async fn get_admin_ui(
     security(),
     tag = "admin-ui",
 )]
-/// `POST /v1/admin/products` — handle product creation form submission.
+/// `POST /v1/admin/products` - handle product creation form submission.
 /// Called by the RFW form renderer when the user clicks "Create Product".
 /// Creates the product and returns an `AdminUiResponse::redirect` so the
 /// RFW renderer navigates back to the products list.
@@ -173,7 +173,7 @@ pub async fn submit_product_form(
             serde_json::to_value(AdminUiResponse::error("Product name is required")).unwrap(),
         ));
     }
-    // Parse modules — the form sends a comma-separated string or array.
+    // Parse modules - the form sends a comma-separated string or array.
     let modules: serde_json::Value = if let Some(arr) = body["modules"].as_array() {
         serde_json::Value::Array(arr.clone())
     } else if let Some(s) = body["modules"].as_str() {
@@ -185,7 +185,7 @@ pub async fn submit_product_form(
     } else {
         serde_json::Value::Array(vec![])
     };
-    // Parse parameters — collect all param_* fields from the form body.
+    // Parse parameters - collect all param_* fields from the form body.
     let mut params_obj = serde_json::Map::new();
     if let Some(obj) = body.as_object() {
         for (key, val) in obj {
@@ -222,7 +222,7 @@ pub async fn submit_product_form(
         .begin()
         .await
         .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    // TLS-injected env wins over the token env — staff SSO tokens carry the
+    // TLS-injected env wins over the token env - staff SSO tokens carry the
     // staff env but Bank8:Admin manages the env the browser is on
     // (bank8-admin.prod.{org}.{tld} → X-Sentin8-Env-Id = prod env).
     let env_id = crate::handlers::resolve_org_env(&headers, uuid::Uuid::nil(), a.env_id());
@@ -265,7 +265,7 @@ pub async fn submit_product_form(
     security(),
     tag = "admin-ui",
 )]
-/// `PUT /v1/admin/products/{id}` — handle product edit form submission.
+/// `PUT /v1/admin/products/{id}` - handle product edit form submission.
 pub async fn submit_product_edit(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -343,7 +343,7 @@ pub async fn submit_product_edit(
     security(),
     tag = "admin-ui",
 )]
-/// `POST /v1/admin/products/{id}/versions` — create a new product version.
+/// `POST /v1/admin/products/{id}/versions` - create a new product version.
 pub async fn submit_product_version(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -426,7 +426,7 @@ pub async fn submit_product_version(
     ))
 }
 
-// ── Admin form submissions — non-product resources (RECON-5) ────────────
+// ── Admin form submissions - non-product resources (RECON-5) ────────────
 
 fn form_str(body: &serde_json::Value, key: &str) -> Option<String> {
     body[key]
@@ -450,7 +450,7 @@ fn form_uuid(body: &serde_json::Value, key: &str) -> Option<uuid::Uuid> {
     security(),
     tag = "admin-ui",
 )]
-/// `POST /v1/admin/accounts` — create-account form submission.
+/// `POST /v1/admin/accounts` - create-account form submission.
 pub async fn submit_account_form(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -530,7 +530,7 @@ pub async fn submit_account_form(
     security(),
     tag = "admin-ui",
 )]
-/// `PUT /v1/admin/accounts/{id}` — update-account form submission.
+/// `PUT /v1/admin/accounts/{id}` - update-account form submission.
 pub async fn submit_account_edit(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -591,7 +591,7 @@ pub async fn submit_account_edit(
     security(),
     tag = "admin-ui",
 )]
-/// `POST /v1/admin/postings` — new-posting form submission (batch of one).
+/// `POST /v1/admin/postings` - new-posting form submission (batch of one).
 pub async fn submit_posting_form(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -635,7 +635,7 @@ pub async fn submit_posting_form(
             description: form_str(&body, "reference"),
         }],
     };
-    // Reuse the domain handler (same scope check — fine for admin callers).
+    // Reuse the domain handler (same scope check - fine for admin callers).
     let resp =
         crate::handlers::postings::create_posting(State(state), headers, axum::Json(req)).await?;
     Ok(Json(serde_json::json!({
@@ -656,7 +656,7 @@ pub async fn submit_posting_form(
     security(),
     tag = "admin-ui",
 )]
-/// `POST /v1/admin/parameters` — create-parameter form submission.
+/// `POST /v1/admin/parameters` - create-parameter form submission.
 pub async fn submit_parameter_form(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -719,7 +719,7 @@ pub async fn submit_parameter_form(
     security(),
     tag = "admin-ui",
 )]
-/// `POST /v1/admin/restriction-sets` — create-restriction form submission.
+/// `POST /v1/admin/restriction-sets` - create-restriction form submission.
 pub async fn submit_restriction_form(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -790,7 +790,7 @@ pub async fn submit_restriction_form(
     security(),
     tag = "admin-ui",
 )]
-/// `POST /v1/admin/flags` — create-flag form submission.
+/// `POST /v1/admin/flags` - create-flag form submission.
 pub async fn submit_flag_form(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -857,7 +857,7 @@ pub async fn submit_flag_form(
     security(),
     tag = "admin-ui",
 )]
-/// `POST /v1/admin/dlq/{id}/discard` — discard a DLQ entry (no republish).
+/// `POST /v1/admin/dlq/{id}/discard` - discard a DLQ entry (no republish).
 pub async fn discard_dlq_entry(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -913,7 +913,7 @@ pub async fn discard_dlq_entry(
     security(),
     tag = "admin-ui",
 )]
-/// `GET /v1/admin/reconcile` — reconciliation summary (posting totals).
+/// `GET /v1/admin/reconcile` - reconciliation summary (posting totals).
 pub async fn admin_reconcile_summary(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -973,7 +973,7 @@ pub async fn admin_reconcile_summary(
     security(),
     tag = "admin-ui",
 )]
-/// `GET /v1/admin/balances` — account balances view (RFW DataTable rows).
+/// `GET /v1/admin/balances` - account balances view (RFW DataTable rows).
 pub async fn admin_balances(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -1038,12 +1038,12 @@ pub async fn admin_balances(
     security(),
     tag = "admin-ui",
 )]
-/// `GET /v1/admin/settings` — static ledger settings payload.
+/// `GET /v1/admin/settings` - static ledger settings payload.
 pub async fn admin_settings(
     State(state): State<AppState>,
     headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
-    // Step 5 — Shield decides (principles §5.2, policy design §4.3). The
+    // Step 5 - Shield decides (principles §5.2, policy design §4.3). The
     // scope-mirror set permits this read action per-scope; platform-admin /
     // org-admin / env-admin scopes carry read permits the same way.
     let _a = crate::auth::verify_token(&state.config, &headers).await?;
@@ -1073,7 +1073,7 @@ pub async fn admin_settings(
     security(),
     tag = "admin-ui",
 )]
-/// `GET /v1/admin/statements` — recent statements (RFW DataTable rows).
+/// `GET /v1/admin/statements` - recent statements (RFW DataTable rows).
 pub async fn admin_statements(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -2643,7 +2643,7 @@ fn all_module_options() -> Vec<FormFieldOption> {
     ]
 }
 
-/// Stage 1: Product type selection — card grid of 13 product types.
+/// Stage 1: Product type selection - card grid of 13 product types.
 /// Each card is a Button that navigates to products/new?type={id}.
 fn product_type_selection_page() -> AdminUiPage {
     // Card-based layout: each product type is a clickable button that
@@ -2799,7 +2799,7 @@ async fn product_create_config_page(
                 // Internal account params (key ends with "_account") are
                 // rendered as a Select dropdown populated from ALL seeded
                 // internal accounts for this org/env/denomination. The
-                // default is the best-matching account — the param key
+                // default is the best-matching account - the param key
                 // minus "_account" is matched against the account's
                 // product_type (e.g. "interest_paid_account" → "interest_paid").
                 if p.key.ends_with("_account") {
@@ -2888,7 +2888,7 @@ async fn product_create_config_page(
         .build()
 }
 
-/// Product detail page — shows product info + actions (Edit, Versions, Activate).
+/// Product detail page - shows product info + actions (Edit, Versions, Activate).
 fn product_detail_page(id: &str) -> AdminUiPage {
     AdminPage::new("Product Detail")
         .action(AdminUiAction {
@@ -2912,7 +2912,7 @@ fn product_detail_page(id: &str) -> AdminUiPage {
             endpoint: None,
             icon: Some("0xe876".into()),
         })
-        // Product info table — fetches the single product by ID.
+        // Product info table - fetches the single product by ID.
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
                 WidgetDataTableColumn {
@@ -2966,7 +2966,7 @@ fn product_detail_page(id: &str) -> AdminUiPage {
             row_link: None,
             row_actions: vec![],
         }))
-        // Versions table — shows all versions for this product.
+        // Versions table - shows all versions for this product.
         .widget(RemoteWidget::DataTable(WidgetDataTable {
             columns: vec![
                 WidgetDataTableColumn {
@@ -3016,7 +3016,7 @@ fn product_detail_page(id: &str) -> AdminUiPage {
         .build()
 }
 
-/// Product edit page — edit name, modules, parameters.
+/// Product edit page - edit name, modules, parameters.
 fn product_edit_page(id: &str) -> AdminUiPage {
     AdminPage::new("Edit Product")
         .widget(RemoteWidget::Form(WidgetForm {
@@ -3199,7 +3199,7 @@ fn product_versions_page(id: &str) -> AdminUiPage {
         .build()
 }
 
-/// Product version create page — form for creating a new version.
+/// Product version create page - form for creating a new version.
 fn product_version_create_page(id: &str) -> AdminUiPage {
     AdminPage::new("New Product Version")
         .widget(RemoteWidget::Form(WidgetForm {
@@ -3607,7 +3607,7 @@ fn schedules_page() -> AdminUiPage {
         .build()
 }
 
-/// The jobs page (LED-JB1) — job history per schedule with the
+/// The jobs page (LED-JB1) - job history per schedule with the
 /// `overridden` status surfaced: a batch-republished failed job renders
 /// as overridden (a deliberate human close-out), not as an error. The
 /// status filter lets operators isolate failed/overridden job sets.
@@ -3723,7 +3723,7 @@ fn dlq_page() -> AdminUiPage {
 fn reconcile_page() -> AdminUiPage {
     AdminPage::new("Reconciliation")
         .widget(RemoteWidget::Text(WidgetText {
-            text: "Reconciliation dashboard — match/mismatch summary.".into(),
+            text: "Reconciliation dashboard - match/mismatch summary.".into(),
             text_type: WidgetTextType::Body,
             align: TextAlign::Left,
             max_lines: None,
@@ -4024,7 +4024,7 @@ fn customers_page() -> AdminUiPage {
 fn statements_page() -> AdminUiPage {
     AdminPage::new("Statements")
         .widget(RemoteWidget::Text(WidgetText {
-            text: "Statement management — list and download account statements.".into(),
+            text: "Statement management - list and download account statements.".into(),
             text_type: WidgetTextType::Body,
             align: TextAlign::Left,
             max_lines: None,

@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Sentin8:Bus consumer — reacts to `sentin8:sys:service:updated` events.
+//! Sentin8:Bus consumer - reacts to `sentin8:sys:service:updated` events.
 //! Env-init for bank8-ledger is **event-driven**, not a synchronous RPC.
 //! Sentin8:Sys emits `sentin8:sys:service:updated` to Sentin8:Bus (stream
 //! family `sys`) whenever a service is enabled for an org/env. This
@@ -13,7 +13,7 @@
 //! of internal bank accounts when `service == "ledger"` and
 //! `enabled == true`.
 //! Uses the same SSE pattern as `sentin8/services/bff/src/subscribe/bus.rs`
-//! — the `BusClient::sse_consume` method opens a long-lived
+//! - the `BusClient::sse_consume` method opens a long-lived
 //! `text/event-stream` connection. Each `data:` line is a JSON
 //! `sentin8::bus::contracts::Message`. ACKs are sent via `POST /v1/ack`.
 //! Design: `services/ledger/DESIGN.md` §7
@@ -26,7 +26,7 @@ use sqlx::PgPool;
 
 use super::seed_accounts;
 
-/// Consumer group name — identifies this ledger instance to Sentin8:Bus.
+/// Consumer group name - identifies this ledger instance to Sentin8:Bus.
 /// Using a stable group name means messages are load-balanced across ledger
 /// replicas and a single message is only handled once per group.
 const CONSUMER_GROUP: &str = "bank8:ledger:envinit";
@@ -55,10 +55,10 @@ async fn run(pool: PgPool, bus_client: sentin8::bus::client::BusClient) {
             Ok(resp) => {
                 tracing::info!("ledger: bus SSE connected to stream family 'sys'");
                 sse_loop(&pool, &bus_client, resp).await;
-                tracing::info!("ledger: bus SSE disconnected — reconnecting");
+                tracing::info!("ledger: bus SSE disconnected - reconnecting");
             }
             Err(e) => {
-                tracing::warn!(error = %e, "ledger: bus SSE consume failed — reconnecting");
+                tracing::warn!(error = %e, "ledger: bus SSE consume failed - reconnecting");
             }
         }
         tokio::time::sleep(RECONNECT_DELAY).await;
@@ -111,7 +111,7 @@ async fn sse_loop(
                 }
             };
 
-            // Dispatch to the handler (full envelope — provenance
+            // Dispatch to the handler (full envelope - provenance
             // verification needs publisher_vertical, VDC-2).
             seed_accounts::seed_for_service_event(pool, &msg).await;
 

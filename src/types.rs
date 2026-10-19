@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Ledger domain types — full type definitions for all Ledger resources.
+//! Ledger domain types - full type definitions for all Ledger resources.
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

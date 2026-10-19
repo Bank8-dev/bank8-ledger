@@ -3,13 +3,13 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Func integration — Ledger calls Func for contract hooks.
+//! Func integration - Ledger calls Func for contract hooks.
 //! Hook types:
-//! - `pre_posting` — runs before each posting instruction is committed
-//! - `post_posting` — runs after a posting batch is committed
-//! - `scheduled_event` — runs on scheduled events (interest accrual, fees, etc.)
-//! - `activation` — runs when an account is activated (PENDING → OPEN)
-//! - `deactivation` — runs when an account is deactivated (OPEN → CLOSED)
+//! - `pre_posting` - runs before each posting instruction is committed
+//! - `post_posting` - runs after a posting batch is committed
+//! - `scheduled_event` - runs on scheduled events (interest accrual, fees, etc.)
+//! - `activation` - runs when an account is activated (PENDING → OPEN)
+//! - `deactivation` - runs when an account is deactivated (OPEN → CLOSED)
 //! Func proxy-calls back to Ledger's internal API for host functions (get
 //! account, get balance, set flag, etc.) via the CallbackConfig.
 
@@ -93,7 +93,7 @@ pub async fn republish_post_posting(
     let Ok(pid) = posting_id.parse::<uuid::Uuid>() else {
         return false;
     };
-    // Certificate-presenting client (CERTFREE-4F) — the `ledger`
+    // Certificate-presenting client (CERTFREE-4F) - the `ledger`
     // workload certificate presents in the TLS handshake; the proxy-back
     // callback token is a separate contract (the token Func presents
     // BACK to ledger's internal func-host API).
@@ -222,6 +222,6 @@ pub fn callback_base_url(config: &crate::config::LedgerConfig) -> String {
     }
     // SENTIN8_DOMAIN is the platform root (e.g. `sentin8.local`); the
     // service's hostname follows the uniform hierarchy `{service}.{env}.{org}.{tld}`
-    // — platform services are the `ops` env of the `sys` org.
+    // - platform services are the `ops` env of the `sys` org.
     format!("https://bank8-ledger.ops.sys.{}", domain.trim())
 }

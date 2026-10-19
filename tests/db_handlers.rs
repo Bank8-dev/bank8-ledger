@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! DB-backed handler-path tests (runtime-skip) — ledger DESIGN.md §9.
+//! DB-backed handler-path tests (runtime-skip) - ledger DESIGN.md §9.
 //!
 //! Exercises the ledger's SQL seams (account CRUD, posting batch
 //! commit, balances UPSERT, idempotency conflict, double-entry
@@ -12,7 +12,7 @@
 //! reachable (plain `cargo test` without infra), matching the
 //! platform's TEST-SYS-3 pattern.
 //!
-//! These tests do NOT test the handlers' HTTP/auth/policy layers —
+//! These tests do NOT test the handlers' HTTP/auth/policy layers -
 //! those are covered by the policy suites and e2e. This layer owns the
 //! DB round-trips: the exact statements a handler runs, including the
 //! RLS tenant-context discipline (context set on the same connection
@@ -24,7 +24,7 @@ use uuid::Uuid;
 
 /// Connect to the test database (the bank8 vertical database when
 /// provisioned, else the default dev URL). Returns `None` when the
-/// database is unreachable — the suite skips instead of failing.
+/// database is unreachable - the suite skips instead of failing.
 async fn test_pool() -> Option<PgPool> {
     let url = std::env::var("BANK8_LEDGER_DATABASE_URL")
         .or_else(|_| std::env::var("DATABASE_URL"))
@@ -32,7 +32,7 @@ async fn test_pool() -> Option<PgPool> {
     match sqlx::PgPool::connect(&url).await {
         Ok(p) => Some(p),
         Err(e) => {
-            eprintln!("skipping DB-backed ledger tests — no database: {e}");
+            eprintln!("skipping DB-backed ledger tests - no database: {e}");
             None
         }
     }
@@ -55,7 +55,7 @@ async fn account_insert_and_list_roundtrip() {
     // between statements and the FORCE RLS policies would reject the row.
     let mut tx = conn.begin().await.expect("tx");
     // M2M service context (token_tp=m2m + holder:view-all scope): the same
-    // 9-arg shape set_tenant_context runs — the accounts holder-scoped
+    // 9-arg shape set_tenant_context runs - the accounts holder-scoped
     // SELECT policy admits an env-wide read only from this branch.
     sqlx::query("SELECT sentin8_set_tenant_context($1, NULL, 'm2m', 'holder:view-all', false, false, false, NULL, 'ledger')")
         .bind(env_id)
@@ -118,7 +118,7 @@ async fn posting_batch_commit_and_readback() {
     let env_id = Uuid::new_v4();
     let mut conn = pool.acquire().await.expect("conn");
     // Context-set + seed inserts share one explicit transaction
-    // (transaction-local set_config — see handlers.rs::begin_tenant_tx).
+    // (transaction-local set_config - see handlers.rs::begin_tenant_tx).
     let mut seed = conn.begin().await.expect("seed tx");
     // M2M service context (see set_tenant_context in handlers.rs).
     sqlx::query("SELECT sentin8_set_tenant_context($1, NULL, 'm2m', 'holder:view-all', false, false, false, NULL, 'ledger')")
@@ -156,7 +156,7 @@ async fn posting_batch_commit_and_readback() {
 
     let posting_id = Uuid::new_v4();
     let mut tx = pool.begin().await.expect("tx");
-    // M2M service context (see set_tenant_context in handlers.rs) — the
+    // M2M service context (see set_tenant_context in handlers.rs) - the
     // second transaction re-sets the context (transaction-local config).
     sqlx::query("SELECT sentin8_set_tenant_context($1, NULL, 'm2m', 'holder:view-all', false, false, false, NULL, 'ledger')")
         .bind(env_id)
@@ -219,7 +219,7 @@ async fn posting_batch_commit_and_readback() {
     .expect("insert transaction");
     tx.commit().await.expect("commit");
 
-    // Read-back verification on a pooled (fresh) connection — the exact
+    // Read-back verification on a pooled (fresh) connection - the exact
     // check `create_posting` runs after commit. The fresh connection has
     // no tenant context: re-set it inside an explicit transaction (FORCE
     // RLS rejects context-less reads) using the M2M service shape.
@@ -283,7 +283,7 @@ async fn posting_idempotency_conflict_returns_original() {
     let env_id = Uuid::new_v4();
     let mut conn = pool.acquire().await.expect("conn");
     // Context-set + both idempotent inserts share one explicit transaction
-    // (transaction-local set_config — the begin_tenant_tx discipline).
+    // (transaction-local set_config - the begin_tenant_tx discipline).
     let mut tx = conn.begin().await.expect("tx");
     sqlx::query("SELECT sentin8_set_tenant_context($1)")
         .bind(env_id)
@@ -341,7 +341,7 @@ async fn posting_idempotency_conflict_returns_original() {
 }
 
 /// RLS discipline: context-set and the dependent query share one
-/// transaction — a different connection without context sees nothing
+/// transaction - a different connection without context sees nothing
 /// (FORCE RLS), and the outbox insert path works under the same context.
 #[tokio::test]
 async fn rls_context_isolation_and_outbox_insert() {
@@ -350,7 +350,7 @@ async fn rls_context_isolation_and_outbox_insert() {
     };
     let env_id = Uuid::new_v4();
 
-    // Connection A: context + insert inside ONE explicit transaction —
+    // Connection A: context + insert inside ONE explicit transaction -
     // set_config(..., true) is transaction-local, so the context-set, the
     // INSERT and the visibility probe must share the transaction (the
     // begin_tenant_tx handler discipline).
@@ -381,7 +381,7 @@ async fn rls_context_isolation_and_outbox_insert() {
     assert_eq!(visible_a, 1, "same-connection query must see the row");
 
     // Connection B without context: sees nothing (context_initialized false).
-    // Both probes run inside explicit transactions — set_config(..., true)
+    // Both probes run inside explicit transactions - set_config(..., true)
     // is transaction-local, so the isolation boundary is only observable
     // when each acquire's read happens in its own tx (matching the
     // begin_tenant_tx handler pattern).
@@ -412,7 +412,7 @@ async fn rls_context_isolation_and_outbox_insert() {
     )
     .await
     .expect("outbox insert");
-    // The relay drains rows with `relayed = false` — a fresh row is unrelayed.
+    // The relay drains rows with `relayed = false` - a fresh row is unrelayed.
     let relayed: bool = sqlx::query_scalar("SELECT relayed FROM ledger.outbox WHERE id = $1")
         .bind(outbox_id)
         .fetch_one(&mut *txa)
@@ -423,7 +423,7 @@ async fn rls_context_isolation_and_outbox_insert() {
     // unrelayed-env scan runs (a fresh transaction sees committed rows).
     txa.commit().await.expect("commit a");
     // The owner-side SECURITY DEFINER helper (bare-pool safe) sees the
-    // seeded env — this is exactly the list the shell's DBX relay polls.
+    // seeded env - this is exactly the list the shell's DBX relay polls.
     let envs: Vec<Uuid> =
         sqlx::query_scalar("SELECT DISTINCT env_id FROM sentin8_outbox_unrelayed_envs('ledger')")
             .fetch_all(&pool)
@@ -435,7 +435,7 @@ async fn rls_context_isolation_and_outbox_insert() {
     );
 }
 
-/// Schedules: the due-schedule SQL seam the Cron proxy-back exercises —
+/// Schedules: the due-schedule SQL seam the Cron proxy-back exercises -
 /// insert a schedule, verify the due-window SELECT finds it.
 #[tokio::test]
 async fn schedule_due_window_select() {
@@ -445,7 +445,7 @@ async fn schedule_due_window_select() {
     let env_id = Uuid::new_v4();
     let mut conn = pool.acquire().await.expect("conn");
     // Context-set + insert + due-window scan share one explicit transaction
-    // (transaction-local set_config — the begin_tenant_tx discipline).
+    // (transaction-local set_config - the begin_tenant_tx discipline).
     let mut tx = conn.begin().await.expect("tx");
     // M2M service context (see set_tenant_context in handlers.rs).
     sqlx::query("SELECT sentin8_set_tenant_context($1, NULL, 'm2m', 'holder:view-all', false, false, false, NULL, 'ledger')")

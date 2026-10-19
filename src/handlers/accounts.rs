@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Account handlers — v1 (legacy), v2, balances v1/v2, transactions, statements.
+//! Account handlers - v1 (legacy), v2, balances v1/v2, transactions, statements.
 
 use axum::{
     extract::{Path, Query, State},
@@ -21,14 +21,14 @@ use crate::handlers::{err_db, set_staff_override_context, set_tenant_context_ext
 
 /// Resolve the caller's `customers.id` for holder-scoped callers.
 /// Returns `None` for staff/M2M tokens carrying `holder:view-all` (they see
-/// all env accounts). Returns `Some(id)` for holders — used to force
+/// all env accounts). Returns `Some(id)` for holders - used to force
 /// `customer_id` in list queries (service-layer defence-in-depth for
 /// holder-scoped RLS, §4.3c).
 /// §4.3c primitive: a caller is a HOLDER iff the token lacks
 /// `holder:view-all` (`auth.is_holder `). The old `subject_type ==
-/// "customer"` check was dead code — `subject_type ` never returns
+/// "customer"` check was dead code - `subject_type ` never returns
 /// `"customer"` (incident 2026-08-28, RC2).
-/// Returns `None` if no `customers` row exists — the caller will get
+/// Returns `None` if no `customers` row exists - the caller will get
 /// a 403 "no customers row" error from `create_account`, or an empty
 /// list from the read handlers. The app is responsible for creating the
 /// customer row via `POST /v1/customers` after sign-up (e.g. eBank does
@@ -93,17 +93,17 @@ pub struct UpdateAccountRequest {
     pub nickname: Option<String>,
 }
 
-/// `POST /v1/accounts` — create account (v1 legacy).
+/// `POST /v1/accounts` - create account (v1 legacy).
 /// .5: holder callers can only create accounts owned by
 /// themselves. Server-side defence-in-depth:
-/// - If the caller is a holder (§4.3c — no `holder:view-all` scope) and
+/// - If the caller is a holder (§4.3c - no `holder:view-all` scope) and
 /// they did not supply `customer_id`, we resolve it from their Auth
 /// user id (via `customers`).
 /// - If the caller is a holder and they did supply a `customer_id` that
 /// does not match their own, we return 403 (they cannot create
 /// accounts for someone else).
 /// - If no `customers` row exists for the holder, we return 403
-/// — there is no way to own the account, so creating it would leave an
+/// - there is no way to own the account, so creating it would leave an
 /// orphan (the list/get handlers then hide it forever).
 /// - Callers with `holder:view-all` (staff / sys / M2M) are
 /// unrestricted: they can pass any `customer_id` or none (for
@@ -248,7 +248,7 @@ pub async fn create_account(
     .bind(&req.denomination).bind(status)
     .fetch_one(&mut *conn).await.map_err(err_db)?;
     let account = row_to_account(&row);
-    // Story — emit account.created event to outbox.
+    // Story - emit account.created event to outbox.
     super::emit_event(
         &state.pool,
         env_id,
@@ -264,13 +264,13 @@ pub async fn create_account(
     Ok(Json(account))
 }
 
-/// `GET /v1/accounts` — list accounts.
-/// .5: holder callers (§4.3c — no `holder:view-all` scope) see only
+/// `GET /v1/accounts` - list accounts.
+/// .5: holder callers (§4.3c - no `holder:view-all` scope) see only
 /// accounts held by their own `customers` row, and only
 /// `account_type='customer'` accounts (internal accounts are never exposed
-/// to holders — forced here in the service layer; RLS is the backstop).
+/// to holders - forced here in the service layer; RLS is the backstop).
 /// Callers with `holder:view-all` see all env accounts. A holder caller's
-/// `?customer_id=` query param is ignored — they cannot impersonate another
+/// `?customer_id=` query param is ignored - they cannot impersonate another
 /// customer.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ListAccountsQuery {
@@ -282,7 +282,7 @@ pub struct ListAccountsQuery {
     pub account_type: Option<String>,
     #[serde(default)]
     pub status: Option<String>,
-    /// §10.1 — staff-realm env override for internal-account reads.
+    /// §10.1 - staff-realm env override for internal-account reads.
     /// Validated against org membership; ignored for customer/delegated
     /// tokens (env-locked) and never widens customer-data visibility.
     #[serde(default)]
@@ -320,13 +320,13 @@ pub async fn list_accounts(
     )
     .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    // §10.1 — staff-realm env override (isolation-design §10 pattern).
+    // §10.1 - staff-realm env override (isolation-design §10 pattern).
     // Internal accounts are counterparty plumbing seeded per CUSTOMER env,
-    // while staff tokens claim the STAFF auth env — the resolver must be
+    // while staff tokens claim the STAFF auth env - the resolver must be
     // able to read the org's prod env. The override is honored ONLY for
     // staff-realm callers (user token) whose membership in the requested
     // env's org is validated by the same SQL as `list_customers`, and ONLY
-    // when the query is internal-account scoped — customer rows are never
+    // when the query is internal-account scoped - customer rows are never
     // exposed by this branch. Customer/delegated/M2M callers keep the
     // strict env-lock below.
     let mut staff_env_override: Option<Uuid> = None;
@@ -334,7 +334,7 @@ pub async fn list_accounts(
         if a.claims.sentin8_auth_user_uuid().is_some() && !a.is_holder_view_all() {
             if let Ok(requested) = uuid::Uuid::parse_str(s) {
                 if requested != a.env_id() && !a.is_platform_admin() {
-                    // VDC §VDC.5 — the org relationship is resolved through Sys's
+                    // VDC §VDC.5 - the org relationship is resolved through Sys's
                     // tenant-snapshot API (the sanctioned on-demand cross-tenant
                     // read); the former cross-database `sentin8.auth_*`/`sentin8.sys_*`
                     // joins never existed in the vertical's own database and failed
@@ -374,9 +374,9 @@ pub async fn list_accounts(
     }
     // Force customer_id for holder callers (defence-in-depth, §4.3c).
     // If the holder has no customers row, return an empty list
-    // (NOT all accounts — the NULL customer_id would match every row).
+    // (NOT all accounts - the NULL customer_id would match every row).
     // Internal accounts (account_type='internal') are NEVER returned to
-    // holders regardless of any query param — EXCEPT the §10.1 staff branch
+    // holders regardless of any query param - EXCEPT the §10.1 staff branch
     // above, which exists specifically for internal counterparty plumbing.
     // Callers with `holder:view-all` (M2M) may filter freely.
     let (effective_customer_id, effective_account_type) = if staff_env_override.is_some() {
@@ -421,10 +421,10 @@ pub async fn list_accounts(
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
-    // §10.2 — resilient env-init seeding. The event-driven env-init
+    // §10.2 - resilient env-init seeding. The event-driven env-init
     // (seed_accounts via the Bus consumer) is the primary trigger, but the
     // SSE message can be lost on a mid-batch reconnect, leaving an enabled
-    // env permanently unseeded — the teller's counterparty lookups would
+    // env permanently unseeded - the teller's counterparty lookups would
     // stay empty forever. Self-heal: when the staff internal-account query
     // above returns empty, run the idempotent seed inline and re-query.
     let rows = if rows.is_empty()
@@ -467,7 +467,7 @@ pub async fn list_accounts(
     Ok(Json(rows.iter().map(row_to_account).collect()))
 }
 
-/// `GET /v1/accounts/{id}` — account detail.
+/// `GET /v1/accounts/{id}` - account detail.
 /// .5: customer-realm callers can only fetch their own accounts
 /// the service layer verifies the account's `customer_id` matches the
 /// caller's customer before returning. RLS is the backstop.
@@ -539,7 +539,7 @@ pub async fn get_account(
     Ok(Json(row_to_account(&row)))
 }
 
-/// `PUT /v1/accounts/{id}` — update account (status, nickname).
+/// `PUT /v1/accounts/{id}` - update account (status, nickname).
 #[utoipa::path(
     put,
     path = "/v1/accounts/{id}",
@@ -567,7 +567,7 @@ pub async fn update_account(
     )
     .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    // Extended setter (scopes + user id reach the RLS GUCs) — the legacy
+    // Extended setter (scopes + user id reach the RLS GUCs) - the legacy
     // 2-arg form left holder-scoped UPDATE policies untestable.
     set_tenant_context_ext(&mut conn, a.env_id(), &a)
         .await
@@ -613,7 +613,7 @@ pub async fn update_account(
     .await
     .map_err(err_db)?;
     let account = row_to_account(&row);
-    // Story — emit account.updated event to outbox.
+    // Story - emit account.updated event to outbox.
     let fields_changed: Vec<&str> = [
         req.nickname.as_deref().map(|_| "nickname"),
         req.status.as_deref().map(|_| "status"),
@@ -647,7 +647,7 @@ pub struct BalanceResponse {
     pub amount: Decimal,
 }
 
-/// `GET /v1/accounts/{id}/balances` — live balances.
+/// `GET /v1/accounts/{id}/balances` - live balances.
 #[utoipa::path(
     get,
     path = "/v1/accounts/{id}/balances",
@@ -726,7 +726,7 @@ pub struct TransactionResponse {
     pub booking_timestamp: chrono::DateTime<chrono::Utc>,
 }
 
-/// `GET /v1/accounts/{id}/transactions` — transaction history.
+/// `GET /v1/accounts/{id}/transactions` - transaction history.
 #[utoipa::path(
     get,
     path = "/v1/accounts/{id}/transactions",
@@ -828,7 +828,7 @@ pub struct StatementResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// `GET /v1/accounts/{id}/statements` — list statements.
+/// `GET /v1/accounts/{id}/statements` - list statements.
 #[utoipa::path(
     get,
     path = "/v1/accounts/{id}/statements",

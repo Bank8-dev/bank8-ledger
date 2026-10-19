@@ -1,4 +1,4 @@
-# Bank8:Ledger — Detailed Design Document
+# Bank8:Ledger - Detailed Design Document
 
 ## 1. Scope & Context
 
@@ -76,8 +76,8 @@ graph TD
     EVCON --> BUSC
 ```
 
-**Request lifecycle — synchronous posting** (the canonical family; every
-other handler is a subset — auth verify, tenant resolve, policy gate,
+**Request lifecycle - synchronous posting** (the canonical family; every
+other handler is a subset - auth verify, tenant resolve, policy gate,
 context, execute, emit):
 
 ```mermaid
@@ -158,7 +158,7 @@ Complete table inventory with purpose and visibility:
 | `accounts` | Customer + internal accounts (`account_type`, `product_id`, nullable `customer_id` for internal) | holder-scoped |
 | `products` / `product_versions` / `product_versions_ext` | Product library: type, parameters JSONB, modules list | env |
 | `postings` / `posting_instructions` | Posting batches + instructions (`status`, `idempotency_key`, batch_id) | env |
-| `balances` | Per (account, denomination, address, phase) amounts — UPSERT target | env |
+| `balances` | Per (account, denomination, address, phase) amounts - UPSERT target | env |
 | `transactions` | Per-account movement records (posting_id, direction) | env |
 | `statements` | Generated statement metadata (payload in Storage) | env |
 | `schedules` / `jobs` / `dlq` | Scheduled-posting engine + job log + local dead-letter | env |
@@ -194,7 +194,7 @@ stateDiagram-v2
 ```
 
 **Instruction (async) lifecycle**: `pending → processing → completed |
-failed | cancelled` — terminal states immutable (guarded updates).
+failed | cancelled` - terminal states immutable (guarded updates).
 
 ## 4. API Surface
 
@@ -233,10 +233,10 @@ Internal (proxy-back, M2M bearer + env cross-check):
 | `POST /v1/internal/func-host` | Sentin8:Func | tenant hook execution (module ids from schedule contracts) |
 
 Admin/RFW: `/v1/admin/ui/{page}` + `/v1/admin/{resource}` POST aliases
-— 19 pages (overview, accounts, postings, products, schedules, dlq,
+- 19 pages (overview, accounts, postings, products, schedules, dlq,
 reconcile, balances, parameters, restrictions, flags, customers,
 statements, settings, policy-sets, policy-decisions, relations,
-attributes) — `bank8:ledger:admin` scoped.
+attributes) - `bank8:ledger:admin` scoped.
 
 **Complete event catalog** (family `ledger`, DBX producer path):
 
@@ -268,7 +268,7 @@ sequenceDiagram
     participant R as shell relay
     participant B as Sentin8:Bus
     H->>O: INSERT same-tx (idempotency = row id)
-    Note over H,O: posting path: ? propagation — emit failure aborts
+    Note over H,O: posting path: ? propagation - emit failure aborts
     O-->>R: NOTIFY ledger_outbox_changed
     R->>O: drain WHERE relayed = false AND attempts < 10
     R->>B: POST /v1/produce (M2M sentin8:bus:produce)
@@ -303,14 +303,14 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    P["POST /v1/postings"] -->|"audit or outbox insert fails"| AB["whole tx aborts<br/>500 — no half-posting"]
+    P["POST /v1/postings"] -->|"audit or outbox insert fails"| AB["whole tx aborts<br/>500 - no half-posting"]
     P -->|"commit ok, relay down"| ROW["row unrelayed in ledger.outbox"]
     ROW -->|"NOTIFY / 5s poll"| RETRY["relay retry ≤10"]
     RETRY -->|"Bus returns"| OK["marked relayed"]
-    RETRY -->|"budget exhausted"| STUCK["stays unrelayed — manual replay"]
+    RETRY -->|"budget exhausted"| STUCK["stays unrelayed - manual replay"]
     S["schedule batch"] -->|"job fails"| JD["jobs + dlq"]
     JD -->|"/v1/dlq/{id}/republish"| RE["re-enqueue + republished event"]
-    AS["async posting enqueue"] -->|"bus produce fails"| ERR["request fails — never pending-without-event"]
+    AS["async posting enqueue"] -->|"bus produce fails"| ERR["request fails - never pending-without-event"]
 ```
 
 - **Crash mid-transaction**: atomic rollback; no partial posting.
@@ -336,7 +336,7 @@ flowchart TD
 - A posting batch is double-entry balanced per denomination or is
   rejected before any write.
 - Terminal states (posting completed, instruction terminal, account
-  closed) never regress — every transition is guarded.
+  closed) never regress - every transition is guarded.
 - `idempotency_key` duplicates return the original result, never a
   second posting.
 - Money columns are DECIMAL; no float arithmetic on money anywhere.
@@ -349,8 +349,8 @@ flowchart TD
 
 ```mermaid
 graph TD
-    U["Unit — pure logic<br/>modules validators (64 tests)<br/>check_double_entry, params,<br/>contracts, SDK roundtrips"] --> I["Integration — DB-backed<br/>policy suites (engine semantics,<br/>scope-mirror parity, enroll gate)<br/>handler tests vs scratch DB"]
-    I --> E["E2E — platform e2e-ts<br/>UI + BFF proxy flows only<br/>(no direct DB access)"]
+    U["Unit - pure logic<br/>modules validators (64 tests)<br/>check_double_entry, params,<br/>contracts, SDK roundtrips"] --> I["Integration - DB-backed<br/>policy suites (engine semantics,<br/>scope-mirror parity, enroll gate)<br/>handler tests vs scratch DB"]
+    I --> E["E2E - platform e2e-ts<br/>UI + BFF proxy flows only<br/>(no direct DB access)"]
 ```
 
 - **Unit**: the module library and posting math are pure-function
@@ -362,19 +362,19 @@ graph TD
 
 ## 10. Open Questions
 
-- ~~Statement generation~~ — **implemented** (design §10): the scheduled
+- ~~Statement generation~~ - **implemented** (design §10): the scheduled
   step computes the period rows and writes the JSON document to
   Sentin8:Storage via the `ledger-storage` workload certificate
   (`sentin8:storage:env:write`), and regeneration is a per-account-period
   Flow workflow (`domain: ledger`, `logic_id: statement-regen`,
   `correlation_id = account_id:period`) whose steps proxy back into
-  `POST /v1/internal/statements/regen` — per-account retry/DLQ, and Flow's
+  `POST /v1/internal/statements/regen` - per-account retry/DLQ, and Flow's
   pending-dedupe partial index makes regenerate-idempotency structural.
-- ~~Parameter-hierarchy caching~~ — **implemented** (design §10): the
+- ~~Parameter-hierarchy caching~~ - **implemented** (design §10): the
   `viewEffective` read API serves from a bounded TTL cache keyed
   `(env_id, account_id, parameter_id, effective_at)` (30 s, prune-on-insert
   eviction); the posting money path stays transactional by design.
-- ~~`/v1/jobs:batchRepublish` colon-form~~ — **closed**: the colon-form is
+- ~~`/v1/jobs:batchRepublish` colon-form~~ - **closed**: the colon-form is
   canonical (the vendor wire-compat custom-method form), and the semantic
   follow-up landed: the override now lands in a distinct `overridden`
   status (CHECK constraint + handler), preserving the audit intent.

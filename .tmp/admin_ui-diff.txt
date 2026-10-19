@@ -33,7 +33,7 @@ index a9a13bf..3083a4d 100644
 @@ -233,6 +236,17 @@ pub async fn submit_product_form(
  }
  
- /// `PUT /v1/admin/products/{id}` — handle product edit form submission.
+ /// `PUT /v1/admin/products/{id}` - handle product edit form submission.
 +#[utoipa::path(
 +    put,
 +    path = "/v1/admin/products/{id}",
@@ -70,7 +70,7 @@ index a9a13bf..3083a4d 100644
 @@ -300,6 +306,17 @@ pub async fn submit_product_edit(
  }
  
- /// `POST /v1/admin/products/{id}/versions` — create a new product version.
+ /// `POST /v1/admin/products/{id}/versions` - create a new product version.
 +#[utoipa::path(
 +    post,
 +    path = "/v1/admin/products/{id}/versions",
@@ -104,7 +104,7 @@ index a9a13bf..3083a4d 100644
 @@ -396,6 +406,17 @@ fn form_uuid(body: &serde_json::Value, key: &str) -> Option<uuid::Uuid> {
  }
  
- /// `POST /v1/admin/accounts` — create-account form submission.
+ /// `POST /v1/admin/accounts` - create-account form submission.
 +#[utoipa::path(
 +    post,
 +    path = "/v1/admin/accounts",
@@ -139,7 +139,7 @@ index a9a13bf..3083a4d 100644
 @@ -465,6 +478,17 @@ pub async fn submit_account_form(
  }
  
- /// `PUT /v1/admin/accounts/{id}` — update-account form submission.
+ /// `PUT /v1/admin/accounts/{id}` - update-account form submission.
 +#[utoipa::path(
 +    put,
 +    path = "/v1/admin/accounts/{id}",
@@ -175,7 +175,7 @@ index a9a13bf..3083a4d 100644
      ))
  }
  
- /// `POST /v1/admin/postings` — new-posting form submission (batch of one).
+ /// `POST /v1/admin/postings` - new-posting form submission (batch of one).
 +#[utoipa::path(
 +    post,
 +    path = "/v1/admin/postings",
@@ -199,7 +199,7 @@ index a9a13bf..3083a4d 100644
 -            description: form_str(&body, "reference"),
 -        }],
 -    };
--    // Reuse the domain handler (same scope check — fine for admin callers).
+-    // Reuse the domain handler (same scope check - fine for admin callers).
 -    let resp =
 -        crate::handlers::postings::create_posting(State(state), headers, axum::Json(req)).await?;
 -    Ok(Json(serde_json::json!({
@@ -210,7 +210,7 @@ index a9a13bf..3083a4d 100644
 @@ -569,6 +586,17 @@ pub async fn submit_posting_form(
  }
  
- /// `POST /v1/admin/parameters` — create-parameter form submission.
+ /// `POST /v1/admin/parameters` - create-parameter form submission.
 +#[utoipa::path(
 +    post,
 +    path = "/v1/admin/parameters",
@@ -235,7 +235,7 @@ index a9a13bf..3083a4d 100644
 -    ))
 -}
 -
--/// `POST /v1/admin/restriction-sets` — create-restriction form submission.
+-/// `POST /v1/admin/restriction-sets` - create-restriction form submission.
 +        .map_responses(
 +        (status = 200, description = "OK", body = serde_json::Value),
 +        (status = 401, description = "Not authenticated"),
@@ -255,7 +255,7 @@ index a9a13bf..3083a4d 100644
 -    ))
 -}
 -
--/// `POST /v1/admin/flags` — create-flag form submission.
+-/// `POST /v1/admin/flags` - create-flag form submission.
 +        serde_json::to_value(AdminUiResponse::redireon = "Missing the ledger scope gate"),
 +    ),
 +    security(),
@@ -267,7 +267,7 @@ index a9a13bf..3083a4d 100644
 @@ -737,16 +766,19 @@ pub async fn submit_flag_form(
  }
  
- /// `POST /v1/admin/dlq/{id}/discard` — discard a DLQ entry (no republish).
+ /// `POST /v1/admin/dlq/{id}/discard` - discard a DLQ entry (no republish).
 +#[utoipa::path(
 +    post,
 +    path = "/v1/admin/dlq/{id}/discard",
@@ -296,7 +296,7 @@ index a9a13bf..3083a4d 100644
 @@ -782,6 +814,17 @@ pub async fn discard_dlq_entry(
  // ── Registration-declared data endpoints (RECON-5) ──────────────────────
  
- /// `GET /v1/admin/reconcile` — reconciliation summary (posting totals).
+ /// `GET /v1/admin/reconcile` - reconciliation summary (posting totals).
 +#[utoipa::path(
 +    get,
 +    path = "/v1/admin/reconcile",
@@ -328,7 +328,7 @@ index a9a13bf..3083a4d 100644
 @@ -831,6 +869,17 @@ pub async fn admin_reconcile_summary(
  }
  
- /// `GET /v1/admin/balances` — account balances view (RFW DataTable rows).
+ /// `GET /v1/admin/balances` - account balances view (RFW DataTable rows).
 +#[utoipa::path(
 +    get,
 +    path = "/v1/admin/balances",
@@ -359,7 +359,7 @@ index a9a13bf..3083a4d 100644
 @@ -885,6 +930,17 @@ pub async fn admin_balances(
  }
  
- /// `GET /v1/admin/settings` — static ledger settings payload.
+ /// `GET /v1/admin/settings` - static ledger settings payload.
 +#[utoipa::path(
 +    get,
 +    path = "/v1/admin/settings",
@@ -378,8 +378,8 @@ index a9a13bf..3083a4d 100644
      })))
  }
  
--/// `GET /v1/admin/statements` — recent statements (RFW DataTable rows).
-+/// `GET /v1/admin/statements` — recent statemen,
+-/// `GET /v1/admin/statements` - recent statements (RFW DataTable rows).
++/// `GET /v1/admin/statements` - recent statemen,
 +    tag = "admin-ui",
 +)]
  pub async fn admin_statements(

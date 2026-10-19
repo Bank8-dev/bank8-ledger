@@ -5,7 +5,7 @@
 
 //! Sentin8:Policy wiring tests for Bank8:Ledger.
 //! Per sentin8/design/sentin8-policy-technical-design.md §6 (Definition of
-//! Done 4.2(g)) — proves the ledger wiring with the REAL seeded scope-mirror
+//! Done 4.2(g)) - proves the ledger wiring with the REAL seeded scope-mirror
 //! text (`registration::SCOPE_MIRROR_POLICIES`, the exact string `vertical
 //! enroll` upserts): no-set → deny; enforced no-match → deny (403 at the
 //! runtime bridge); shadow never blocks; forbid beats permit; M2M parity
@@ -65,7 +65,7 @@ fn mirror_engine(mode: PolicyMode) -> PolicyEngine {
 }
 
 /// (a) no-set → deny: an engine with NO loaded set denies everything
-/// (fail-closed, design §3.3) — the runtime bridge converts it to 403.
+/// (fail-closed, design §3.3) - the runtime bridge converts it to 403.
 #[test]
 fn no_set_denies_everything() {
     let e = PolicyEngine::new(SERVICE); // empty cache
@@ -126,7 +126,7 @@ fn mirror_permits_own_grants() {
     }
 }
 
-/// (d) M2M parity: `token_tp == "m2m"` evaluates the same set — the token
+/// (d) M2M parity: `token_tp == "m2m"` evaluates the same set - the token
 /// type never bypasses policy (principles §5.2a).
 #[test]
 fn m2m_parity() {
@@ -222,7 +222,7 @@ fn role_keyed_tenant_set_decides() {
 }
 
 /// (g) tenant isolation: sets of ANOTHER env are invisible to this env's
-/// evaluation — the cache key is (env_id, name).
+/// evaluation - the cache key is (env_id, name).
 #[test]
 fn cross_env_set_isolated() {
     let other_env = uuid::Uuid::new_v4();
@@ -233,7 +233,7 @@ fn cross_env_set_isolated() {
         PolicyMode::Enforced,
         PolicyOrigin::Tenant,
     )
-    // the row's env_id is other_env — patch it via a second load keyed to ENV
+    // the row's env_id is other_env - patch it via a second load keyed to ENV
     ])
     .expect("load");
     // Rebuild properly: the row above is keyed to ENV; build one keyed to
@@ -258,7 +258,7 @@ fn cross_env_set_isolated() {
 }
 
 /// Every action the ledger handlers evaluate (step-5 targets). The mirror
-/// set must cover each one — see `declared_mirror_covers_every_handler_action`.
+/// set must cover each one - see `declared_mirror_covers_every_handler_action`.
 pub(crate) const HANDLER_ACTIONS: &[&str] = &[
     "bank8:ledger:accounts:read",
     "bank8:ledger:accounts:write",
@@ -279,7 +279,7 @@ pub(crate) const HANDLER_ACTIONS: &[&str] = &[
 ];
 
 /// (i) registration parity: the declared set covers EVERY action the
-/// handlers evaluate (grep-equivalent matrix, kept in sync by the code — a
+/// handlers evaluate (grep-equivalent matrix, kept in sync by the code - a
 /// new EvalTarget without a mirror permit fails here) and the
 /// `--section=policies` JSON shape carries the enforced mode.
 #[test]
@@ -306,7 +306,7 @@ fn declared_set_passes_enroll_dry_run() {
     sentin8::shield::runtime::dry_run_mirror(SCOPE_MIRROR_POLICIES, "scope-mirror", SERVICE)
         .expect("declared ledger scope-mirror must permit its own grants");
 }
-/// (j) — ABAC showcase: a tenant-authored per-caller transfer limit
+/// (j) - ABAC showcase: a tenant-authored per-caller transfer limit
 /// (`resource.amount < principal.max_transfer_amount`), the principal attr
 /// sourced from `sentin8_policy_principal_attrs` (the admin API's PUT path,
 /// replayed here as the same `principal_attrs` injection the engine's
@@ -334,7 +334,7 @@ mod abac_showcase {
     /// Caller attribute injection path (substrate §3.1b): the admin API upserts
     /// `max_transfer_amount`; the engine receives it as a principal attr (the
     /// same injection `substrate::load_principal_attrs` performs at request
-    /// time — the field is the injection point).
+    /// time - the field is the injection point).
     fn caller_with_limit(limit: i64) -> RequestCtx {
         let mut c = ctx("user", &["bank8:ledger:postings:write"]);
         c.principal_attrs.insert(

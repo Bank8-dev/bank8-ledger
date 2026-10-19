@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Streaming catalog — the client-facing "Core Streaming API" view.
+//! Streaming catalog - the client-facing "Core Streaming API" view.
 //! The ledger emits domain events on the shared `bus:{envId}:ledger` stream
 //! family (Sentin8:Bus inbox-first, design §11). This endpoint surfaces the
 //! `event_type` families a client can subscribe to; the external topic
@@ -20,7 +20,7 @@ use serde_json::Value as JsonValue;
 use crate::auth;
 use crate::handlers::AppState;
 
-/// `GET /v1/streams` — client-facing streaming catalog: the `event_type`
+/// `GET /v1/streams` - client-facing streaming catalog: the `event_type`
 /// families the ledger emits on the `bus:{envId}:ledger` stream family
 /// (business "Core Streaming API"; topic mapping in design §11).
 #[utoipa::path(

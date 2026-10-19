@@ -14,7 +14,7 @@
 
 use crate::config::LedgerConfig;
 
-/// Bucket the statement documents live under — the same bucket the FDX
+/// Bucket the statement documents live under - the same bucket the FDX
 /// statement-download path serves signed read links from
 /// (statement_download.rs: `statements/objects/{envId}/{accountId}/…`).
 pub(crate) const STATEMENTS_BUCKET: &str = "statements";
@@ -26,13 +26,13 @@ pub(crate) const REGEN_LOGIC_ID: &str = "statement-regen";
 
 /// Statement document writer against Sentin8:Storage. Rides the
 /// cert-presenting `ledger-storage` workload transport
-/// (config.storage_http — CERTFREE-4V: the certificate presents in the
+/// (config.storage_http - CERTFREE-4V: the certificate presents in the
 /// TLS handshake, Storage's TLS layer authenticates it, and the
 /// registry map authorizes the env-read/write scopes; no token exists).
 pub(crate) struct StatementStorage {
     base_url: String,
     /// The `ledger-storage` workload transport; `None` until boot mints
-    /// it (uploads fail loud — never a token fallback).
+    /// it (uploads fail loud - never a token fallback).
     http: Option<reqwest::Client>,
 }
 
@@ -56,7 +56,7 @@ impl StatementStorage {
         data: Vec<u8>,
     ) -> Result<(), String> {
         // The bucket prefix lives in the object path (Storage serves the
-        // `statements` bucket via `statements/objects/…` — the same shape
+        // `statements` bucket via `statements/objects/…` - the same shape
         // FDX statement_download.rs reads back).
         let _ = STATEMENTS_BUCKET;
         let Some(http) = &self.http else {
@@ -84,7 +84,7 @@ impl StatementStorage {
 
 /// Trigger the per-account-period regeneration workflow in Sentin8:Flow
 /// (design §10). Best-effort: a Flow outage must not fail the scheduled
-/// statement run — the statement row is already committed, and the next
+/// statement run - the statement row is already committed, and the next
 /// period's run (or a manual re-drive) retries.
 ///
 /// Correlation = `account_id:period` rides Flow's pending-dedupe partial
@@ -98,7 +98,7 @@ pub(crate) async fn trigger_regen_workflow(
     use sentin8_flow_sdk::client::{CallbackConfig, CreateWorkflowRequest, LogicVersion};
 
     // Cert-presenting Flow client (CERTFREE-4V): rides the boot-installed
-    // `ledger` workload transport — Flow's TLS layer authenticates the
+    // `ledger` workload transport - Flow's TLS layer authenticates the
     // handshake and its certificate-first gate resolves the workload.
     // A missing transport degrades to the documented dev-plain fallback
     // (Flow rejects it loudly at the authorization gate).
@@ -145,7 +145,7 @@ pub(crate) async fn trigger_regen_workflow(
             tracing::info!(account_id = %account_id, period = %period_label, "statement regen workflow created");
         }
         Err(e) => {
-            tracing::warn!(error = %e, account_id = %account_id, "statement regen workflow create failed (non-fatal — statement row is committed)");
+            tracing::warn!(error = %e, account_id = %account_id, "statement regen workflow create failed (non-fatal - statement row is committed)");
         }
     }
 }
@@ -164,7 +164,7 @@ mod tests {
     #[test]
     fn statements_bucket_matches_fdx_download_path() {
         // FDX statement_download.rs reads `statements/objects/{env}/{acct}/{id}.pdf`
-        // via a signed link on this bucket — the bucket name must not drift.
+        // via a signed link on this bucket - the bucket name must not drift.
         assert_eq!(STATEMENTS_BUCKET, "statements");
     }
 }

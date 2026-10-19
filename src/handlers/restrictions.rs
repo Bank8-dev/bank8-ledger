@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Restriction handlers — restriction definitions and restriction sets.
+//! Restriction handlers - restriction definitions and restriction sets.
 
 use axum::{
     extract::{Query, State},
@@ -43,7 +43,7 @@ pub struct CreateRestrictionDefinitionRequest {
     security(),
     tag = "ledger",
 )]
-/// `POST /v1/restriction-definitions` — create a restriction definition.
+/// `POST /v1/restriction-definitions` - create a restriction definition.
 pub async fn create_restriction_definition(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -95,7 +95,7 @@ pub async fn create_restriction_definition(
     security(),
     tag = "ledger",
 )]
-/// `GET /v1/restriction-definitions` — list restriction definitions.
+/// `GET /v1/restriction-definitions` - list restriction definitions.
 pub async fn list_restriction_definitions(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -158,7 +158,7 @@ pub struct ListRestrictionSetsQuery {
     security(),
     tag = "ledger",
 )]
-/// `POST /v1/restriction-sets` — apply a restriction set to an account or customer.
+/// `POST /v1/restriction-sets` - apply a restriction set to an account or customer.
 pub async fn create_restriction_set(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -214,7 +214,7 @@ pub async fn create_restriction_set(
     security(),
     tag = "ledger",
 )]
-/// `GET /v1/restriction-sets` — list restriction sets.
+/// `GET /v1/restriction-sets` - list restriction sets.
 pub async fn list_restriction_sets(
     State(state): State<AppState>,
     headers: HeaderMap,

@@ -3,17 +3,17 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Sentin8:Func proxy-back endpoint — host functions for WASM modules.
+//! Sentin8:Func proxy-back endpoint - host functions for WASM modules.
 //! Sentin8:Func executes a hook's WASM module and, when the module calls a
 //! host function, proxy-calls the ledger's internal API at
 //! `/v1/internal/func-host` (the path every `call_hook` request advertises in
 //! its `CallbackConfig.internal_path`). The ledger owns the host-function
-//! map — Sentin8:Func resolves it dynamically, no pre-registration.
+//! map - Sentin8:Func resolves it dynamically, no pre-registration.
 //! Host functions:
-//! - `get_account` — account row by id
-//! - `get_balance` — committed balance by account + denomination
-//! - `set_flag` — upsert `ACCOUNT_*` flag on an account
-//! - `create_posting` — submit a single posting instruction batch
+//! - `get_account` - account row by id
+//! - `get_balance` - committed balance by account + denomination
+//! - `set_flag` - upsert `ACCOUNT_*` flag on an account
+//! - `create_posting` - submit a single posting instruction batch
 
 use axum::{
     extract::State,
@@ -35,7 +35,7 @@ pub struct FuncHostRequest {
     /// Positional/keyword arguments for the host function.
     #[serde(default)]
     pub args: serde_json::Value,
-    /// The env the hook runs in — stamped by the Func runtime from the
+    /// The env the hook runs in - stamped by the Func runtime from the
     /// hook context (`env_id`), never client-selectable.
     pub env_id: Uuid,
 }
@@ -60,22 +60,22 @@ pub struct FuncHostResponse {
     security(),
     tag = "internal",
 )]
-/// `POST /v1/internal/func-host` — Sentin8:Func proxy-back for host functions.
+/// `POST /v1/internal/func-host` - Sentin8:Func proxy-back for host functions.
 /// Authorization: M2M token with `bank8:ledger:postings:write` (the Func
 /// runtime authenticates with the posting service's M2M identity because
 /// host functions can move money). Tenant context comes from the `env_id`
-/// in the request body — the Func runtime resolves it from the hook
+/// in the request body - the Func runtime resolves it from the hook
 /// context, and the M2M token's own env claim is cross-checked.
 pub async fn func_host(
     State(state): State<AppState>,
     headers: HeaderMap,
     Json(req): Json<FuncHostRequest>,
 ) -> Result<Json<FuncHostResponse>, (StatusCode, String)> {
-    // Step 5 — Shield decides (principles §5.2, policy design §4.3). The
+    // Step 5 - Shield decides (principles §5.2, policy design §4.3). The
     // Func proxy-back path (M2M) evaluates the same enforced scope-mirror
     // set: its live scope set carries `bank8:ledger:postings:write`, so the
     // mirror permit for this action allows it. token type never bypasses
-    // policy (`token_tp` is context, not an exemption — principles §5.2a).
+    // policy (`token_tp` is context, not an exemption - principles §5.2a).
     let a = auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
         &state.policy,

@@ -3,9 +3,9 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Processing groups — EOD batching configuration.
+//! Processing groups - EOD batching configuration.
 //! Each group carries a `utc_offset`, `eod_cut_off`, `grace_period_minutes`
-//! and a `paused` flag. Sentin8:Cron is UTC-only — timezone offsets are
+//! and a `paused` flag. Sentin8:Cron is UTC-only - timezone offsets are
 //! applied ledger-side when slicing the schedule run by group (design §5.3b).
 
 use axum::{
@@ -51,7 +51,7 @@ fn default_eod_cut_off() -> String {
     "18:00".into()
 }
 
-/// `GET /v1/processing-groups` — list processing groups.
+/// `GET /v1/processing-groups` - list processing groups.
 #[utoipa::path(
     get,
     path = "/v1/processing-groups",
@@ -101,7 +101,7 @@ pub async fn list_processing_groups(
     ))
 }
 
-/// `POST /v1/processing-groups` — create/update a processing group.
+/// `POST /v1/processing-groups` - create/update a processing group.
 #[utoipa::path(
     post,
     path = "/v1/processing-groups",
@@ -202,7 +202,7 @@ async fn set_group_paused(
     }))
 }
 
-/// `POST /v1/processing-groups/{id}/pause` — pause EOD processing.
+/// `POST /v1/processing-groups/{id}/pause` - pause EOD processing.
 #[utoipa::path(
     post,
     path = "/v1/processing-groups/{id}/pause",
@@ -226,7 +226,7 @@ pub async fn pause_processing_group(
     set_group_paused(&state, &a, id, true).await
 }
 
-/// `POST /v1/processing-groups/{id}/resume` — resume EOD processing.
+/// `POST /v1/processing-groups/{id}/resume` - resume EOD processing.
 #[utoipa::path(
     post,
     path = "/v1/processing-groups/{id}/resume",
@@ -250,7 +250,7 @@ pub async fn resume_processing_group(
     set_group_paused(&state, &a, id, false).await
 }
 
-// ── Unit tests (§8.6 conventions — pure logic, no DB) ────────────────────
+// ── Unit tests (§8.6 conventions - pure logic, no DB) ────────────────────
 
 #[cfg(test)]
 mod tests {

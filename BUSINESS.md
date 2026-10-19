@@ -1,4 +1,4 @@
-# Bank8:Ledger — Business Requirements & Functionality
+# Bank8:Ledger - Business Requirements & Functionality
 
 > Audience: product owners, business analysts, and anyone evaluating what
 > Bank8:Ledger **does for the business**. For architecture read `README.md`;
@@ -9,20 +9,20 @@
 Bank8:Ledger is the **system of record for money positions** in the bank8
 vertical. It delivers:
 
-- **Truthful balances** — every money movement is captured atomically as a
+- **Truthful balances** - every money movement is captured atomically as a
   double-entry posting batch; a batch that does not balance is rejected
   before anything is written, so the books can never drift.
-- **A complete product factory** — bank products (current accounts, savings,
+- **A complete product factory** - bank products (current accounts, savings,
   cards, loans) are data, not code: they compose reusable validation modules
   whose parameters resolve through a global → product → account hierarchy,
   letting the bank launch and change products without engineering work.
-- **Time-driven money movement** — recurring charges, interest accrual,
+- **Time-driven money movement** - recurring charges, interest accrual,
   dormancy fees, sweeps, and statement generation run on schedules without
   human hands on.
-- **A provable, replayable trail** — every account, posting, schedule,
+- **A provable, replayable trail** - every account, posting, schedule,
   and configuration change is journaled, checksum-chained, and auditable;
   regulatory reconciliation never depends on an engineer reading a database.
-- **Operational safety at scale** — bulk account updates/migrations,
+- **Operational safety at scale** - bulk account updates/migrations,
   processing-group pause/resume, a local dead-letter queue with replay, and
   idempotent APIs that make retry safe by design.
 
@@ -79,8 +79,8 @@ vertical. It delivers:
 |---|---|
 | Open account | An account must reference an active product; customer accounts must reference a customer; internal accounts may be customer-less |
 | Account types | Two kinds: `CUSTOMER` (banking accounts held by customers) and `INTERNAL` (the bank's own counterparty accounts) |
-| Account status model | `PENDING → OPEN → CLOSING → CLOSED` (plus `CANCELLED`); every transition is guarded — a closed account never reopens |
-| Balance-sheet side (`tside`) | Each account is `ASSET` (debits increase the balance — loans, cards) or `LIABILITY` (credits increase it — deposits); posting direction semantics follow the side, so debits/credits are never mis-signed |
+| Account status model | `PENDING → OPEN → CLOSING → CLOSED` (plus `CANCELLED`); every transition is guarded - a closed account never reopens |
+| Balance-sheet side (`tside`) | Each account is `ASSET` (debits increase the balance - loans, cards) or `LIABILITY` (credits increase it - deposits); posting direction semantics follow the side, so debits/credits are never mis-signed |
 | Multi-currency | An account has a primary denomination (CAD default) plus `permitted_denominations` for the currencies it may hold |
 | Shared access | `stakeholder_ids` let multiple customers share one account (joint accounts) |
 | Nickname | Customer-facing account names ("Everyday", "Vacation fund") without touching product data |
@@ -89,7 +89,7 @@ vertical. It delivers:
 | Account numbering | Account numbers are generated per product; unique within the environment |
 | Balances & transactions | Every account exposes its current balances (by denomination/address/phase), its full transaction history, and paged statements |
 | Payment devices | Each account can carry registered payment devices (e.g. cards) for payment routing |
-| Attributes | Key–value account attributes extend account data without schema changes |
+| Attributes | Key-value account attributes extend account data without schema changes |
 | Schedule tags | Accounts can be tagged for schedule routing/selection so schedules target groups, not one-by-one lists |
 
 #### 3.2.1 Internal (counterparty) accounts
@@ -98,7 +98,7 @@ When the ledger is enabled for a tenant, a standard set of internal
 accounts is seeded **per denomination** (CAD, USD, EUR, GBP, AUD, MYR,
 SGD, AED) so every interest accrual, fee, penalty, and teller movement
 has a real counterparty. The bank itself is registered as an explicit
-`institution` customer (one per environment) that owns these accounts —
+`institution` customer (one per environment) that owns these accounts -
 internal accounts are never customer-less, yet remain invisible to
 customer holders.
 
@@ -111,7 +111,7 @@ customer holders.
 | Other | Deposit Account · Line of Credit Account · Profit Paid · Accrued Profit Payable (Shariah products) |
 
 Product settings reference these accounts by ID (see the
-`*_income_account` parameters in §3.3.1) — every fee and interest amount
+`*_income_account` parameters in §3.3.1) - every fee and interest amount
 books to an auditable income/expense account, never to a magic
 destination.
 
@@ -124,10 +124,10 @@ destination.
 | Activation | Only an activated product can open accounts; activation is a distinct, audited action |
 | Plans | Accounts are assigned plans; plan migrations move accounts between plans in audited batches |
 | Validation modules | Reusable rule modules (limits, overdraft rules, tiered rates, fee schedules, dormancy, sweeps) validate account lifecycle and posting behaviour |
-| Type-specific validation | Product parameters are validated against the schema of their product type (e.g. credit limit must be > 0; mortgage due-day must be 1–28; savings interest rate must be ≥ 0) — a misconfigured product is rejected at creation, not at the customer's first posting |
+| Type-specific validation | Product parameters are validated against the schema of their product type (e.g. credit limit must be > 0; mortgage due-day must be 1-28; savings interest rate must be ≥ 0) - a misconfigured product is rejected at creation, not at the customer's first posting |
 | Admin catalog | The admin console offers a 13-type product catalog with pre-selected default modules and typed settings forms, so a product manager configures rather than codes |
 
-#### 3.3.1 Product type catalog — the 13 built-in product types
+#### 3.3.1 Product type catalog - the 13 built-in product types
 
 Every product type carries a balance-sheet side, supported currencies,
 a default module set, and its own settings. Representative settings and
@@ -137,21 +137,21 @@ defaults (all overridable per product / per account):
 |---|---|---|---|
 | **Current account** | Liability | CAD USD EUR GBP | Interest rate (0.1%), overdraft limit (500), monthly maintenance fee (5.00), inactivity fee (2.00), maximum balance (1,000,000), interest application frequency (daily/monthly/quarterly/annually) + per-fee income-account wiring |
 | **Savings account** | Liability | CAD USD EUR GBP | Interest rate (2%, tiered via `rate_tiers`), minimum balance (100), maximum balance (5,000,000), inactivity fee (1.00), interest application frequency |
-| **Credit card** | Asset | CAD USD EUR GBP | Credit limit (5,000 — must be > 0), APR (18.99%), annual fee, late repayment fee (25), overlimit fee (25), payment due period (25 days), minimum percentage due (3%) |
-| **Loan** | Asset | CAD USD EUR GBP | Fixed interest rate (8.99%), amortisation method (straight line / reducing balance), repayment period (36 months), due amount calculation day (1–28), grace period (5 days), late repayment fee (15), early repayment fee rate (1%) |
-| **Mortgage** | Asset | CAD USD EUR GBP AUD | Fixed rate (5.99%) with fixed-interest period (60 months) toggle, loan term (360 months), due day (1–28), grace period (15 days), late fee (50), amortisation method |
+| **Credit card** | Asset | CAD USD EUR GBP | Credit limit (5,000 - must be > 0), APR (18.99%), annual fee, late repayment fee (25), overlimit fee (25), payment due period (25 days), minimum percentage due (3%) |
+| **Loan** | Asset | CAD USD EUR GBP | Fixed interest rate (8.99%), amortisation method (straight line / reducing balance), repayment period (36 months), due amount calculation day (1-28), grace period (5 days), late repayment fee (15), early repayment fee rate (1%) |
+| **Mortgage** | Asset | CAD USD EUR GBP AUD | Fixed rate (5.99%) with fixed-interest period (60 months) toggle, loan term (360 months), due day (1-28), grace period (15 days), late fee (50), amortisation method |
 | **Home loan redraw** | Asset | CAD AUD | Variable rate (6.49%), loan term (360), redraw enabled + redraw fee, redraw limit percentage (drives available redraw funds) |
 | **Line of credit** | Asset | CAD USD EUR | Credit limit (50,000), variable rate (7.99%), interest accrual rest type (daily / continuous), minimum repayment (100) |
 | **BNPL loan** | Asset | CAD USD EUR GBP | Instalment count (4), instalment interval (14 days), interest-free period (42 days), late fee (10), minimum purchase amount (50) |
-| **Time deposit** | Liability | CAD USD EUR GBP | Interest rate (3.5%), term (12 months — must be > 0), minimum deposit (1,000), maximum balance (1,000,000), early withdrawal penalty rate (1%) |
+| **Time deposit** | Liability | CAD USD EUR GBP | Interest rate (3.5%), term (12 months - must be > 0), minimum deposit (1,000), maximum balance (1,000,000), early withdrawal penalty rate (1%) |
 | **Wallet** | Liability | CAD USD EUR GBP SGD AED | Maximum balance (50,000), daily spending limit (5,000), auto top-up (enabled, threshold 100, amount 500) |
 | **US checking** | Liability | CAD USD | Overdraft limit (250), monthly maintenance fee (10.00), minimum balance (500), overdraft protection via linked savings |
 | **US savings** | Liability | CAD USD | Interest rate (1.5%), minimum balance (200), maximum balance (250,000), monthly fee (5.00), linked to US checking for overdraft |
-| **Shariah savings** | Liability | CAD MYR | Profit rate (2.5% — profit, not interest), minimum balance (500), profit application frequency, dedicated profit-paid / accrued-profit-payable accounts |
+| **Shariah savings** | Liability | CAD MYR | Profit rate (2.5% - profit, not interest), minimum balance (500), profit application frequency, dedicated profit-paid / accrued-profit-payable accounts |
 
 Every fee/interest setting pairs with an income-account reference
 (`*_income_account` parameters) that routes the amount to the seeded
-internal accounts in §3.2.1 — fees and interest are always auditable
+internal accounts in §3.2.1 - fees and interest are always auditable
 double-entry movements.
 
 #### 3.3.2 The 14-module validation library
@@ -166,7 +166,7 @@ through parameters:
 | 2 | `deposit-limits` | Creation + posting | Minimum deposit per transaction; daily deposit cap | `min_deposit_amount`, `max_daily_deposit_limit` |
 | 3 | `withdrawal-limits` | Posting | Minimum withdrawal; daily withdrawal cap | `min_withdrawal_amount`, `max_daily_withdrawal_limit` |
 | 4 | `transaction-type-limits` | Posting | Per-instruction-type daily caps (e.g. `max_daily_atm_withdrawal_limit`) | `max_daily_{type}_limit` |
-| 5 | `maximum-balance` | Posting | Balance ceiling — deposits that would exceed it are rejected | `maximum_balance` |
+| 5 | `maximum-balance` | Posting | Balance ceiling - deposits that would exceed it are rejected | `maximum_balance` |
 | 6 | `overdraft-protection` | Posting | Debits may not push the balance below −(arranged + unarranged overdraft) | `arranged_overdraft_limit`, `unarranged_overdraft_limit` |
 | 7 | `overdraft-protection-sweep` | Posting | Auto-sweep from a linked account when the balance drops below the threshold | `sweep_threshold` |
 | 8 | `deposit-interest-accrual` | Schedule | Daily accrual = balance × rate ÷ 365; supports tiered rates by balance band | `rate_tiers` [{min_balance, rate}] or `interest_rate`, `accrual_precision` |
@@ -180,28 +180,28 @@ through parameters:
 #### 3.3.3 Module composition rules (per product type)
 
 The ledger enforces which modules make business sense for each product
-type — an invalid composition is rejected at product creation:
+type - an invalid composition is rejected at product creation:
 
 | Product type | Disallowed modules (business reason) |
 |---|---|
-| Current account / US checking | None — the full 14-module catalogue is available |
-| Savings / US savings / Shariah savings | `overdraft-protection`, `overdraft-protection-sweep` — savings accounts cannot have overdraft |
+| Current account / US checking | None - the full 14-module catalogue is available |
+| Savings / US savings / Shariah savings | `overdraft-protection`, `overdraft-protection-sweep` - savings accounts cannot have overdraft |
 | Time deposit | `overdraft-protection` (no overdraft), `withdrawal-limits` (no withdrawals before maturity), `maintenance-fees` (no maintenance fees) |
-| Loan / Mortgage / Home loan redraw / BNPL | `deposit-interest-accrual`/`-application`, `maintenance-fees`, `inactivity-fee`, `dormancy` — loans do not accrue deposit interest, carry maintenance fees, go inactive-fee'd, or dormant |
-| Credit card | `deposit-limits`, `withdrawal-limits`, `maximum-balance`, `deposit-interest-accrual`, `dormancy` — cards do not use deposit/withdrawal limits or deposit interest |
+| Loan / Mortgage / Home loan redraw / BNPL | `deposit-interest-accrual`/`-application`, `maintenance-fees`, `inactivity-fee`, `dormancy` - loans do not accrue deposit interest, carry maintenance fees, go inactive-fee'd, or dormant |
+| Credit card | `deposit-limits`, `withdrawal-limits`, `maximum-balance`, `deposit-interest-accrual`, `dormancy` - cards do not use deposit/withdrawal limits or deposit interest |
 | Line of credit / Wallet | `deposit-interest-accrual`, `dormancy` |
 
 #### 3.3.4 Derived parameters (computed, never stored)
 
 The ledger derives live values from template + instance parameters at
-read time — they can never go stale:
+read time - they can never go stale:
 
 | Derived value | Applies to | Computed from |
 |---|---|---|
 | `available_credit` | Credit cards | credit limit − current balance (floored at 0) |
 | `remaining_term` | Loans, mortgages, LoC, BNPL, home-loan redraw | loan term − months since opening |
 | `total_outstanding_debt` | Loan family | current balance |
-| `next_repayment_date` | Loan family | `repayment_day` (1–28) → next occurrence |
+| `next_repayment_date` | Loan family | `repayment_day` (1-28) → next occurrence |
 | `available_redraw_funds` | Home loan redraw | balance × redraw limit percentage |
 | `maturity_date` | Time deposits | opening date + term months |
 
@@ -210,26 +210,26 @@ read time — they can never go stale:
 | Capability | Business rule |
 |---|---|
 | Double-entry guarantee | A posting batch must net to zero per denomination before any row is written; otherwise it is rejected (HTTP 422, nothing written) |
-| Instruction types | Ten business-meaningful instruction types drive direction semantics: **debit-side** `WITHDRAWAL`, `FEE_APPLICATION`, `TRANSFER_OUT`, `REVERSAL_DEBIT`, `ADJUSTMENT_DEBIT` (charge the source account) and **credit-side** `DEPOSIT`, `INTEREST_APPLICATION`, `TRANSFER_IN`, `REVERSAL_CREDIT`, `ADJUSTMENT_CREDIT` (credit the account) — the engine signs balance deltas from the type, so a fee debits and a deposit credits by construction |
-| Idempotency | A retry with the same idempotency key returns the original posting result — never a second money movement |
+| Instruction types | Ten business-meaningful instruction types drive direction semantics: **debit-side** `WITHDRAWAL`, `FEE_APPLICATION`, `TRANSFER_OUT`, `REVERSAL_DEBIT`, `ADJUSTMENT_DEBIT` (charge the source account) and **credit-side** `DEPOSIT`, `INTEREST_APPLICATION`, `TRANSFER_IN`, `REVERSAL_CREDIT`, `ADJUSTMENT_CREDIT` (credit the account) - the engine signs balance deltas from the type, so a fee debits and a deposit credits by construction |
+| Idempotency | A retry with the same idempotency key returns the original posting result - never a second money movement |
 | Synchronous postings | Balance, transaction, posting, and instruction rows commit atomically or not at all |
 | Asynchronous postings | Async requests are acknowledged only after the request event is durably enqueued (never pending-without-event) |
-| Dry run | A posting can be validated without committing (fee calculation preview, limit checks) — no balances, no events, no rows |
-| Module validation | Product modules run on every posting — e.g. overdraft limits block the posting |
+| Dry run | A posting can be validated without committing (fee calculation preview, limit checks) - no balances, no events, no rows |
+| Module validation | Product modules run on every posting - e.g. overdraft limits block the posting |
 | Value vs booking timestamps | Instructions may carry distinct value and booking timestamps (book today, value-date in the past/future per calendar rules) |
 | Post-posting failures | Failed posting instructions are recorded and individually republishable |
-| Adjustments | Corrections happen as explicit adjustment records with reason codes — the original posting is never mutated |
+| Adjustments | Corrections happen as explicit adjustment records with reason codes - the original posting is never mutated |
 | Reversal | A completed posting can be reversed by a compensating posting; the original record stays intact |
 
 ### 3.5 Balances
 
 | Capability | Business rule |
 |---|---|
-| Live balances | Real-time balances per account, keyed by (denomination, address, phase) — the three-dimensional balance model |
-| Phases | `COMMITTED` (settled money), `PENDING_IN`, `PENDING_OUT` (in-flight holds) — available vs settled balances are distinct facts |
+| Live balances | Real-time balances per account, keyed by (denomination, address, phase) - the three-dimensional balance model |
+| Phases | `COMMITTED` (settled money), `PENDING_IN`, `PENDING_OUT` (in-flight holds) - available vs settled balances are distinct facts |
 | End-of-day balances | Closing balances per bookkeeping date, used for statements and reconciliation |
 | Balance series | Historical balance series for reporting and trend analysis |
-| Concurrency | Concurrent postings on one account serialize on the balance row — no lost updates |
+| Concurrency | Concurrent postings on one account serialize on the balance row - no lost updates |
 
 ### 3.6 Configuration library
 
@@ -246,7 +246,7 @@ read time — they can never go stale:
 | Capability | Business rule |
 |---|---|
 | Business calendars | Calendars define business days, holidays, and periods per tenant |
-| Bookkeeping dates | Any date resolves to the correct booking date via calendar rules — value-date vs booking-date skew is systematic, not ad-hoc |
+| Bookkeeping dates | Any date resolves to the correct booking date via calendar rules - value-date vs booking-date skew is systematic, not ad-hoc |
 | Events & periods | Calendar events (holidays, closures) and periods (statement cycles) drive schedules and statements |
 
 ### 3.8 Schedules & jobs
@@ -256,7 +256,7 @@ read time — they can never go stale:
 | Scheduled postings | Due schedules generate posting batches with double-entry validation, submitted through the same engine as `POST /v1/postings` |
 | Concrete schedule families | `interest_accrual` (daily accrual, tiered rates), `interest_application` (credits accrued interest), `fee_application` (maintenance + inactivity + minimum-balance fees in one batch), `dormancy` (sets the `ACCOUNT_DORMANT` flag after the threshold), `statement`/`statement_generation` (period documents to Storage), `maturity_processing`/`closure` (closure interest with forfeiture) |
 | Scope | A schedule targets one account or the whole environment (all active customer accounts, capped per run) |
-| Schedule-retry safety | Every generated batch carries an idempotency key derived from schedule + UTC date — a Cron retry on the same day can never double-apply a fee or interest |
+| Schedule-retry safety | Every generated batch carries an idempotency key derived from schedule + UTC date - a Cron retry on the same day can never double-apply a fee or interest |
 | Job log | Every generated batch/job is logged with status; failed jobs are individually retried or batch-republished |
 | Local DLQ | A dead-letter queue captures failed scheduled work for manual review and replay |
 | Timing delegated | When a schedule runs is decided by Sentin8:Cron; what runs is the ledger's contract |
@@ -292,11 +292,11 @@ read time — they can never go stale:
 | Replay | Journal events can be replayed to rebuild downstream state |
 | Audit trail | Domain writes produce audit records (actor, action, target); posting writes are fail-closed (no audit → no posting) |
 | Action logs & streams | Operators inspect action logs and event streams for reconciliation |
-| Admin console | All of the above is operable from the platform dashboard via remote admin pages — no direct database access for operators |
+| Admin console | All of the above is operable from the platform dashboard via remote admin pages - no direct database access for operators |
 
 ## 4. Business Events (Outbound)
 
-Event names are the business contract — consumers subscribe on these.
+Event names are the business contract - consumers subscribe on these.
 Family prefix: `bank8:ledger:`.
 
 | Event | Fires when |
@@ -333,10 +333,10 @@ Family prefix: `bank8:ledger:`.
 1. **The books always balance.** Every posting batch nets to zero per
    denomination; an unbalanced batch is rejected before any write.
 2. **Money movement is atomic.** Balances, transactions, postings,
-   instructions, audit, and the event outbox commit in one transaction —
+   instructions, audit, and the event outbox commit in one transaction -
    there is no such thing as a half-posting.
 3. **Retries are safe.** A posting retried with the same idempotency key
-   returns the original result — money never moves twice for the same
+   returns the original result - money never moves twice for the same
    request.
 4. **Money is never approximate.** All money values are exact decimals
    (no floating-point) end-to-end, on the wire and in storage.
@@ -345,7 +345,7 @@ Family prefix: `bank8:ledger:`.
 6. **Corrections, not edits.** A posted entry is never mutated; corrections
    are explicit adjustment records (or compensating postings) with reasons.
 7. **Audit is fail-closed.** On the posting path, if the audit row or the
-   event-outbox row cannot be written, the whole posting aborts —
+   event-outbox row cannot be written, the whole posting aborts -
    unaudited money movement cannot exist.
 8. **The journal is tamper-evident.** Journal events are checksum-chained;
    any modification breaks the chain and is detectable.
@@ -357,7 +357,7 @@ Family prefix: `bank8:ledger:`.
     same answer for the same (account, date).
 11. **Internal counterparties exist per denomination.** Cash, cheque,
     liquidity, clearing, and suspense accounts are seeded so every posting
-    has a real counterparty — no magic destinations.
+    has a real counterparty - no magic destinations.
 12. **Authorization precedes execution.** Every API call passes the
     platform authorization pipeline with live-resolved roles; permission
     changes take effect on the next request.
@@ -381,7 +381,7 @@ Family prefix: `bank8:ledger:`.
   reconciliation breakage attributable to the ledger.
 - **Posting correctness**: zero duplicate money movements under client
   retry (idempotency coverage = 100% of posting calls).
-- **Availability**: the ledger is a system of record — posting path
+- **Availability**: the ledger is a system of record - posting path
   availability matches the platform SLA; no lost postings on crash
   (atomicity is structural).
 - **Event delivery**: 100% of domain changes eventually reach Sentin8:Bus
@@ -391,7 +391,7 @@ Family prefix: `bank8:ledger:`.
 - **Audit completeness**: every domain write carries an audit record; the
   journal chain never breaks.
 - **Read performance**: balance and effective-parameter reads served from
-  indexed/cached hot paths — no product launch blocked by parameter
+  indexed/cached hot paths - no product launch blocked by parameter
   lookup latency.
 
 ## 8. Dependencies & Reliance on Other Services
@@ -407,8 +407,8 @@ Family prefix: `bank8:ledger:`.
 | Sentin8:Storage | Storing generated statement documents |
 | Sentin8:Stat | Metric ingest / telemetry |
 | Sentin8:Sys | Service enablement events; central audit ingest via the journal pusher |
-| Sentin8:BFF | All client traffic (`/proxy/ledger/*`) — tokens never reach the client |
-| Bank8:Payments (peer) | Consumes ledger events; calls back for financial movement — the ledger is the only writer of balances |
+| Sentin8:BFF | All client traffic (`/proxy/ledger/*`) - tokens never reach the client |
+| Bank8:Payments (peer) | Consumes ledger events; calls back for financial movement - the ledger is the only writer of balances |
 
 ## 9. Acceptance Criteria
 
@@ -429,7 +429,7 @@ Family prefix: `bank8:ledger:`.
 9. All tenant data is invisible to other tenants under row-level security;
    a request without a resolvable tenant context is rejected.
 10. Every capability listed in §2 is operable through the dashboard admin
-    pages and/or the BFF-proxied API — no operator ever needs direct
+    pages and/or the BFF-proxied API - no operator ever needs direct
     database access.
 11. Each event in §4 is emitted exactly once per domain change (at-least-once
     delivery with idempotent consumers tolerated by design).

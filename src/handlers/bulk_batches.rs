@@ -3,10 +3,10 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Bulk batches — account migrations and account update batches.
+//! Bulk batches - account migrations and account update batches.
 //! Data-Loader-style staging: a batch is submitted with its item payload,
 //! stored pending in `account_migrations` / `account_update_batches`,
-//! and applied row-by-row by `bulk-retry` (Sentin8 Jobs pattern — already-
+//! and applied row-by-row by `bulk-retry` (Sentin8 Jobs pattern - already-
 //! applied rows are skipped, idempotent re-run). The Data Loader UI remains
 //! out-of-scope (design §3.1); this covers the account/posting subset.
 
@@ -47,7 +47,7 @@ pub struct CreateBulkBatchRequest {
     pub items: JsonValue,
 }
 
-/// `POST /v1/account-migrations` — submit a bulk account migration batch
+/// `POST /v1/account-migrations` - submit a bulk account migration batch
 /// (Data-Loader-style staging; idempotent re-run via `:bulkRetry`).
 #[utoipa::path(
     post,
@@ -140,7 +140,7 @@ fn default_bulk_kind() -> String {
     "account_update".into()
 }
 
-/// `GET /v1/account-update-batches` — list bulk batches (either kind).
+/// `GET /v1/account-update-batches` - list bulk batches (either kind).
 #[utoipa::path(
     get,
     path = "/v1/account-update-batches",
@@ -205,7 +205,7 @@ pub async fn list_bulk_batches(
     ))
 }
 
-/// `POST /v1/account-update-batches/{id}/bulk-retry` — retry failed rows in a
+/// `POST /v1/account-update-batches/{id}/bulk-retry` - retry failed rows in a
 /// bulk batch (Sentin8 Jobs bulk-operations pattern). Staged rows are applied
 /// account-by-account; already-applied rows are skipped (idempotent).
 #[utoipa::path(
@@ -347,7 +347,7 @@ async fn is_update_batch(state: &AppState, env_id: Uuid, id: Uuid) -> bool {
     .unwrap_or(false)
 }
 
-// ── Unit tests (§8.6 conventions — pure logic, no DB) ────────────────────
+// ── Unit tests (§8.6 conventions - pure logic, no DB) ────────────────────
 
 #[cfg(test)]
 mod tests {

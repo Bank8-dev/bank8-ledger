@@ -3,12 +3,12 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Journal events — append-only, hash-chained audit journal.
+//! Journal events - append-only, hash-chained audit journal.
 //! The journal is written in the same DB transaction as the domain change
 //! (postings, adjustments, plan migrations, contract simulations, bulk
-//! batches — design §5.3). Every row chains to the previous row's checksum:
+//! batches - design §5.3). Every row chains to the previous row's checksum:
 //! `checksum = SHA-256(prev_checksum, resource_type, resource_id, operation,
-//! payload)` — tamper-evident by construction. `append_journal_event` is the
+//! payload)` - tamper-evident by construction. `append_journal_event` is the
 //! single write path; the posting engine (`handlers/postings.rs`) calls it
 //! inside its commit transaction.
 
@@ -39,7 +39,7 @@ pub struct JournalEventResponse {
 }
 
 /// Journal checksum: SHA-256 over (prev_checksum, resource_type,
-/// resource_id, operation, payload) — the tamper-evident chain link
+/// resource_id, operation, payload) - the tamper-evident chain link
 /// (design §5.3). Pure function so the chain properties are unit-testable.
 pub(crate) fn journal_checksum(
     prev: Option<&str>,
@@ -98,7 +98,7 @@ pub async fn append_journal_event(
     Ok(())
 }
 
-/// `GET /v1/journal-events` — query the journal.
+/// `GET /v1/journal-events` - query the journal.
 #[utoipa::path(
     get,
     path = "/v1/journal-events",
@@ -166,7 +166,7 @@ pub struct ListJournalQuery {
     pub resource_id: Option<Uuid>,
 }
 
-/// `GET /v1/journal-events/{id}` — one journal event.
+/// `GET /v1/journal-events/{id}` - one journal event.
 #[utoipa::path(
     get,
     path = "/v1/journal-events/{id}",
@@ -215,7 +215,7 @@ pub async fn get_journal_event(
     }))
 }
 
-/// `POST /v1/journal-events/{id}/replay` — re-drive a journal event
+/// `POST /v1/journal-events/{id}/replay` - re-drive a journal event
 /// idempotently . The journal row carries the full operation payload;
 /// posting replays are no-ops thanks to posting idempotency keys. Other
 /// resource kinds re-apply the recorded operation.
@@ -266,7 +266,7 @@ pub async fn replay_journal_event(
 
     // Posting replay: re-drive the recorded instruction set through the
     // normal posting path. Posting idempotency (batch_id) makes replays
-    // no-ops — the original batch row is returned untouched.
+    // no-ops - the original batch row is returned untouched.
     let result = if resource_type == "posting" {
         let batch_id = payload
             .get("batch_id")
@@ -315,7 +315,7 @@ pub async fn replay_journal_event(
     Ok(Json(result))
 }
 
-// ── Unit tests (§8.6 conventions — pure logic, no DB) ────────────────────
+// ── Unit tests (§8.6 conventions - pure logic, no DB) ────────────────────
 
 #[cfg(test)]
 mod tests {

@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Plans — product plan lifecycle, migrations and account assocs.
+//! Plans - product plan lifecycle, migrations and account assocs.
 //! A plan groups product parameters + modules for a set of accounts
 //! (`plans`, `plan_assocs`). Plan migrations re-associate every
 //! account of a from-plan onto the target plan and close the from-plan
@@ -46,7 +46,7 @@ pub struct CreatePlanRequest {
     pub modules: JsonValue,
 }
 
-/// `POST /v1/plans` — create a plan.
+/// `POST /v1/plans` - create a plan.
 #[utoipa::path(
     post,
     path = "/v1/plans",
@@ -115,7 +115,7 @@ pub async fn create_plan(
     }))
 }
 
-/// `GET /v1/plans` — list plans.
+/// `GET /v1/plans` - list plans.
 #[utoipa::path(
     get,
     path = "/v1/plans",
@@ -165,7 +165,7 @@ pub async fn list_plans(
     ))
 }
 
-/// `GET /v1/plans/{id}` — plan detail.
+/// `GET /v1/plans/{id}` - plan detail.
 #[utoipa::path(
     get,
     path = "/v1/plans/{id}",
@@ -218,7 +218,7 @@ pub struct MigratePlanRequest {
     pub from_plan_id: Option<Uuid>,
 }
 
-/// `POST /v1/plans/{id}/migrations` — migrate accounts onto a plan
+/// `POST /v1/plans/{id}/migrations` - migrate accounts onto a plan
 /// (PlanMigration): re-associates the from-plan accounts and closes it.
 #[utoipa::path(
     post,
@@ -317,7 +317,7 @@ pub struct CreatePlanAssocRequest {
     pub account_id: Uuid,
 }
 
-/// `GET /v1/account-plan-assocs` — list account↔plan associations.
+/// `GET /v1/account-plan-assocs` - list account↔plan associations.
 #[utoipa::path(
     get,
     path = "/v1/account-plan-assocs",
@@ -362,7 +362,7 @@ pub async fn list_plan_assocs(
     ))
 }
 
-/// `POST /v1/account-plan-assocs` — associate an account with a plan.
+/// `POST /v1/account-plan-assocs` - associate an account with a plan.
 #[utoipa::path(
     post,
     path = "/v1/account-plan-assocs",
@@ -410,7 +410,7 @@ pub async fn create_plan_assoc(
     }))
 }
 
-// ── Unit tests (§8.6 conventions — pure logic, no DB) ────────────────────
+// ── Unit tests (§8.6 conventions - pure logic, no DB) ────────────────────
 
 #[cfg(test)]
 mod tests {

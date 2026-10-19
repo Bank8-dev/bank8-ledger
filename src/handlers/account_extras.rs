@@ -3,12 +3,12 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Account extras — account attributes and payment devices.
+//! Account extras - account attributes and payment devices.
 //! - Attributes: free-form keyed values per account
 //! (`account_attributes`).
 //! - Payment devices: card/token devices attached to an account
 //! (`payment_devices`). `device_token_ref` is a **secret reference**
-//! — never raw PAN/token material (§4.4).
+//! - never raw PAN/token material (§4.4).
 
 use axum::{
     extract::{Path, State},
@@ -40,7 +40,7 @@ pub struct UpsertAccountAttributeRequest {
     pub value: JsonValue,
 }
 
-/// `GET /v1/accounts/{id}/attributes` — list account attribute values.
+/// `GET /v1/accounts/{id}/attributes` - list account attribute values.
 #[utoipa::path(
     get,
     path = "/v1/accounts/{id}/attributes",
@@ -90,7 +90,7 @@ pub async fn list_account_attributes(
     ))
 }
 
-/// `PUT /v1/accounts/{id}/attributes` — upsert account attribute values.
+/// `PUT /v1/accounts/{id}/attributes` - upsert account attribute values.
 #[utoipa::path(
     put,
     path = "/v1/accounts/{id}/attributes",
@@ -164,11 +164,11 @@ pub struct PaymentDeviceResponse {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct AttachPaymentDeviceRequest {
     pub device_type: String,
-    /// Secret reference (never raw PAN/token material) — §4.4 secret references.
+    /// Secret reference (never raw PAN/token material) - §4.4 secret references.
     pub device_token_ref: String,
 }
 
-/// `POST /v1/accounts/{id}/devices` — attach a payment device.
+/// `POST /v1/accounts/{id}/devices` - attach a payment device.
 #[utoipa::path(
     post,
     path = "/v1/accounts/{id}/devices",
@@ -229,7 +229,7 @@ pub async fn attach_payment_device(
     }))
 }
 
-/// `GET /v1/accounts/{id}/devices` — list attached payment devices.
+/// `GET /v1/accounts/{id}/devices` - list attached payment devices.
 #[utoipa::path(
     get,
     path = "/v1/accounts/{id}/devices",

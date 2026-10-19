@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Customer handlers — customers CRUD.
+//! Customer handlers - customers CRUD.
 
 use axum::{
     extract::{Path, State},
@@ -58,7 +58,7 @@ pub struct ListCustomersQuery {
     pub env_id: Option<String>,
 }
 
-/// `POST /v1/customers` — create a customer.
+/// `POST /v1/customers` - create a customer.
 /// If the caller is a user token, the `sentin8_auth_user_id` is stamped
 /// from their token claims so that holder-scoped RLS and
 /// `resolve_caller_customer_id` can find the row.
@@ -93,7 +93,7 @@ pub async fn create_customer(
         .map_err(err_db)?;
     // Stamp `sentin8_auth_user_id` for every USER token (the §4.3c holder
     // link). This used to be gated on the dead `subject_type ==
-    // "customer"` check — user access tokens never return "customer", so
+    // "customer"` check - user access tokens never return "customer", so
     // the column stayed NULL and holder-scoped RLS had nothing to match.
     // M2M tokens (staff tooling / service provisioning) have no user id →
     // NULL, which is correct for staff-created customer records.
@@ -129,7 +129,7 @@ pub async fn create_customer(
     Ok(Json(customer))
 }
 
-/// `GET /v1/customers` — list/search customers.
+/// `GET /v1/customers` - list/search customers.
 /// Optional `?search=<text>` filters by display_name or email (case-insensitive
 /// substring match). Without a search term, returns all customers in the
 /// caller's org/env (subject to RLS).
@@ -161,7 +161,7 @@ pub async fn list_customers(
     )
     .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    // Resolve the effective env_id (isolation-design §10 — staff-realm
+    // Resolve the effective env_id (isolation-design §10 - staff-realm
     // directory reads).
     // After Option A (§8) `holder:view-all` is M2M-only, so `is_holder `
     // can no longer classify callers: every staff token "lacks the scope"
@@ -174,8 +174,8 @@ pub async fn list_customers(
     // able to hold org roles/groups) may pass the ?env_id= override so
     // the customer DIRECTORY is searchable before any CIBA delegation
     // exists (§4.3f requires the customer id to start the flow). The
-    // override is validated against the REQUESTED env's org — the caller
-    // must hold a role or group in that org — and platform admins bypass
+    // override is validated against the REQUESTED env's org - the caller
+    // must hold a role or group in that org - and platform admins bypass
     // the check. Staff groups (e.g. app:e_teller) live in the org's
     // staff-auth env, so membership resolves through
     // auth_groups/auth_roles.env_id → sys_environments.org_id.
@@ -191,7 +191,7 @@ pub async fn list_customers(
         } else if staff_realm {
             // Validate: the caller must have a role or group whose env
             // belongs to the org of the REQUESTED env.
-            // VDC §VDC.5 — the org relationship is resolved through
+            // VDC §VDC.5 - the org relationship is resolved through
             // Sys's tenant-snapshot API (the sanctioned on-demand
             // cross-tenant read); the former cross-database
             // `sentin8.auth_*`/`sentin8.sys_*` joins never existed in
@@ -220,7 +220,7 @@ pub async fn list_customers(
             }
             requested
         } else {
-            // Customer-realm caller requesting a foreign env — fail closed.
+            // Customer-realm caller requesting a foreign env - fail closed.
             return Err((
                 StatusCode::FORBIDDEN,
                 "cross-environment access is not permitted".into(),
@@ -229,16 +229,16 @@ pub async fn list_customers(
     } else {
         a.env_id()
     };
-    // Scope by env_id — these explicit WHERE clauses are the primary
+    // Scope by env_id - these explicit WHERE clauses are the primary
     // scoping; RLS is the backstop.
     // Local-only search (VDC §VDC.2): the ledger matches its OWN columns.
     // The former `sentin8.auth_users` enrichment join never existed in the
-    // vertical's database — display_name/email are stamped on the customer
+    // vertical's database - display_name/email are stamped on the customer
     // row at provisioning time (eBank sign-up proxies the customer create),
     // and the eTeller search matches on those.
     // Same-transaction context for the data SELECT (rule 2): the org
     // check above ran under no tenant context (its tables are remote),
-    // so the context must be set HERE — before the customer query — on
+    // so the context must be set HERE - before the customer query - on
     // the SAME transaction connection, or the RLS gate hides every row.
     set_tenant_context(&mut conn, effective_env_id)
         .await
@@ -276,7 +276,7 @@ pub async fn list_customers(
     Ok(Json(rows.iter().map(row_to_customer).collect()))
 }
 
-/// `GET /v1/customers/{id}` — customer detail.
+/// `GET /v1/customers/{id}` - customer detail.
 #[utoipa::path(
     get,
     path = "/v1/customers/{id}",
@@ -304,7 +304,7 @@ pub async fn get_customer(
     .await?;
     let mut conn = state.pool.begin().await.map_err(err_db)?;
     // Staff-realm directory read (isolation-design §10): resolve the row's
-    // env, then authorize via org membership — a staff teller must be able
+    // env, then authorize via org membership - a staff teller must be able
     // to open the detail of a customer found by search, without any CIBA
     // delegation (and without `holder:view-all`). Customer-realm callers
     // (no sentin8:Auth user id in `sub`) stay env-locked to their claims
@@ -323,7 +323,7 @@ pub async fn get_customer(
         row_env
     } else if staff_realm {
         // Cross-env staff read: org membership in the row's org is required.
-        // VDC §VDC.5 — org relationship via Sys's tenant-snapshot API.
+        // VDC §VDC.5 - org relationship via Sys's tenant-snapshot API.
         let caller_org = crate::tenant_snapshot::env_org_id(caller_env)
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("org check: {e}")))?;
@@ -408,7 +408,7 @@ fn row_to_customer(row: &sqlx::postgres::PgRow) -> CustomerResponse {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct LinkAuthRequest {
     pub sentin8_auth_user_id: Uuid,
-    /// Optional local display_name stamp (VDC §VDC.2 — the ledger never
+    /// Optional local display_name stamp (VDC §VDC.2 - the ledger never
     /// joins the platform auth schema; the caller supplies the identity
     /// fields it already verified).
     #[serde(default)]
@@ -508,7 +508,7 @@ pub struct UpdateCustomerRequest {
     pub phone: Option<String>,
 }
 
-/// `PUT /v1/customers/{id}/update` — update customer (display name / contact).
+/// `PUT /v1/customers/{id}/update` - update customer (display name / contact).
 #[utoipa::path(
     put,
     path = "/v1/customers/{id}/update",

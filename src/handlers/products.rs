@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bank8:Ledger
 // SPDX-License-Identifier: Apache-2.0
 
-//! Product handlers — products, product versions, activation.
+//! Product handlers - products, product versions, activation.
 
 use axum::{
     extract::{Path, State},
@@ -47,7 +47,7 @@ pub struct UpdateProductRequest {
     pub modules: Option<serde_json::Value>,
 }
 
-/// `POST /v1/products` — create a product.
+/// `POST /v1/products` - create a product.
 #[utoipa::path(
     post,
     path = "/v1/products",
@@ -74,7 +74,7 @@ pub async fn create_product(
     .await?;
     // Staff SSO tokens carry the STAFF env; the managed env comes from the
     // TLS-injected X-Sentin8-Env-Id header (Bank8:Admin is served at
-    // bank8-admin.prod.{org}.{tld}). Same pattern as admin_ui.rs — see
+    // bank8-admin.prod.{org}.{tld}). Same pattern as admin_ui.rs - see
     // resolve_org_env docs.
     let env_id = crate::handlers::resolve_org_env(&headers, uuid::Uuid::nil(), a.env_id());
     let mut conn = state.pool.begin().await.map_err(err_db)?;
@@ -107,7 +107,7 @@ pub async fn create_product(
     Ok(Json(product))
 }
 
-/// `GET /v1/products` — list products.
+/// `GET /v1/products` - list products.
 #[utoipa::path(
     get,
     path = "/v1/products",
@@ -130,7 +130,7 @@ pub async fn list_products(
         sentin8::shield::EvalTarget::new("bank8:ledger:products:read"),
     )
     .await?;
-    // TLS-injected env wins over the token env — Bank8:Admin staff SSO
+    // TLS-injected env wins over the token env - Bank8:Admin staff SSO
     // tokens carry the staff env but manage the prod env (see create_product).
     let env_id = crate::handlers::resolve_org_env(&headers, uuid::Uuid::nil(), a.env_id());
     let mut conn = state.pool.begin().await.map_err(err_db)?;
@@ -152,7 +152,7 @@ pub async fn list_products(
     Ok(Json(rows.iter().map(row_to_product).collect()))
 }
 
-/// `GET /v1/products/{id}` — product detail.
+/// `GET /v1/products/{id}` - product detail.
 #[utoipa::path(
     get,
     path = "/v1/products/{id}",
@@ -196,7 +196,7 @@ pub async fn get_product(
     Ok(Json(row_to_product(&row)))
 }
 
-/// `PUT /v1/products/{id}` — update product.
+/// `PUT /v1/products/{id}` - update product.
 #[utoipa::path(
     put,
     path = "/v1/products/{id}",
@@ -256,7 +256,7 @@ pub async fn update_product(
     Ok(Json(product))
 }
 
-/// `POST /v1/products/{id}/activate` — activate a product.
+/// `POST /v1/products/{id}/activate` - activate a product.
 /// Also accepts `ledger:write` (broad write scope) for end-user app tokens.
 #[utoipa::path(
     post,
@@ -334,7 +334,7 @@ pub struct CreateProductVersionRequest {
     pub expected_parameters: serde_json::Value,
 }
 
-/// `POST /v1/products/{id}/versions` — create a product version.
+/// `POST /v1/products/{id}/versions` - create a product version.
 #[utoipa::path(
     post,
     path = "/v1/products/{id}/versions",
@@ -394,7 +394,7 @@ pub async fn create_product_version(
     Ok(Json(version))
 }
 
-/// `GET /v1/products/{id}/versions` — list product versions.
+/// `GET /v1/products/{id}/versions` - list product versions.
 #[utoipa::path(
     get,
     path = "/v1/products/{id}/versions",

@@ -41,7 +41,7 @@ fn default_tag_status() -> String {
     "active".into()
 }
 
-/// `POST /v1/schedule-tags` — create a schedule tag (activation group).
+/// `POST /v1/schedule-tags` - create a schedule tag (activation group).
 #[utoipa::path(
     post,
     path = "/v1/schedule-tags",
@@ -104,7 +104,7 @@ pub async fn create_schedule_tag(
     }))
 }
 
-/// `GET /v1/schedule-tags` — list schedule tags.
+/// `GET /v1/schedule-tags` - list schedule tags.
 #[utoipa::path(
     get,
     path = "/v1/schedule-tags",
@@ -155,7 +155,7 @@ pub struct AssociateScheduleTagRequest {
     pub schedule_id: Uuid,
 }
 
-/// `POST /v1/schedule-tags/{id}/assocs` — attach a tag to a schedule
+/// `POST /v1/schedule-tags/{id}/assocs` - attach a tag to a schedule
 /// (tag status ACTIVE/INACTIVE controls the schedule).
 #[utoipa::path(
     post,
@@ -218,7 +218,7 @@ pub struct UpsertAccountScheduleTagRequest {
     pub status: String,
 }
 
-/// `POST /v1/account-schedule-tags` — create/override an account schedule tag.
+/// `POST /v1/account-schedule-tags` - create/override an account schedule tag.
 #[utoipa::path(
     post,
     path = "/v1/accounts/{id}/schedule-tags",
@@ -272,7 +272,7 @@ pub async fn upsert_account_schedule_tag(
     }))
 }
 
-/// `GET /v1/account-schedule-tags?account_id=` — list account schedule tags.
+/// `GET /v1/account-schedule-tags?account_id=` - list account schedule tags.
 #[utoipa::path(
     get,
     path = "/v1/account-schedule-tags",

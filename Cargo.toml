@@ -10,7 +10,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Bank8-dev/bank8-ledger"
 rust-version = "1.85"
-description = "Sentin8 Bank8:Ledger — core ledger, posting engine, product library."
+description = "Sentin8 Bank8:Ledger - core ledger, posting engine, product library."
 
 [[bin]]
 name = "bank8-ledger"
