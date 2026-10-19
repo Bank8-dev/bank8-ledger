@@ -5,6 +5,7 @@
 
 //! Restriction handlers - restriction definitions and restriction sets.
 
+use utoipa::ToSchema;
 use axum::{
     extract::{Query, State},
     http::{HeaderMap, StatusCode},
@@ -17,7 +18,7 @@ use uuid::Uuid;
 use crate::auth;
 use crate::handlers::{err_db, set_tenant_context, AppState};
 
-#[derive(Debug, serde::Serialize)]
+#[derive(ToSchema, Debug,serde::Serialize)]
 pub struct RestrictionDefinitionResponse {
     pub id: Uuid,
     pub action: String,
@@ -26,7 +27,7 @@ pub struct RestrictionDefinitionResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateRestrictionDefinitionRequest {
     pub action: String,
     pub description: Option<String>,
@@ -36,7 +37,7 @@ pub struct CreateRestrictionDefinitionRequest {
     post,
     path = "/v1/restriction-definitions",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = RestrictionDefinitionResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -88,7 +89,7 @@ pub async fn create_restriction_definition(
     get,
     path = "/v1/restriction-definitions",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<RestrictionDefinitionResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -119,7 +120,7 @@ pub async fn list_restriction_definitions(
     Ok(Json(rows.iter().map(row_to_restriction_def).collect()))
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(ToSchema, Debug,serde::Serialize)]
 pub struct RestrictionSetResponse {
     pub id: Uuid,
     pub restriction_definition_id: Uuid,
@@ -131,7 +132,7 @@ pub struct RestrictionSetResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateRestrictionSetRequest {
     pub restriction_definition_id: Uuid,
     pub account_id: Option<Uuid>,
@@ -151,7 +152,7 @@ pub struct ListRestrictionSetsQuery {
     post,
     path = "/v1/restriction-sets",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = RestrictionSetResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -207,7 +208,7 @@ pub async fn create_restriction_set(
     get,
     path = "/v1/restriction-sets",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<RestrictionSetResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),

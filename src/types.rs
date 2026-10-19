@@ -5,12 +5,13 @@
 
 //! Ledger domain types - full type definitions for all Ledger resources.
 
+use utoipa::ToSchema;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 // ── Account (v2) ─────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(ToSchema, Debug, Clone, Serialize, Deserialize)]
 pub struct AccountV2 {
     pub id: Uuid,
     pub env_id: Uuid,
@@ -34,7 +35,7 @@ pub struct AccountV2 {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateAccountV2Request {
     pub product_id: Option<Uuid>,
     pub customer_id: Option<Uuid>,
@@ -66,7 +67,7 @@ fn default_denom() -> String {
     "CAD".into()
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct UpdateAccountV2Request {
     pub status: Option<String>,
     pub nickname: Option<String>,
@@ -76,7 +77,7 @@ pub struct UpdateAccountV2Request {
 
 // ── Balance (v2) ─────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug, Clone, Serialize)]
 pub struct BalanceV2 {
     pub account_id: Uuid,
     pub denomination: String,
@@ -89,7 +90,7 @@ pub struct BalanceV2 {
 
 // ── Posting ──────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(ToSchema, Debug, Clone, Serialize, Deserialize)]
 pub struct PostingInstructionV2 {
     pub instruction_type: String, // 9 types
     pub debit_account: Uuid,
@@ -107,7 +108,7 @@ pub struct PostingInstructionV2 {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreatePostingBatchRequest {
     pub batch_id: String,
     #[serde(default)]
@@ -123,7 +124,7 @@ pub struct CreatePostingBatchRequest {
     pub instructions: Vec<PostingInstructionV2>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(ToSchema, Debug,Serialize)]
 pub struct PostingBatchResponse {
     pub id: Uuid,
     pub batch_id: String,
@@ -136,7 +137,7 @@ pub struct PostingBatchResponse {
 
 // ── Schedule ─────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct ScheduleResponse {
     pub id: Uuid,
     pub account_id: Option<Uuid>,
@@ -148,7 +149,7 @@ pub struct ScheduleResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateScheduleRequest {
     pub account_id: Option<Uuid>,
     pub schedule_type: String,
@@ -157,7 +158,7 @@ pub struct CreateScheduleRequest {
 
 // ── Job ──────────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct JobResponse {
     pub id: Uuid,
     pub schedule_id: Option<Uuid>,
@@ -171,7 +172,7 @@ pub struct JobResponse {
 
 // ── Flag ─────────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct FlagDefinitionResponse {
     pub id: Uuid,
     pub flag_name: String,
@@ -181,14 +182,14 @@ pub struct FlagDefinitionResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateFlagDefinitionRequest {
     pub flag_name: String,
     pub required_flag_level: Option<String>,
     pub flag_visibility: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct FlagResponse {
     pub id: Uuid,
     pub flag_definition_id: Uuid,
@@ -200,7 +201,7 @@ pub struct FlagResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateFlagRequest {
     pub flag_definition_id: Uuid,
     pub account_id: Option<Uuid>,
@@ -217,7 +218,7 @@ fn default_on() -> String {
 
 // ── Restriction ──────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct RestrictionDefinitionResponse {
     pub id: Uuid,
     pub action: String,
@@ -226,13 +227,13 @@ pub struct RestrictionDefinitionResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateRestrictionDefinitionRequest {
     pub action: String,
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct RestrictionSetResponse {
     pub id: Uuid,
     pub restriction_definition_id: Uuid,
@@ -244,7 +245,7 @@ pub struct RestrictionSetResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateRestrictionSetRequest {
     pub restriction_definition_id: Uuid,
     pub account_id: Option<Uuid>,
@@ -254,7 +255,7 @@ pub struct CreateRestrictionSetRequest {
 
 // ── Parameter ───────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct ParameterResponse {
     pub id: Uuid,
     pub name: String,
@@ -267,7 +268,7 @@ pub struct ParameterResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateParameterRequest {
     pub name: String,
     pub description: Option<String>,
@@ -290,7 +291,7 @@ fn default_string() -> String {
     "string".into()
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct ParameterValueResponse {
     pub id: Uuid,
     pub parameter_id: Uuid,
@@ -303,7 +304,7 @@ pub struct ParameterValueResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateParameterValueRequest {
     pub parameter_id: Uuid,
     pub account_id: Option<Uuid>,
@@ -317,7 +318,7 @@ pub struct CreateParameterValueRequest {
 
 // ── Customer ─────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct CustomerResponse {
     pub id: Uuid,
     pub display_name: String,
@@ -327,7 +328,7 @@ pub struct CustomerResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateCustomerRequest {
     pub display_name: String,
     pub email: Option<String>,
@@ -336,7 +337,7 @@ pub struct CreateCustomerRequest {
 
 // ── Transaction ──────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct TransactionResponse {
     pub id: Uuid,
     pub account_id: Uuid,
@@ -351,7 +352,7 @@ pub struct TransactionResponse {
 
 // ── Statement ───────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct StatementResponse {
     pub id: Uuid,
     pub account_id: Uuid,
@@ -366,7 +367,7 @@ pub struct StatementResponse {
 
 // ── DLQ ──────────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct DlqResponse {
     pub id: Uuid,
     pub message_type: String,
@@ -378,7 +379,7 @@ pub struct DlqResponse {
 
 // ── Audit ────────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct AuditEventResponse {
     pub id: Uuid,
     pub actor_user_id: Option<String>,
@@ -391,7 +392,7 @@ pub struct AuditEventResponse {
 
 // ── Product Version ──────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct ProductVersionResponse {
     pub id: Uuid,
     pub product_id: Uuid,
@@ -405,7 +406,7 @@ pub struct ProductVersionResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateProductVersionRequest {
     pub product_id: Uuid,
     pub tside: Option<String>,
@@ -421,7 +422,7 @@ pub struct CreateProductVersionRequest {
 
 // ── Calendar ────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(ToSchema, Debug,Clone,Serialize)]
 pub struct CalendarResponse {
     pub id: Uuid,
     pub name: String,
@@ -431,7 +432,7 @@ pub struct CalendarResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateCalendarRequest {
     pub name: String,
     pub description: Option<String>,

@@ -10,6 +10,7 @@
 //! data path of the regen workflow (the scheduled path wrote the row and
 //! the first render) - a workflow retry re-enters here.
 
+use utoipa::ToSchema;
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
@@ -23,7 +24,7 @@ use crate::auth;
 use crate::handlers::{err_db, set_tenant_context, AppState};
 
 /// Proxy-back request from the Flow engine for one regen step.
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct StatementRegenRequest {
     /// The step to execute (`render_statement`).
     pub step_kind: String,
@@ -42,7 +43,7 @@ pub struct StatementRegenRequest {
 }
 
 /// Proxy-back response - the same shape the payments step contract uses.
-#[derive(Debug, Serialize)]
+#[derive(ToSchema, Debug,Serialize)]
 pub struct StatementRegenResponse {
     pub status: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -55,7 +56,7 @@ pub struct StatementRegenResponse {
     post,
     path = "/v1/internal/statements/regen",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = StatementRegenResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),

@@ -14,6 +14,7 @@ use axum::{
     Json,
 };
 use sentin8::rfw::page::*;
+use sentin8::rfw::policy_pages::AdminDataRows;
 use sentin8::rfw::response::AdminUiResponse;
 use sentin8::rfw::widget::*;
 use serde::Deserialize;
@@ -30,7 +31,7 @@ pub struct AdminUiQuery {
     get,
     path = "/v1/admin/ui/{page}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = sentin8::rfw::AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -43,7 +44,7 @@ pub async fn get_admin_ui(
     headers: HeaderMap,
     Path(page): Path<String>,
     Query(q): Query<AdminUiQuery>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminUiResponse>, (axum::http::StatusCode, String)> {
     // Step 5 - Shield decides (principles §5.2, policy design §4.3). UI
     // definitions carry no data; the scope-mirror set permits read actions
     // per-scope, and platform/org/env admin scopes ride the same live-scope
@@ -127,16 +128,14 @@ pub async fn get_admin_ui(
         }
     };
 
-    Ok(Json(
-        serde_json::to_value(AdminUiResponse::page(page_def)).unwrap(),
-    ))
+    Ok(Json(AdminUiResponse::page(page_def)))
 }
 
 #[utoipa::path(
     post,
     path = "/v1/admin/products",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "RFW page/ack response", body = AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -151,7 +150,7 @@ pub async fn submit_product_form(
     State(state): State<AppState>,
     headers: HeaderMap,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminUiResponse>, (axum::http::StatusCode, String)> {
     use crate::auth;
     use crate::handlers::set_tenant_context;
     use sqlx::Row;
@@ -169,9 +168,7 @@ pub async fn submit_product_form(
         .unwrap_or("current_account")
         .trim();
     if name.is_empty() {
-        return Ok(Json(
-            serde_json::to_value(AdminUiResponse::error("Product name is required")).unwrap(),
-        ));
+        return Ok(Json(AdminUiResponse::error("Product name is required")));
     }
     // Parse modules - the form sends a comma-separated string or array.
     let modules: serde_json::Value = if let Some(arr) = body["modules"].as_array() {
@@ -249,16 +246,14 @@ pub async fn submit_product_form(
         .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     tracing::info!(product_id = %product_id, %name, %product_type, "admin_ui: product created via form");
     // Redirect to the product detail page.
-    Ok(Json(
-        serde_json::to_value(AdminUiResponse::redirect(format!("products/{product_id}"))).unwrap(),
-    ))
+    Ok(Json(AdminUiResponse::redirect(format!("products/{product_id}"))))
 }
 
 #[utoipa::path(
     put,
     path = "/v1/admin/products/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "RFW page/ack response", body = AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -271,7 +266,7 @@ pub async fn submit_product_edit(
     headers: HeaderMap,
     Path(id): Path<uuid::Uuid>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminUiResponse>, (axum::http::StatusCode, String)> {
     use crate::auth;
     use crate::handlers::set_tenant_context;
     let a = auth::verify_token(&state.config, &headers).await?;
@@ -284,9 +279,7 @@ pub async fn submit_product_edit(
     .await?;
     let name = body["name"].as_str().unwrap_or("").trim();
     if name.is_empty() {
-        return Ok(Json(
-            serde_json::to_value(AdminUiResponse::error("Product name is required")).unwrap(),
-        ));
+        return Ok(Json(AdminUiResponse::error("Product name is required")));
     }
     let modules: serde_json::Value = if let Some(arr) = body["modules"].as_array() {
         serde_json::Value::Array(arr.clone())
@@ -327,16 +320,14 @@ pub async fn submit_product_edit(
     conn.commit()
         .await
         .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    Ok(Json(
-        serde_json::to_value(AdminUiResponse::redirect(format!("products/{id}"))).unwrap(),
-    ))
+    Ok(Json(AdminUiResponse::redirect(format!("products/{id}"))))
 }
 
 #[utoipa::path(
     post,
     path = "/v1/admin/products/{id}/versions",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "RFW page/ack response", body = AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -349,7 +340,7 @@ pub async fn submit_product_version(
     headers: HeaderMap,
     Path(id): Path<uuid::Uuid>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminUiResponse>, (axum::http::StatusCode, String)> {
     use crate::auth;
     use crate::handlers::set_tenant_context;
     let a = auth::verify_token(&state.config, &headers).await?;
@@ -421,9 +412,7 @@ pub async fn submit_product_version(
     conn.commit()
         .await
         .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    Ok(Json(
-        serde_json::to_value(AdminUiResponse::redirect(format!("products/{id}"))).unwrap(),
-    ))
+    Ok(Json(AdminUiResponse::redirect(format!("products/{id}"))))
 }
 
 // ── Admin form submissions - non-product resources (RECON-5) ────────────
@@ -443,7 +432,7 @@ fn form_uuid(body: &serde_json::Value, key: &str) -> Option<uuid::Uuid> {
     post,
     path = "/v1/admin/accounts",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "RFW page/ack response", body = AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -455,7 +444,7 @@ pub async fn submit_account_form(
     State(state): State<AppState>,
     headers: HeaderMap,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminUiResponse>, (axum::http::StatusCode, String)> {
     use crate::handlers::set_tenant_context;
     let a = crate::auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
@@ -467,22 +456,16 @@ pub async fn submit_account_form(
     .await?;
     let account_type = form_str(&body, "account_type").unwrap_or_else(|| "customer".into());
     if !matches!(account_type.as_str(), "customer" | "internal") {
-        return Ok(Json(
-            serde_json::to_value(AdminUiResponse::error(
-                "account_type must be customer|internal",
-            ))
-            .unwrap(),
-        ));
+        return Ok(Json(AdminUiResponse::error(
+            "account_type must be customer|internal",
+        )));
     }
     let customer_id = form_uuid(&body, "customer_id");
     let product_id = form_uuid(&body, "product_id");
     if account_type == "customer" && customer_id.is_none() {
-        return Ok(Json(
-            serde_json::to_value(AdminUiResponse::error(
-                "customer_id is required for customer accounts",
-            ))
-            .unwrap(),
-        ));
+        return Ok(Json(AdminUiResponse::error(
+            "customer_id is required for customer accounts",
+        )));
     }
     let denomination = form_str(&body, "denomination").unwrap_or_else(|| "CAD".into());
     let mut conn = state
@@ -514,16 +497,14 @@ pub async fn submit_account_form(
     conn.commit()
         .await
         .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    Ok(Json(
-        serde_json::to_value(AdminUiResponse::redirect("accounts".to_string())).unwrap(),
-    ))
+    Ok(Json(AdminUiResponse::redirect("accounts".to_string())))
 }
 
 #[utoipa::path(
     put,
     path = "/v1/admin/accounts/{id}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "RFW page/ack response", body = AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -536,7 +517,7 @@ pub async fn submit_account_edit(
     headers: HeaderMap,
     Path(id): Path<uuid::Uuid>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminUiResponse>, (axum::http::StatusCode, String)> {
     use crate::handlers::set_tenant_context;
     let a = crate::auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
@@ -575,16 +556,25 @@ pub async fn submit_account_edit(
     conn.commit()
         .await
         .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    Ok(Json(
-        serde_json::to_value(AdminUiResponse::redirect("accounts")).unwrap(),
-    ))
+    Ok(Json(AdminUiResponse::redirect("accounts")))
+}
+
+/// Acknowledgement after an admin posting form submission (OAPEC-9 typed body).
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct AdminPostingAck {
+    /// The RFW route to navigate back to.
+    pub redirect: String,
+    /// The created posting instruction id.
+    pub posting_id: uuid::Uuid,
+    /// The accepted posting status.
+    pub status: String,
 }
 
 #[utoipa::path(
     post,
     path = "/v1/admin/postings",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "RFW page/ack response", body = AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -596,7 +586,7 @@ pub async fn submit_posting_form(
     State(state): State<AppState>,
     headers: HeaderMap,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminPostingAck>, (axum::http::StatusCode, String)> {
     // create_posting re-checks the scope; the pre-check here surfaces auth
     // failures before field validation for cleaner admin error messages.
     let _a = crate::auth::verify_token(&state.config, &headers).await?;
@@ -638,18 +628,18 @@ pub async fn submit_posting_form(
     // Reuse the domain handler (same scope check - fine for admin callers).
     let resp =
         crate::handlers::postings::create_posting(State(state), headers, axum::Json(req)).await?;
-    Ok(Json(serde_json::json!({
-        "redirect": "postings",
-        "posting_id": resp.0.id,
-        "status": resp.0.status,
-    })))
+    Ok(Json(AdminPostingAck {
+        redirect: "postings".into(),
+        posting_id: resp.0.id,
+        status: resp.0.status,
+    }))
 }
 
 #[utoipa::path(
     post,
     path = "/v1/admin/parameters",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "RFW page/ack response", body = AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -661,7 +651,7 @@ pub async fn submit_parameter_form(
     State(state): State<AppState>,
     headers: HeaderMap,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminUiResponse>, (axum::http::StatusCode, String)> {
     use crate::handlers::set_tenant_context;
     let a = crate::auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
@@ -703,16 +693,14 @@ pub async fn submit_parameter_form(
     conn.commit()
         .await
         .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    Ok(Json(
-        serde_json::to_value(AdminUiResponse::redirect("parameters")).unwrap(),
-    ))
+    Ok(Json(AdminUiResponse::redirect("parameters")))
 }
 
 #[utoipa::path(
     post,
     path = "/v1/admin/restriction-sets",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "RFW page/ack response", body = AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -724,7 +712,7 @@ pub async fn submit_restriction_form(
     State(state): State<AppState>,
     headers: HeaderMap,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminUiResponse>, (axum::http::StatusCode, String)> {
     use crate::handlers::set_tenant_context;
     let a = crate::auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
@@ -741,12 +729,9 @@ pub async fn submit_restriction_form(
     let account_id = form_uuid(&body, "account_id");
     let customer_id = form_uuid(&body, "customer_id");
     if account_id.is_none() && customer_id.is_none() {
-        return Ok(Json(
-            serde_json::to_value(AdminUiResponse::error(
-                "Provide either an Account ID or Customer ID",
-            ))
-            .unwrap(),
-        ));
+        return Ok(Json(AdminUiResponse::error(
+            "Provide either an Account ID or Customer ID",
+        )));
     }
     let mut conn = state
         .pool
@@ -774,16 +759,14 @@ pub async fn submit_restriction_form(
     conn.commit()
         .await
         .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    Ok(Json(
-        serde_json::to_value(AdminUiResponse::redirect("restrictions")).unwrap(),
-    ))
+    Ok(Json(AdminUiResponse::redirect("restrictions")))
 }
 
 #[utoipa::path(
     post,
     path = "/v1/admin/flags",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "RFW page/ack response", body = AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -795,7 +778,7 @@ pub async fn submit_flag_form(
     State(state): State<AppState>,
     headers: HeaderMap,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminUiResponse>, (axum::http::StatusCode, String)> {
     use crate::handlers::set_tenant_context;
     let a = crate::auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
@@ -812,12 +795,9 @@ pub async fn submit_flag_form(
     let account_id = form_uuid(&body, "account_id");
     let customer_id = form_uuid(&body, "customer_id");
     if account_id.is_none() && customer_id.is_none() {
-        return Ok(Json(
-            serde_json::to_value(AdminUiResponse::error(
-                "Provide either an Account ID or Customer ID",
-            ))
-            .unwrap(),
-        ));
+        return Ok(Json(AdminUiResponse::error(
+            "Provide either an Account ID or Customer ID",
+        )));
     }
     let mut conn = state
         .pool
@@ -841,16 +821,14 @@ pub async fn submit_flag_form(
     conn.commit()
         .await
         .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    Ok(Json(
-        serde_json::to_value(AdminUiResponse::redirect("flags")).unwrap(),
-    ))
+    Ok(Json(AdminUiResponse::redirect("flags")))
 }
 
 #[utoipa::path(
     post,
     path = "/v1/admin/dlq/{id}/discard",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "RFW page/ack response", body = AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -862,7 +840,7 @@ pub async fn discard_dlq_entry(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<uuid::Uuid>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminUiResponse>, (axum::http::StatusCode, String)> {
     use crate::handlers::{err_db, set_tenant_context};
     let a = crate::auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
@@ -886,27 +864,36 @@ pub async fn discard_dlq_entry(
         .await
         .map_err(err_db)?;
     if result.rows_affected() == 0 {
-        return Ok(Json(
-            serde_json::to_value(AdminUiResponse::error("DLQ entry not found")).unwrap(),
-        ));
+        return Ok(Json(AdminUiResponse::error("DLQ entry not found")));
     }
     tracing::info!(dlq_id = %id, "admin_ui: DLQ entry discarded");
 
     conn.commit()
         .await
         .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    Ok(Json(
-        serde_json::to_value(AdminUiResponse::redirect("dlq")).unwrap(),
-    ))
+    Ok(Json(AdminUiResponse::redirect("dlq")))
 }
 
 // ── Registration-declared data endpoints (RECON-5) ──────────────────────
+
+/// Reconciliation totals for the admin postings view (OAPEC-9 typed body).
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct AdminReconcileSummary {
+    /// Total posting batches in the ledger.
+    pub total_batches: i64,
+    /// Batches in `accepted` state.
+    pub accepted: i64,
+    /// Batches in `rejected` state.
+    pub rejected: i64,
+    /// Entries currently parked in the DLQ.
+    pub dlq_entries: i64,
+}
 
 #[utoipa::path(
     get,
     path = "/v1/admin/reconcile",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Reconciliation summary", body = AdminReconcileSummary),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -917,7 +904,7 @@ pub async fn discard_dlq_entry(
 pub async fn admin_reconcile_summary(
     State(state): State<AppState>,
     headers: HeaderMap,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+    ) -> Result<Json<AdminReconcileSummary>, (axum::http::StatusCode, String)> {
     use crate::handlers::set_tenant_context;
     let a = crate::auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
@@ -954,19 +941,19 @@ pub async fn admin_reconcile_summary(
         .fetch_one(&mut *conn)
         .await
         .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    Ok(Json(serde_json::json!({
-        "total_batches": total_batches,
-        "accepted": accepted,
-        "rejected": rejected,
-        "dlq_entries": dlq,
-    })))
+    Ok(Json(AdminReconcileSummary {
+        total_batches,
+        accepted,
+        rejected,
+        dlq_entries: dlq,
+    }))
 }
 
 #[utoipa::path(
     get,
     path = "/v1/admin/balances",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "RFW page/ack response", body = AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -977,7 +964,7 @@ pub async fn admin_reconcile_summary(
 pub async fn admin_balances(
     State(state): State<AppState>,
     headers: HeaderMap,
-) -> Result<Json<Vec<serde_json::Value>>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminDataRows>, (axum::http::StatusCode, String)> {
     use crate::handlers::set_tenant_context;
     let a = crate::auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
@@ -1024,14 +1011,27 @@ pub async fn admin_balances(
             })
         })
         .collect();
-    Ok(Json(out))
+    Ok(Json(AdminDataRows::Items { items: out }))
+}
+
+/// Ledger runtime settings shown on the admin settings page (OAPEC-9 typed body).
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct AdminSettings {
+    /// The service identifier.
+    pub service: String,
+    /// The configured stream family.
+    pub stream_family: String,
+    /// The default money denomination.
+    pub default_denomination: String,
+    /// The database connection-pool cap.
+    pub pool_cap: i32,
 }
 
 #[utoipa::path(
     get,
     path = "/v1/admin/settings",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "RFW page/ack response", body = AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -1042,7 +1042,7 @@ pub async fn admin_balances(
 pub async fn admin_settings(
     State(state): State<AppState>,
     headers: HeaderMap,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminSettings>, (axum::http::StatusCode, String)> {
     // Step 5 - Shield decides (principles §5.2, policy design §4.3). The
     // scope-mirror set permits this read action per-scope; platform-admin /
     // org-admin / env-admin scopes carry read permits the same way.
@@ -1054,19 +1054,19 @@ pub async fn admin_settings(
         sentin8::shield::EvalTarget::new("bank8:ledger:accounts:read"),
     )
     .await?;
-    Ok(Json(serde_json::json!({
-        "service": "bank8:ledger",
-        "stream_family": state.config.stream_family,
-        "default_denomination": "CAD",
-        "pool_cap": 3,
-    })))
+    Ok(Json(AdminSettings {
+        service: "bank8:ledger".into(),
+        stream_family: state.config.stream_family.clone(),
+        default_denomination: "CAD".into(),
+        pool_cap: 3,
+    }))
 }
 
 #[utoipa::path(
     get,
     path = "/v1/admin/statements",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "RFW page/ack response", body = AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -1077,7 +1077,7 @@ pub async fn admin_settings(
 pub async fn admin_statements(
     State(state): State<AppState>,
     headers: HeaderMap,
-) -> Result<Json<Vec<serde_json::Value>>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminDataRows>, (axum::http::StatusCode, String)> {
     use crate::handlers::set_tenant_context;
     let a = crate::auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
@@ -1116,7 +1116,7 @@ pub async fn admin_statements(
             })
         })
         .collect();
-    Ok(Json(out))
+    Ok(Json(AdminDataRows::Items { items: out }))
 }
 
 // ── Page definitions ──

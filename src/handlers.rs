@@ -65,6 +65,7 @@ pub mod processing_groups;
 pub mod schedule_tags;
 pub mod streams;
 
+use sentin8::middleware::health::LiveHealth;
 use std::sync::Arc;
 
 use crate::config::LedgerConfig;
@@ -212,13 +213,17 @@ pub async fn emit_event(
     get,
     path = "/v1/health",
     responses(
-        (status = 200, description = "Liveness (version, build)", body = serde_json::Value),
+        (status = 200, description = "Liveness (version, build)", body = sentin8::middleware::health::LiveHealth),
     ),
     security(),
     tag = "meta",
 )]
-pub async fn health() -> axum::Json<serde_json::Value> {
-    axum::Json(
-        serde_json::json!({ "status": "ok", "service": "ledger", "version": sentin8::build_info::id(), "build": sentin8::build_info::build_hash() }),
-    )
+pub async fn health() -> axum::Json<LiveHealth> {
+    axum::Json(LiveHealth {
+        status: "ok".to_string(),
+        service: Some("ledger".to_string()),
+        version: Some(sentin8::build_info::id()),
+        build: Some(sentin8::build_info::build_hash().to_string()),
+        active_connections: None,
+    })
 }

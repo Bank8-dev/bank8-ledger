@@ -5,6 +5,7 @@
 
 //! Parameter handlers - parameters, parameter values, hierarchy nodes.
 
+use utoipa::ToSchema;
 use axum::{
     extract::{Query, State},
     http::{HeaderMap, StatusCode},
@@ -22,7 +23,7 @@ use crate::handlers::{err_db, set_tenant_context, AppState};
 
 // ── Parameters ───────────────────────────────────────────────────────────
 
-#[derive(Debug, serde::Serialize)]
+#[derive(ToSchema, Debug,serde::Serialize)]
 pub struct ParameterResponse {
     pub id: Uuid,
     pub name: String,
@@ -35,7 +36,7 @@ pub struct ParameterResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateParameterRequest {
     pub name: String,
     pub description: Option<String>,
@@ -62,7 +63,7 @@ fn default_string() -> String {
     post,
     path = "/v1/parameters",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = ParameterResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -111,7 +112,7 @@ pub async fn create_parameter(
     get,
     path = "/v1/parameters",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<ParameterResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -145,7 +146,7 @@ pub async fn list_parameters(
 
 // ── Parameter Values ────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(ToSchema, Debug,Clone,serde::Serialize,serde::Deserialize)]
 pub struct ParameterValueResponse {
     pub id: Uuid,
     pub parameter_id: Uuid,
@@ -158,7 +159,7 @@ pub struct ParameterValueResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateParameterValueRequest {
     pub parameter_id: Uuid,
     pub account_id: Option<Uuid>,
@@ -182,7 +183,7 @@ pub struct ListParamValuesQuery {
     post,
     path = "/v1/parameter-values",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = ParameterValueResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -233,7 +234,7 @@ pub async fn create_parameter_value(
     get,
     path = "/v1/parameter-values",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<ParameterValueResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -274,7 +275,7 @@ pub async fn list_parameter_values(
     get,
     path = "/v1/parameter-values:viewEffective",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = ParameterValueResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -480,7 +481,7 @@ pub struct ViewEffectiveQuery {
 
 // ── Hierarchy Nodes ──────────────────────────────────────────────────────
 
-#[derive(Debug, serde::Serialize)]
+#[derive(ToSchema, Debug,serde::Serialize)]
 pub struct HierarchyNodeResponse {
     pub id: Uuid,
     pub parent_id: Option<Uuid>,
@@ -489,7 +490,7 @@ pub struct HierarchyNodeResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateHierarchyNodeRequest {
     pub parent_id: Option<Uuid>,
     pub name: String,
@@ -499,7 +500,7 @@ pub struct CreateHierarchyNodeRequest {
     post,
     path = "/v1/parameter-value-hierarchy-nodes",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = HierarchyNodeResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -568,7 +569,7 @@ pub async fn create_hierarchy_node(
     get,
     path = "/v1/parameter-value-hierarchy-nodes",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<HierarchyNodeResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),

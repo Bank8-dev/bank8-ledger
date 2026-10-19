@@ -9,6 +9,15 @@
 //! canonical paths are annotated on the handlers themselves.
 
 use crate::handlers::AppState;
+use crate::handlers::audit::AuditEventResponse;
+use crate::handlers::accounts::AccountResponse;
+use crate::handlers::customers::CustomerResponse;
+use crate::handlers::flags::{FlagDefinitionResponse, FlagResponse};
+use crate::handlers::params::ParameterResponse;
+use crate::handlers::postings::{DlqRepublishAck, DlqResponse};
+use crate::handlers::products::{ProductResponse, ProductVersionResponse};
+use crate::handlers::restrictions::{RestrictionDefinitionResponse, RestrictionSetResponse};
+use crate::handlers::schedules::{JobResponse, ScheduleResponse};
 use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::IntoResponse;
@@ -19,7 +28,7 @@ use axum::response::IntoResponse;
     get,
     path = "/v1/admin/accounts",
     responses(
-        (status = 200, description = "Accounts (admin view)", body = serde_json::Value),
+        (status = 200, description = "Accounts (admin view)", body = Vec<AccountResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -43,7 +52,7 @@ pub async fn admin_accounts(
     get,
     path = "/v1/admin/overview",
     responses(
-        (status = 200, description = "Admin overview (accounts-backed summary)", body = serde_json::Value),
+        (status = 200, description = "Admin overview (accounts-backed summary)", body = Vec<AccountResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -66,7 +75,7 @@ pub async fn admin_overview(
     get,
     path = "/v1/admin/customers",
     responses(
-        (status = 200, description = "Customers (admin view)", body = serde_json::Value),
+        (status = 200, description = "Customers (admin view)", body = Vec<CustomerResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -90,7 +99,7 @@ pub async fn admin_customers(
     get,
     path = "/v1/admin/flag-definitions",
     responses(
-        (status = 200, description = "Flag definitions (admin view)", body = serde_json::Value),
+        (status = 200, description = "Flag definitions (admin view)", body = Vec<FlagDefinitionResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -112,7 +121,7 @@ pub async fn admin_flag_definitions(
     get,
     path = "/v1/admin/flags",
     responses(
-        (status = 200, description = "Flags (admin view)", body = serde_json::Value),
+        (status = 200, description = "Flags (admin view)", body = Vec<FlagResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -135,7 +144,7 @@ pub async fn admin_flags(
     get,
     path = "/v1/admin/parameters",
     responses(
-        (status = 200, description = "Parameters (admin view)", body = serde_json::Value),
+        (status = 200, description = "Parameters (admin view)", body = Vec<ParameterResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -158,7 +167,7 @@ pub async fn admin_parameters(
     get,
     path = "/v1/admin/restriction-definitions",
     responses(
-        (status = 200, description = "Restriction definitions (admin view)", body = serde_json::Value),
+        (status = 200, description = "Restriction definitions (admin view)", body = Vec<RestrictionDefinitionResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -181,7 +190,7 @@ pub async fn admin_restriction_definitions(
     get,
     path = "/v1/admin/restriction-sets",
     responses(
-        (status = 200, description = "Restriction sets (admin view)", body = serde_json::Value),
+        (status = 200, description = "Restriction sets (admin view)", body = Vec<RestrictionSetResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -206,7 +215,7 @@ pub async fn admin_restriction_sets(
     path = "/v1/admin/dlq/{id}/republish",
     params(("id" = uuid::Uuid, Path, description = "DLQ entry id")),
     responses(
-        (status = 200, description = "Entry republished (same contract as POST /v1/dlq/{id}/republish)", body = serde_json::Value),
+        (status = 200, description = "Entry republished (same contract as POST /v1/dlq/{id}/republish)", body = DlqRepublishAck),
         (status = 404, description = "Unknown DLQ entry"),
     ),
     security(),
@@ -229,7 +238,7 @@ pub async fn admin_republish_dlq(
     path = "/v1/admin/products/{id}",
     params(("id" = uuid::Uuid, Path, description = "Product id")),
     responses(
-        (status = 200, description = "Product (admin view)", body = serde_json::Value),
+        (status = 200, description = "Product (admin view)", body = ProductResponse),
         (status = 404, description = "Unknown product"),
     ),
     security(),
@@ -253,7 +262,7 @@ pub async fn admin_get_product(
     path = "/v1/admin/products/{id}/versions",
     params(("id" = uuid::Uuid, Path, description = "Product id")),
     responses(
-        (status = 200, description = "Product versions (admin view)", body = serde_json::Value),
+        (status = 200, description = "Product versions (admin view)", body = Vec<ProductVersionResponse>),
         (status = 404, description = "Unknown product"),
     ),
     security(),
@@ -275,7 +284,7 @@ pub async fn admin_list_product_versions(
     get,
     path = "/v1/admin/jobs",
     responses(
-        (status = 200, description = "Jobs (admin view)", body = serde_json::Value),
+        (status = 200, description = "Jobs (admin view)", body = Vec<JobResponse>),
     ),
     security(),
     tag = "ledger",
@@ -316,7 +325,7 @@ pub async fn admin_activate_product(
     get,
     path = "/v1/admin/dlq",
     responses(
-        (status = 200, description = "DLQ entries (admin view)", body = serde_json::Value),
+        (status = 200, description = "DLQ entries (admin view)", body = Vec<DlqResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -338,7 +347,7 @@ pub async fn list_dlq_alias(
     get,
     path = "/v1/admin/products",
     responses(
-        (status = 200, description = "Products (admin view)", body = serde_json::Value),
+        (status = 200, description = "Products (admin view)", body = Vec<ProductResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -360,7 +369,7 @@ pub async fn admin_list_products(
     get,
     path = "/v1/audit",
     responses(
-        (status = 200, description = "Audit events (same contract as GET /v1/admin/audit)", body = serde_json::Value),
+        (status = 200, description = "Audit events (same contract as GET /v1/admin/audit)", body = Vec<AuditEventResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -383,7 +392,7 @@ pub async fn audit_events_alias(
     get,
     path = "/v1/admin/schedules",
     responses(
-        (status = 200, description = "Schedules (admin view)", body = serde_json::Value),
+        (status = 200, description = "Schedules (admin view)", body = Vec<ScheduleResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),

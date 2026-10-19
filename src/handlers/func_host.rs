@@ -15,6 +15,7 @@
 //! - `set_flag` - upsert `ACCOUNT_*` flag on an account
 //! - `create_posting` - submit a single posting instruction batch
 
+use utoipa::ToSchema;
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
@@ -28,7 +29,7 @@ use uuid::Uuid;
 use crate::auth;
 use crate::handlers::{err_db, set_tenant_context, AppState};
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct FuncHostRequest {
     /// Host function name (from the CallbackConfig host_functions map).
     pub function: String,
@@ -40,7 +41,7 @@ pub struct FuncHostRequest {
     pub env_id: Uuid,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(ToSchema, Debug,serde::Serialize)]
 pub struct FuncHostResponse {
     pub ok: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -53,7 +54,7 @@ pub struct FuncHostResponse {
     post,
     path = "/v1/internal/func-host",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = FuncHostResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),

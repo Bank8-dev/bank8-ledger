@@ -656,11 +656,24 @@ pub struct ScheduleRunRequest {
 /// atomic posting batch. A `bank8_ledger_jobs` row records the outcome
 /// `failed` + `error_message` when any step fails (never unconditionally
 /// completed); `last_run_at` is updated only via propagated, awaited writes.
+
+/// The `POST /v1/internal/schedules/run` reply.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct ScheduleRunResponse {
+    /// The recorded job row id.
+    pub job_id: uuid::Uuid,
+    /// The resolved schedule type.
+    pub schedule_type: String,
+    /// Per-step result documents.
+    pub results: Vec<serde_json::Value>,
+}
+
 #[utoipa::path(
     post,
     path = "/v1/internal/schedules/run",
     responses(
-        (status = 200, description = "Due schedules dispatched (Cron proxy-back target)", body = serde_json::Value),
+        (status = 200, description = "Due schedules dispatched (Cron proxy-back target)", body = ScheduleRunResponse),
         (status = 401, description = "Not authenticated"),
     ),
     security(),
@@ -670,7 +683,7 @@ pub async fn internal_schedule_run(
     State(state): State<AppState>,
     headers: HeaderMap,
     Json(req): Json<ScheduleRunRequest>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<ScheduleRunResponse>, (StatusCode, String)> {
     let _a = auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
         &state.policy,
@@ -738,11 +751,11 @@ pub async fn internal_schedule_run(
                     .await
                     .map_err(err_db)?;
             }
-            Ok(Json(serde_json::json!({
-                "job_id" : job_id,
-                "schedule_type" : schedule_type,
-                "results" : results,
-            })))
+            Ok(Json(ScheduleRunResponse {
+                job_id,
+                schedule_type,
+                results,
+            }))
         }
         Err(e) => {
             let msg = e.to_string();

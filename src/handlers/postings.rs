@@ -706,11 +706,30 @@ pub async fn get_posting_instructions(
 // ── DLQ ──────────────────────────────────────────────────────────────────
 
 /// `GET /v1/admin/postings` - posting batches list (RFW DataTable).
+
+/// One posting batch row (admin view).
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct PostingBatchRow {
+    /// The batch row id.
+    pub id: uuid::Uuid,
+    /// The batch business id.
+    pub batch_id: String,
+    /// Batch status.
+    pub status: String,
+    /// Postings in the batch.
+    pub instruction_count: i64,
+    /// Created at.
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    /// Completed at (absent while open).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
 #[utoipa::path(
     get,
     path = "/v1/admin/postings",
     responses(
-        (status = 200, description = "Posting batches (admin view)", body = serde_json::Value),
+        (status = 200, description = "Posting batches (admin view)", body = Vec<PostingBatchRow>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -720,7 +739,7 @@ pub async fn get_posting_instructions(
 pub async fn list_postings_batches(
     State(state): State<AppState>,
     headers: HeaderMap,
-) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, String)> {
+) -> Result<Json<Vec<PostingBatchRow>>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
         &state.policy,
@@ -740,17 +759,17 @@ pub async fn list_postings_batches(
     .fetch_all(&mut *conn)
     .await
     .map_err(err_db)?;
-    let batches: Vec<serde_json::Value> = rows
+    let batches: Vec<PostingBatchRow> = rows
         .iter()
         .map(|r| {
-            serde_json::json!({
-                "id": r.get::<Uuid, _>("id"),
-                "batch_id": r.get::<String, _>("batch_id"),
-                "status": r.get::<String, _>("status"),
-                "instruction_count": r.get::<i32, _>("instruction_count"),
-                "created_at": r.get::<chrono::DateTime<chrono::Utc>, _>("created_at"),
-                "completed_at": r.get::<Option<chrono::DateTime<chrono::Utc>>, _>("completed_at"),
-            })
+            PostingBatchRow {
+                id: r.get::<Uuid, _>("id"),
+                batch_id: r.get::<String, _>("batch_id"),
+                status: r.get::<String, _>("status"),
+                instruction_count: r.get::<i32, _>("instruction_count") as i64,
+                created_at: r.get::<chrono::DateTime<chrono::Utc>, _>("created_at"),
+                completed_at: r.get::<Option<chrono::DateTime<chrono::Utc>>, _>("completed_at"),
+            }
         })
         .collect();
     Ok(Json(batches))
@@ -857,6 +876,15 @@ pub async fn list_dlq(
 }
 
 /// `POST /v1/dlq/{id}/republish` - republish a DLQ entry (local posting or Cron schedule).
+/// Republish acknowledgement for one DLQ entry (OAPEC-9 typed body).
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct DlqRepublishAck {
+    /// Whether the entry was republished.
+    pub republished: bool,
+    /// Where the entry was found (`local` or `cron`).
+    pub source: String,
+}
+
 #[utoipa::path(
     post,
     path = "/v1/dlq/{id}/republish",
@@ -873,7 +901,7 @@ pub async fn republish_dlq(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<DlqRepublishAck>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
         &state.policy,
@@ -934,9 +962,10 @@ pub async fn republish_dlq(
             .execute(&mut *conn)
             .await
             .map_err(err_db)?;
-        return Ok(Json(
-            serde_json::json!({ "republished": true, "source": "local" }),
-        ));
+        return Ok(Json(DlqRepublishAck {
+            republished: true,
+            source: "local".into(),
+        }));
     }
     // Not in local DLQ - try Cron DLQ.
     let cron = crate::cron_client::CronClient::new(
@@ -946,9 +975,10 @@ pub async fn republish_dlq(
 
     conn.commit().await.map_err(err_db)?;
     match cron.republish_dlq(&id.to_string()).await {
-        Ok(()) => Ok(Json(
-            serde_json::json!({ "republished": true, "source": "cron" }),
-        )),
+        Ok(()) => Ok(Json(DlqRepublishAck {
+            republished: true,
+            source: "cron".into(),
+        })),
         Err(e) => Err((
             StatusCode::NOT_FOUND,
             format!("DLQ entry not found in local or Cron: {e}"),

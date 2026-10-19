@@ -5,6 +5,7 @@
 
 //! Flag handlers - flag definitions and flags.
 
+use utoipa::ToSchema;
 use axum::{
     extract::{Query, State},
     http::{HeaderMap, StatusCode},
@@ -17,7 +18,7 @@ use uuid::Uuid;
 use crate::auth;
 use crate::handlers::{err_db, set_tenant_context, AppState};
 
-#[derive(Debug, serde::Serialize)]
+#[derive(ToSchema, Debug,serde::Serialize)]
 pub struct FlagDefinitionResponse {
     pub id: Uuid,
     pub flag_name: String,
@@ -27,7 +28,7 @@ pub struct FlagDefinitionResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateFlagDefinitionRequest {
     pub flag_name: String,
     #[serde(default = "default_account")]
@@ -47,7 +48,7 @@ fn default_private() -> String {
     post,
     path = "/v1/flag-definitions",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = FlagDefinitionResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -100,7 +101,7 @@ pub async fn create_flag_definition(
     get,
     path = "/v1/flag-definitions",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<FlagDefinitionResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -134,7 +135,7 @@ pub async fn list_flag_definitions(
     Ok(Json(rows.iter().map(row_to_flag_def).collect()))
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(ToSchema, Debug,serde::Serialize)]
 pub struct FlagResponse {
     pub id: Uuid,
     pub flag_definition_id: Uuid,
@@ -146,7 +147,7 @@ pub struct FlagResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(ToSchema, Debug,Deserialize)]
 pub struct CreateFlagRequest {
     pub flag_definition_id: Uuid,
     pub account_id: Option<Uuid>,
@@ -175,7 +176,7 @@ pub struct ListFlagsQuery {
     post,
     path = "/v1/flags",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = FlagDefinitionResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
@@ -232,7 +233,7 @@ pub async fn create_flag(
     get,
     path = "/v1/flags",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = Vec<FlagResponse>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Missing the ledger scope gate"),
     ),
