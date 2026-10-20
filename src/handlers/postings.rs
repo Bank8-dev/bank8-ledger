@@ -761,15 +761,13 @@ pub async fn list_postings_batches(
     .map_err(err_db)?;
     let batches: Vec<PostingBatchRow> = rows
         .iter()
-        .map(|r| {
-            PostingBatchRow {
-                id: r.get::<Uuid, _>("id"),
-                batch_id: r.get::<String, _>("batch_id"),
-                status: r.get::<String, _>("status"),
-                instruction_count: r.get::<i32, _>("instruction_count") as i64,
-                created_at: r.get::<chrono::DateTime<chrono::Utc>, _>("created_at"),
-                completed_at: r.get::<Option<chrono::DateTime<chrono::Utc>>, _>("completed_at"),
-            }
+        .map(|r| PostingBatchRow {
+            id: r.get::<Uuid, _>("id"),
+            batch_id: r.get::<String, _>("batch_id"),
+            status: r.get::<String, _>("status"),
+            instruction_count: r.get::<i32, _>("instruction_count") as i64,
+            created_at: r.get::<chrono::DateTime<chrono::Utc>, _>("created_at"),
+            completed_at: r.get::<Option<chrono::DateTime<chrono::Utc>>, _>("completed_at"),
         })
         .collect();
     Ok(Json(batches))

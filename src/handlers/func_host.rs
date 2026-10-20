@@ -15,7 +15,6 @@
 //! - `set_flag` - upsert `ACCOUNT_*` flag on an account
 //! - `create_posting` - submit a single posting instruction batch
 
-use utoipa::ToSchema;
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
@@ -24,12 +23,13 @@ use axum::{
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use sqlx::Row;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::auth;
 use crate::handlers::{err_db, set_tenant_context, AppState};
 
-#[derive(ToSchema, Debug,Deserialize)]
+#[derive(ToSchema, Debug, Deserialize)]
 pub struct FuncHostRequest {
     /// Host function name (from the CallbackConfig host_functions map).
     pub function: String,
@@ -41,7 +41,7 @@ pub struct FuncHostRequest {
     pub env_id: Uuid,
 }
 
-#[derive(ToSchema, Debug,serde::Serialize)]
+#[derive(ToSchema, Debug, serde::Serialize)]
 pub struct FuncHostResponse {
     pub ok: bool,
     #[serde(skip_serializing_if = "Option::is_none")]

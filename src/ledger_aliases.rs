@@ -8,9 +8,8 @@
 //! own annotation here (same handler body, alias path, same gates). The
 //! canonical paths are annotated on the handlers themselves.
 
-use crate::handlers::AppState;
-use crate::handlers::audit::AuditEventResponse;
 use crate::handlers::accounts::AccountResponse;
+use crate::handlers::audit::AuditEventResponse;
 use crate::handlers::customers::CustomerResponse;
 use crate::handlers::flags::{FlagDefinitionResponse, FlagResponse};
 use crate::handlers::params::ParameterResponse;
@@ -18,6 +17,7 @@ use crate::handlers::postings::{DlqRepublishAck, DlqResponse};
 use crate::handlers::products::{ProductResponse, ProductVersionResponse};
 use crate::handlers::restrictions::{RestrictionDefinitionResponse, RestrictionSetResponse};
 use crate::handlers::schedules::{JobResponse, ScheduleResponse};
+use crate::handlers::AppState;
 use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::IntoResponse;
@@ -202,7 +202,9 @@ pub async fn admin_restriction_sets(
     headers: HeaderMap,
     Query(q): Query<crate::handlers::restrictions::ListRestrictionSetsQuery>,
 ) -> axum::response::Response {
-    match crate::handlers::restrictions::list_restriction_sets(State(state), headers, Query(q)).await {
+    match crate::handlers::restrictions::list_restriction_sets(State(state), headers, Query(q))
+        .await
+    {
         Ok(v) => v.into_response(),
         Err((st, m)) => (st, m).into_response(),
     }
@@ -273,7 +275,9 @@ pub async fn admin_list_product_versions(
     headers: HeaderMap,
     Path(product_id): Path<uuid::Uuid>,
 ) -> axum::response::Response {
-    match crate::handlers::products::list_product_versions(State(state), headers, Path(product_id)).await {
+    match crate::handlers::products::list_product_versions(State(state), headers, Path(product_id))
+        .await
+    {
         Ok(v) => v.into_response(),
         Err((st, m)) => (st, m).into_response(),
     }

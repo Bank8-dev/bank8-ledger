@@ -5,7 +5,6 @@
 
 //! Flag handlers - flag definitions and flags.
 
-use utoipa::ToSchema;
 use axum::{
     extract::{Query, State},
     http::{HeaderMap, StatusCode},
@@ -13,12 +12,13 @@ use axum::{
 };
 use serde::Deserialize;
 use sqlx::Row;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::auth;
 use crate::handlers::{err_db, set_tenant_context, AppState};
 
-#[derive(ToSchema, Debug,serde::Serialize)]
+#[derive(ToSchema, Debug, serde::Serialize)]
 pub struct FlagDefinitionResponse {
     pub id: Uuid,
     pub flag_name: String,
@@ -28,7 +28,7 @@ pub struct FlagDefinitionResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(ToSchema, Debug,Deserialize)]
+#[derive(ToSchema, Debug, Deserialize)]
 pub struct CreateFlagDefinitionRequest {
     pub flag_name: String,
     #[serde(default = "default_account")]
@@ -135,7 +135,7 @@ pub async fn list_flag_definitions(
     Ok(Json(rows.iter().map(row_to_flag_def).collect()))
 }
 
-#[derive(ToSchema, Debug,serde::Serialize)]
+#[derive(ToSchema, Debug, serde::Serialize)]
 pub struct FlagResponse {
     pub id: Uuid,
     pub flag_definition_id: Uuid,
@@ -147,7 +147,7 @@ pub struct FlagResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(ToSchema, Debug,Deserialize)]
+#[derive(ToSchema, Debug, Deserialize)]
 pub struct CreateFlagRequest {
     pub flag_definition_id: Uuid,
     pub account_id: Option<Uuid>,

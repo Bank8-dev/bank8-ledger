@@ -246,7 +246,9 @@ pub async fn submit_product_form(
         .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     tracing::info!(product_id = %product_id, %name, %product_type, "admin_ui: product created via form");
     // Redirect to the product detail page.
-    Ok(Json(AdminUiResponse::redirect(format!("products/{product_id}"))))
+    Ok(Json(AdminUiResponse::redirect(format!(
+        "products/{product_id}"
+    ))))
 }
 
 #[utoipa::path(
@@ -904,7 +906,7 @@ pub struct AdminReconcileSummary {
 pub async fn admin_reconcile_summary(
     State(state): State<AppState>,
     headers: HeaderMap,
-    ) -> Result<Json<AdminReconcileSummary>, (axum::http::StatusCode, String)> {
+) -> Result<Json<AdminReconcileSummary>, (axum::http::StatusCode, String)> {
     use crate::handlers::set_tenant_context;
     let a = crate::auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(

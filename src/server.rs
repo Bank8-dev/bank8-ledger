@@ -354,11 +354,13 @@ pub fn routes(
         // Admin data endpoints (RFW data_endpoint calls - Dash prepends /v1/admin).
         .route(
             "/v1/admin/products",
-            get(crate::ledger_aliases::admin_list_products).post(handlers::admin_ui::submit_product_form),
+            get(crate::ledger_aliases::admin_list_products)
+                .post(handlers::admin_ui::submit_product_form),
         )
         .route(
             "/v1/admin/products/{id}",
-            get(crate::ledger_aliases::admin_get_product).put(handlers::admin_ui::submit_product_edit),
+            get(crate::ledger_aliases::admin_get_product)
+                .put(handlers::admin_ui::submit_product_edit),
         )
         .route(
             "/v1/admin/products/{id}/versions",
@@ -371,7 +373,8 @@ pub fn routes(
         )
         .route(
             "/v1/admin/accounts",
-            get(crate::ledger_aliases::admin_accounts).post(handlers::admin_ui::submit_account_form),
+            get(crate::ledger_aliases::admin_accounts)
+                .post(handlers::admin_ui::submit_account_form),
         )
         .route(
             "/v1/admin/accounts/{id}",
@@ -386,7 +389,10 @@ pub fn routes(
             "/v1/admin/schedules",
             get(crate::ledger_aliases::admin_list_schedules),
         )
-        .route("/v1/admin/jobs", get(crate::ledger_aliases::admin_list_jobs))
+        .route(
+            "/v1/admin/jobs",
+            get(crate::ledger_aliases::admin_list_jobs),
+        )
         .route("/v1/admin/dlq", get(crate::ledger_aliases::list_dlq_alias))
         .route(
             "/v1/admin/dlq/{id}/republish",
@@ -403,7 +409,8 @@ pub fn routes(
         .route("/v1/admin/audit", get(handlers::audit::list_audit_events))
         .route(
             "/v1/admin/parameters",
-            get(crate::ledger_aliases::admin_parameters).post(handlers::admin_ui::submit_parameter_form),
+            get(crate::ledger_aliases::admin_parameters)
+                .post(handlers::admin_ui::submit_parameter_form),
         )
         .route(
             "/v1/admin/restriction-sets",
@@ -423,7 +430,10 @@ pub fn routes(
             get(crate::ledger_aliases::admin_flag_definitions),
         )
         // Registration-declared summary/data endpoints (Dash DataTable fetches).
-        .route("/v1/admin/overview", get(crate::ledger_aliases::admin_overview))
+        .route(
+            "/v1/admin/overview",
+            get(crate::ledger_aliases::admin_overview),
+        )
         .route(
             "/v1/admin/reconcile",
             get(handlers::admin_ui::admin_reconcile_summary),

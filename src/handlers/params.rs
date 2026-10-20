@@ -5,7 +5,6 @@
 
 //! Parameter handlers - parameters, parameter values, hierarchy nodes.
 
-use utoipa::ToSchema;
 use axum::{
     extract::{Query, State},
     http::{HeaderMap, StatusCode},
@@ -16,6 +15,7 @@ use sqlx::Row;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Duration;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::auth;
@@ -23,7 +23,7 @@ use crate::handlers::{err_db, set_tenant_context, AppState};
 
 // ── Parameters ───────────────────────────────────────────────────────────
 
-#[derive(ToSchema, Debug,serde::Serialize)]
+#[derive(ToSchema, Debug, serde::Serialize)]
 pub struct ParameterResponse {
     pub id: Uuid,
     pub name: String,
@@ -36,7 +36,7 @@ pub struct ParameterResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(ToSchema, Debug,Deserialize)]
+#[derive(ToSchema, Debug, Deserialize)]
 pub struct CreateParameterRequest {
     pub name: String,
     pub description: Option<String>,
@@ -146,7 +146,7 @@ pub async fn list_parameters(
 
 // ── Parameter Values ────────────────────────────────────────────────────
 
-#[derive(ToSchema, Debug,Clone,serde::Serialize,serde::Deserialize)]
+#[derive(ToSchema, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ParameterValueResponse {
     pub id: Uuid,
     pub parameter_id: Uuid,
@@ -159,7 +159,7 @@ pub struct ParameterValueResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(ToSchema, Debug,Deserialize)]
+#[derive(ToSchema, Debug, Deserialize)]
 pub struct CreateParameterValueRequest {
     pub parameter_id: Uuid,
     pub account_id: Option<Uuid>,
@@ -481,7 +481,7 @@ pub struct ViewEffectiveQuery {
 
 // ── Hierarchy Nodes ──────────────────────────────────────────────────────
 
-#[derive(ToSchema, Debug,serde::Serialize)]
+#[derive(ToSchema, Debug, serde::Serialize)]
 pub struct HierarchyNodeResponse {
     pub id: Uuid,
     pub parent_id: Option<Uuid>,
@@ -490,7 +490,7 @@ pub struct HierarchyNodeResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(ToSchema, Debug,Deserialize)]
+#[derive(ToSchema, Debug, Deserialize)]
 pub struct CreateHierarchyNodeRequest {
     pub parent_id: Option<Uuid>,
     pub name: String,

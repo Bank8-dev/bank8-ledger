@@ -5,7 +5,6 @@
 
 //! Restriction handlers - restriction definitions and restriction sets.
 
-use utoipa::ToSchema;
 use axum::{
     extract::{Query, State},
     http::{HeaderMap, StatusCode},
@@ -13,12 +12,13 @@ use axum::{
 };
 use serde::Deserialize;
 use sqlx::Row;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::auth;
 use crate::handlers::{err_db, set_tenant_context, AppState};
 
-#[derive(ToSchema, Debug,serde::Serialize)]
+#[derive(ToSchema, Debug, serde::Serialize)]
 pub struct RestrictionDefinitionResponse {
     pub id: Uuid,
     pub action: String,
@@ -27,7 +27,7 @@ pub struct RestrictionDefinitionResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(ToSchema, Debug,Deserialize)]
+#[derive(ToSchema, Debug, Deserialize)]
 pub struct CreateRestrictionDefinitionRequest {
     pub action: String,
     pub description: Option<String>,
@@ -120,7 +120,7 @@ pub async fn list_restriction_definitions(
     Ok(Json(rows.iter().map(row_to_restriction_def).collect()))
 }
 
-#[derive(ToSchema, Debug,serde::Serialize)]
+#[derive(ToSchema, Debug, serde::Serialize)]
 pub struct RestrictionSetResponse {
     pub id: Uuid,
     pub restriction_definition_id: Uuid,
@@ -132,7 +132,7 @@ pub struct RestrictionSetResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(ToSchema, Debug,Deserialize)]
+#[derive(ToSchema, Debug, Deserialize)]
 pub struct CreateRestrictionSetRequest {
     pub restriction_definition_id: Uuid,
     pub account_id: Option<Uuid>,
