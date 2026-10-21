@@ -220,7 +220,7 @@ pub fn callback_base_url(config: &crate::config::LedgerConfig) -> String {
     if domain.trim().is_empty() {
         return format!("http://localhost:{}", config.port);
     }
-    // SENTIN8_DOMAIN is the platform root (e.g. `sentin8.local`); the
+    // SENTIN8_DOMAIN is the platform root (e.g. `local.sentin8.dev`); the
     // service's hostname follows the uniform hierarchy `{service}.{env}.{org}.{tld}`
     // - platform services are the `ops` env of the `sys` org.
     format!("https://bank8-ledger.ops.sys.{}", domain.trim())
