@@ -251,7 +251,7 @@ pub async fn seed_for_service_event(pool: &PgPool, msg: &sentin8::bus::contracts
         return;
     }
 
-    // VDC-2 (design/sentin8-vertical-data-plane-contract.md §VDC.4): the
+    // (design/sentin8-vertical-data-plane-contract.md §VDC.4): the
     // former "verify in sys_services" gate was a cross-database read that
     // never worked (the platform tables do not exist in the bank8
     // database - the seed was ALWAYS silently skipped). Provenance is now

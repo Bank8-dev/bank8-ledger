@@ -874,7 +874,7 @@ pub async fn list_dlq(
 }
 
 /// `POST /v1/dlq/{id}/republish` - republish a DLQ entry (local posting or Cron schedule).
-/// Republish acknowledgement for one DLQ entry (OAPEC-9 typed body).
+/// Republish acknowledgement for one DLQ entry (typed body).
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct DlqRepublishAck {
     /// Whether the entry was republished.

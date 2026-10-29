@@ -91,7 +91,7 @@ const M2M_GRANTS: &[M2mGrant] = &[
         workload: "ledger-storage",
         scopes: &["sentin8:storage:env:write", "sentin8:storage:env:read"],
     },
-    // TLS-RLS-4 (design/sentin8-vertical-data-plane-contract.md §VDC.7):
+    // (design/sentin8-vertical-data-plane-contract.md §VDC.7):
     // the database-free HostContextResolver’s resolve workload - cache
     // miss calls Sys `GET /v1/resolve/hostname`.
     M2mGrant {

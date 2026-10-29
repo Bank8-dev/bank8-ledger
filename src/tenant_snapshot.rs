@@ -8,7 +8,7 @@
 //! The staff directory reads (`GET /v1/customers?env_id=<foreign env>`)
 //! must verify that the caller's env belongs to the requested env's
 //! org - the former cross-database `sentin8.sys_environments` joins
-//! never existed in the vertical's own database (VDC-2) and failed
+//! never existed in the vertical's own database and failed
 //! every such request. The sanctioned on-demand read is Sys's
 //! tenant-snapshot API (`GET /v1/tenants/{env_id}`) via the
 //! cert-presenting `bank8-ledger-sys` workload (CERTFREE-4V - no M2M

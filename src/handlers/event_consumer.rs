@@ -112,7 +112,7 @@ async fn sse_loop(
             };
 
             // Dispatch to the handler (full envelope - provenance
-            // verification needs publisher_vertical, VDC-2).
+            // verification needs publisher_vertical,).
             seed_accounts::seed_for_service_event(pool, &msg).await;
 
             // ACK the message.

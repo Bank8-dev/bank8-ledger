@@ -561,7 +561,7 @@ pub async fn submit_account_edit(
     Ok(Json(AdminUiResponse::redirect("accounts")))
 }
 
-/// Acknowledgement after an admin posting form submission (OAPEC-9 typed body).
+/// Acknowledgement after an admin posting form submission (typed body).
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct AdminPostingAck {
     /// The RFW route to navigate back to.
@@ -878,7 +878,7 @@ pub async fn discard_dlq_entry(
 
 // ── Registration-declared data endpoints (RECON-5) ──────────────────────
 
-/// Reconciliation totals for the admin postings view (OAPEC-9 typed body).
+/// Reconciliation totals for the admin postings view (typed body).
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct AdminReconcileSummary {
     /// Total posting batches in the ledger.
@@ -1016,7 +1016,7 @@ pub async fn admin_balances(
     Ok(Json(AdminDataRows::Items { items: out }))
 }
 
-/// Ledger runtime settings shown on the admin settings page (OAPEC-9 typed body).
+/// Ledger runtime settings shown on the admin settings page (typed body).
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct AdminSettings {
     /// The service identifier.
