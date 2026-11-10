@@ -2645,8 +2645,10 @@ fn all_module_options() -> Vec<FormFieldOption> {
     ]
 }
 
-/// Stage 1: Product type selection - card grid of 13 product types.
-/// Each card is a Button that navigates to products/new?type={id}.
+/// Stage 1: Product type selection - card grid of ready-made product
+/// blueprints (a convenience catalog, not a limit: the API accepts any
+/// free-form product type). Each card is a Button that navigates to
+/// products/new?type={id}.
 fn product_type_selection_page() -> AdminUiPage {
     // Card-based layout: each product type is a clickable button that
     // navigates to the config form. The button label includes the product

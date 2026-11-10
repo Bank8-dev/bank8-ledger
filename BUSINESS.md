@@ -119,19 +119,24 @@ destination.
 
 | Capability | Business rule |
 |---|---|
-| Product creation | A product declares a type, a parameter set, and a list of validation modules |
+| Product creation | A product declares a type (free-form label - no fixed catalog or enum), a parameter set, and a list of validation modules; unknown types are first-class and compose from the full module library, so any financial product can be created on the same ledger |
 | Versioning | Every product change creates a new version; existing accounts keep the version they were opened with until migrated |
 | Activation | Only an activated product can open accounts; activation is a distinct, audited action |
 | Plans | Accounts are assigned plans; plan migrations move accounts between plans in audited batches |
 | Validation modules | Reusable rule modules (limits, overdraft rules, tiered rates, fee schedules, dormancy, sweeps) validate account lifecycle and posting behaviour |
 | Type-specific validation | Product parameters are validated against the schema of their product type (e.g. credit limit must be > 0; mortgage due-day must be 1-28; savings interest rate must be ≥ 0) - a misconfigured product is rejected at creation, not at the customer's first posting |
-| Admin catalog | The admin console offers a 13-type product catalog with pre-selected default modules and typed settings forms, so a product manager configures rather than codes |
+| Admin catalog | The admin console offers ready-made product blueprints with pre-selected default modules and typed settings forms, so a product manager configures rather than codes - a starting point, never a ceiling: any new type composes via the public API |
 
-#### 3.3.1 Product type catalog - the 13 built-in product types
+#### 3.3.1 Ready-made product blueprints (the shipped catalog - not a limit)
 
-Every product type carries a balance-sheet side, supported currencies,
-a default module set, and its own settings. Representative settings and
-defaults (all overridable per product / per account):
+The product factory is open by design: `product_type` is a free-form
+label, and a product nobody has built before is created the same way as
+one everyone has. The shipped catalog below is a set of **ready-made
+blueprints** - pre-selected module sets and typed settings forms for the
+common retail shapes. Every setting is overridable per product / per
+account, every module list is editable, and types outside this catalog
+are first-class (module composition allows the full library for unknown
+types). Representative settings and defaults:
 
 | Product type | Side | Currencies | Signature settings (defaults) |
 |---|---|---|---|
