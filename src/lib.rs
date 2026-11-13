@@ -13,6 +13,15 @@ pub mod handlers;
 pub mod ledger_aliases;
 pub mod modules;
 pub mod openapi;
+
+// The utoipa dump for registration::print - mirrored from main.rs; the
+// lib crate compiles registration::print too (test harnesses embedding
+// via #[path] never invoke it, so the pointer is referenced, not run).
+static OPENAPI_DUMP: fn() -> serde_json::Value = || {
+    use utoipa::OpenApi as _;
+    serde_json::to_value(openapi::LedgerOpenApi::openapi()).unwrap_or(serde_json::Value::Null)
+};
+
 pub mod policy;
 pub mod registration;
 pub mod server;
